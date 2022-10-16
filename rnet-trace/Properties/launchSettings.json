@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "remotenet-trace": {
+      "commandName": "Project",
+      "commandLineArgs": " -t PhoneE -i YourPhone.YPP.Transport.Chunking.OutgoingMessageFragmenter..ctor"
+    }
+  }
+}

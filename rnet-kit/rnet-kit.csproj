@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>remotenet_kit</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
+    <ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
+    <ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
+  </ItemGroup>
+
+</Project>
