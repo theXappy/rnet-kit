@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "remotenet-dump": {
+      "commandName": "Project",
+      "commandLineArgs": "types -t YourP -q System.String"
+    }
+  }
+}

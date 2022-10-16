@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "rnet-kit": {
+      "commandName": "Project",
+      "commandLineArgs": "trace -t PhoneE -i Microsoft.AspNetCore.SignalR.Client.HubConnection.SendHubMessage"
+    }
+  }
+}
