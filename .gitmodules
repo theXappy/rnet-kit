@@ -1,0 +1,3 @@
+[submodule "RemoteNetRepl"]
+	path = RemoteNetRepl
+	url = https://github.com/theXappy/RemoteNetRepl.git
