@@ -85,7 +85,7 @@ public class Program
         Console.WriteLine($"Members of type {dumpedType.FullName}:");
         foreach (var member in dumpedType.GetMembers())
         {
-            Console.WriteLine(member);
+            Console.WriteLine($"[{member.MemberType}] {member}");
         }
         return 0;
     }
