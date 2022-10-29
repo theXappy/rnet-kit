@@ -6,9 +6,12 @@ using System.Text.RegularExpressions;
 using CommandLine;
 using Pastel;
 using RemoteNET;
-using remotenet_trace;
+using RemotenetTrace;
 using ScubaDiver.API.Hooking;
 using Color = System.Drawing.Color;
+using System.Linq.Expressions;
+using System.Linq.Dynamic.Core;
+using RemoteNET.Internal;
 
 namespace QuickStart
 {
@@ -195,8 +198,8 @@ namespace QuickStart
                 string[] paramNames = method.GetParameters().Select(param => param.Name).ToArray();
                 string[] paramTypes = method.GetParameters().Select(param => param.ParameterType.ToString()).ToArray();
 
-                ICollection<string> hookBody = HandlersRepo.Get(className, method.Name, paramTypes.Length);
-                IEnumerable<Delegate> lambdaExpressions = hookBody.Select(body => HandlersRepo.Compile(body));
+                ICollection<HandlersRepo.ColoredExpression> expressions = HandlersRepo.Get(className, method.Name, paramTypes.Length);
+                IEnumerable<Delegate> lambdaExpressions = expressions.Select(body => HandlersRepo.Compile(body));
                 HookAction hAction = (context, instance, args) =>
                 {
                     foreach (var lambdaExpression in lambdaExpressions)
@@ -205,12 +208,11 @@ namespace QuickStart
                         {
                             object? x = lambdaExpression.DynamicInvoke(new object[3]
                             {
-                                new TraceContext(context.StackTrace, start, className, methodName, paramNames,
-                                    paramTypes),
-                                instance,
-                                args
+                                new TraceContext(context.StackTrace, start, className, methodName, paramTypes, paramNames),
+                                instance as DynamicRemoteObject,
+                                args.Cast<DynamicRemoteObject>().ToArray()
                             });
-                            Console.WriteLine((x as string) ?? x.ToString());
+                            Console.Write((x as string) ?? x.ToString());
                         }
                         catch (Exception ex)
                         {
