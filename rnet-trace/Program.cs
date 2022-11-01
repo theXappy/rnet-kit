@@ -169,13 +169,27 @@ namespace QuickStart
                     encodedMethodQuery);
             }
 
+            string fullMethodIdentifier = encodedMethodQuery;
+            int paranthesisIndex = fullMethodIdentifier.IndexOf('(');
+            if (paranthesisIndex != -1)
+                fullMethodIdentifier = fullMethodIdentifier[..paranthesisIndex];
 
-            fullTypeNameQuery = encodedMethodQuery.Substring(0, encodedMethodQuery.LastIndexOf('.'));
-            methodName = encodedMethodQuery.Substring(encodedMethodQuery.LastIndexOf('.') + 1);
+
+            fullTypeNameQuery = fullMethodIdentifier.Substring(0, fullMethodIdentifier.LastIndexOf('.'));
+            // Note that we are looking for the index of the '.' in the TRIMMED SIGNATURE
+            // and substringing from the WHOLE QUERY.
+            // This will hopefully turn these:
+            //      SomeNameSpace.SomeClass.SomeMethod(SomeNameSpace.AnotherClass param1)
+            // Into this:
+            //      SomeMethod(SomeNameSpace.AnotherClass param1)
+            //
+            // (And not this, after the '.' in the parameters part:
+            // AnotherClass param1)
+            methodName = encodedMethodQuery.Substring(fullMethodIdentifier.LastIndexOf('.') + 1);
             if (encodedMethodQuery.Contains("..ctor"))
             {
-                fullTypeNameQuery = encodedMethodQuery.Substring(0, encodedMethodQuery.LastIndexOf("..ctor"));
-                methodName = encodedMethodQuery.Substring(encodedMethodQuery.LastIndexOf("..ctor") + 1);
+                fullTypeNameQuery = fullMethodIdentifier.Substring(0, fullMethodIdentifier.LastIndexOf("..ctor"));
+                methodName = fullMethodIdentifier.Substring(fullMethodIdentifier.LastIndexOf("..ctor") + 1);
             }
             encodedParameters = null;
             if (methodName.Contains("("))
@@ -251,6 +265,7 @@ namespace QuickStart
                 //
                 // Using 'Split(' ').First()' to get the TYPE part in case the user has given us also the parameter name:
                 // "(object myObj)" ==> "object"
+                encodedParametersQuery = encodedParametersQuery.TrimStart('(').TrimEnd(')');
                 string[] paramFilters = encodedParametersQuery.Split(',').Select(paramType => paramType.Trim().Split(' ').First()).ToArray();
                 foreach (MethodInfo methodInfo in matchingMethods)
                 {
