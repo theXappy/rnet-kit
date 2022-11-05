@@ -38,7 +38,7 @@ public class Program
         List<CandidateType>? candidates = null;
         try
         {
-            var app = RemoteApp.Connect(opts.TargetProcess);
+            using var app = RemoteApp.Connect(opts.TargetProcess);
             candidates = app.QueryTypes(opts.Query).ToList();
         }
         catch (Exception e)
@@ -67,7 +67,7 @@ public class Program
         Type dumpedType;
         try
         {
-            var app = RemoteApp.Connect(opts.TargetProcess);
+            using var app = RemoteApp.Connect(opts.TargetProcess);
             dumpedType = app.GetRemoteType(opts.Query);
         }
         catch (Exception e)
@@ -95,7 +95,7 @@ public class Program
         Console.WriteLine("Loading...");
         try
         {
-            var app = RemoteApp.Connect(opts.TargetProcess);
+            using var app = RemoteApp.Connect(opts.TargetProcess);
             var matches = app.QueryInstances(opts.TypeQuery).ToList();
             Console.WriteLine($"Found {matches.Count} objects.");
             foreach (var candidate in matches)
