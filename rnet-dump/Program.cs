@@ -96,7 +96,7 @@ public class Program
         try
         {
             using var app = RemoteApp.Connect(opts.TargetProcess);
-            var matches = app.QueryInstances(opts.TypeQuery).ToList();
+            var matches = app.QueryInstances(opts.TypeQuery, false).ToList();
             Console.WriteLine($"Found {matches.Count} objects.");
             foreach (var candidate in matches)
             {
