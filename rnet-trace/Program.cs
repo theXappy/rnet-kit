@@ -11,6 +11,7 @@ using ScubaDiver.API.Hooking;
 using Color = System.Drawing.Color;
 using System.Linq.Expressions;
 using System.Linq.Dynamic.Core;
+using Microsoft.CodeAnalysis.Scripting;
 using RemoteNET.Internal;
 
 namespace QuickStart
@@ -213,19 +214,20 @@ namespace QuickStart
                 string[] paramTypes = method.GetParameters().Select(param => param.ParameterType.ToString()).ToArray();
 
                 ICollection<HandlersRepo.ColoredExpression> expressions = HandlersRepo.Get(className, method.Name, paramTypes.Length);
-                IEnumerable<Delegate> lambdaExpressions = expressions.Select(body => HandlersRepo.Compile(body));
+                IEnumerable<ScriptRunner<object>> lambdaExpressions = expressions.Select(body => HandlersRepo.Compile(body)).ToList();
                 HookAction hAction = (context, instance, args) =>
                 {
-                    foreach (var lambdaExpression in lambdaExpressions)
+                    foreach (ScriptRunner<object> lambdaExpression in lambdaExpressions)
                     {
                         try
                         {
-                            object? x = lambdaExpression.DynamicInvoke(new object[3]
+                            object? x = lambdaExpression(new HandlerGlobals()
                             {
-                                new TraceContext(context.StackTrace, start, className, methodName, paramTypes, paramNames),
-                                instance as DynamicRemoteObject,
-                                args.Cast<DynamicRemoteObject>().ToArray()
-                            });
+                                Context = new TraceContext(context.StackTrace, start, className, methodName, paramTypes,
+                                    paramNames),
+                                Instance = instance,
+                                Args = args
+                            }).Result;
                             Console.Write((x as string) ?? x.ToString());
                         }
                         catch (Exception ex)
