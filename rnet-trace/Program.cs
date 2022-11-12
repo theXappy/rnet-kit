@@ -1,18 +1,11 @@
-﻿using System.Linq.Expressions;
-using System.Reflection;
-using System.Security;
+﻿using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
-using Pastel;
 using RemoteNET;
 using RemotenetTrace;
 using ScubaDiver.API.Hooking;
-using Color = System.Drawing.Color;
-using System.Linq.Expressions;
-using System.Linq.Dynamic.Core;
 using Microsoft.CodeAnalysis.Scripting;
-using RemoteNET.Internal;
 
 namespace QuickStart
 {
