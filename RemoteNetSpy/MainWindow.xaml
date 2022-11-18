@@ -54,7 +54,30 @@
                 </Button>
                 <Grid>
                     <Border x:Name="procsBoxBorder">
-                        <ComboBox x:Name="procsBox" SelectionChanged="procsBox_SelectionChanged"/>
+                        <ComboBox x:Name="procsBox" SelectionChanged="procsBox_SelectionChanged" FontFamily="Consolas"
+                                  IsTextSearchEnabled="True" TextSearch.TextPath="Name"
+                                  >
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:InjectableProcess}">
+                                    <DockPanel>
+                                        <!--<Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>-->
+                                        <TextBlock Text="{Binding Path=Name}" MinWidth="320"/>
+                                        <StackPanel MinWidth="100" Orientation="Horizontal">
+                                            <TextBlock Text="(PID: " />
+                                            <TextBlock Text="{Binding Path=Pid}" />
+                                            <TextBlock Text=")" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Path=DotNetVersion}" MinWidth="130"/>
+                                        <TextBlock Text="{Binding Path=DiverState}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="{x:Type ComboBoxItem}">
+                                    <Setter Property="TextSearch.Text" Value="{Binding Name}" />
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
                     </Border>
                     <TextBlock x:Name="procsBoxLoadingOverlay"
                                HorizontalAlignment="Center"
