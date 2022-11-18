@@ -1,17 +1,11 @@
-﻿using System.Linq.Expressions;
-using System.Reflection;
-using System.Security;
+﻿using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
-using Pastel;
 using RemoteNET;
 using RemotenetTrace;
 using ScubaDiver.API.Hooking;
-using Color = System.Drawing.Color;
-using System.Linq.Expressions;
-using System.Linq.Dynamic.Core;
-using RemoteNET.Internal;
+using Microsoft.CodeAnalysis.Scripting;
 
 namespace QuickStart
 {
@@ -212,26 +206,26 @@ namespace QuickStart
                 string[] paramNames = method.GetParameters().Select(param => param.Name).ToArray();
                 string[] paramTypes = method.GetParameters().Select(param => param.ParameterType.ToString()).ToArray();
 
-                ICollection<HandlersRepo.ColoredExpression> expressions = HandlersRepo.Get(className, method.Name, paramTypes.Length);
-                IEnumerable<Delegate> lambdaExpressions = expressions.Select(body => HandlersRepo.Compile(body));
+                var script = HandlersRepo.Get(className, method.Name, paramTypes.Length);
+                ScriptRunner<object> handlerScript = HandlersRepo.Compile(script);
                 HookAction hAction = (context, instance, args) =>
                 {
-                    foreach (var lambdaExpression in lambdaExpressions)
+                    try
                     {
-                        try
+                        var scriptGlobals = new HandlerGlobals()
                         {
-                            object? x = lambdaExpression.DynamicInvoke(new object[3]
-                            {
-                                new TraceContext(context.StackTrace, start, className, methodName, paramTypes, paramNames),
-                                instance as DynamicRemoteObject,
-                                args.Cast<DynamicRemoteObject>().ToArray()
-                            });
-                            Console.Write((x as string) ?? x.ToString());
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex);
-                        }
+                            Context = new TraceContext(context.StackTrace, start, className, methodName, paramTypes,
+                                paramNames),
+                            Instance = instance,
+                            Args = args,
+                            Output = new StringBuilder()
+                        };
+                        handlerScript(scriptGlobals);
+                        Console.Write(scriptGlobals.Output);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
                     }
                 };
 
