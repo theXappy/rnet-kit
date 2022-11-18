@@ -18,7 +18,7 @@ public class MemberToIconConverter : IValueConverter
         if (c == 'E')
             return "/icons/Event.png";
         //if (str.StartsWith("[Method]"))
-        if (c == 'M')
+        if (c == 'M' || c == 'C')
             return "/icons/Method.png";
         //if (str.StartsWith("[Property]"))
         if (c == 'P')
