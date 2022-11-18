@@ -64,11 +64,22 @@ public class Program
     static int DumpMembers(MembersDumpOptions opts)
     {
         Console.WriteLine("Loading...");
+
+        string target = opts.Query;
+
+        // Convert SomeType<T1,T2> --to--> SomeType`2
+        if (target.Contains('<') && target.EndsWith('>'))
+        {
+            string genericPart = target.Substring(target.IndexOf('<'));
+            int numGenericArgs = genericPart.Count(c => c == ',') + 1;
+            target = target.Substring(0, target.IndexOf('<')) + $"`{numGenericArgs}";
+        }
+
         Type dumpedType;
         try
         {
             using var app = RemoteApp.Connect(opts.TargetProcess);
-            dumpedType = app.GetRemoteType(opts.Query);
+            dumpedType = app.GetRemoteType(target);
         }
         catch (Exception e)
         {
