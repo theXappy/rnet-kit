@@ -206,27 +206,26 @@ namespace QuickStart
                 string[] paramNames = method.GetParameters().Select(param => param.Name).ToArray();
                 string[] paramTypes = method.GetParameters().Select(param => param.ParameterType.ToString()).ToArray();
 
-                ICollection<HandlersRepo.ColoredExpression> expressions = HandlersRepo.Get(className, method.Name, paramTypes.Length);
-                IEnumerable<ScriptRunner<object>> lambdaExpressions = expressions.Select(body => HandlersRepo.Compile(body)).ToList();
+                var script = HandlersRepo.Get(className, method.Name, paramTypes.Length);
+                ScriptRunner<object> handlerScript = HandlersRepo.Compile(script);
                 HookAction hAction = (context, instance, args) =>
                 {
-                    foreach (ScriptRunner<object> lambdaExpression in lambdaExpressions)
+                    try
                     {
-                        try
+                        var scriptGlobals = new HandlerGlobals()
                         {
-                            object? x = lambdaExpression(new HandlerGlobals()
-                            {
-                                Context = new TraceContext(context.StackTrace, start, className, methodName, paramTypes,
-                                    paramNames),
-                                Instance = instance,
-                                Args = args
-                            }).Result;
-                            Console.Write((x as string) ?? x.ToString());
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex);
-                        }
+                            Context = new TraceContext(context.StackTrace, start, className, methodName, paramTypes,
+                                paramNames),
+                            Instance = instance,
+                            Args = args,
+                            Output = new StringBuilder()
+                        };
+                        handlerScript(scriptGlobals);
+                        Console.Write(scriptGlobals.Output);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
                     }
                 };
 
