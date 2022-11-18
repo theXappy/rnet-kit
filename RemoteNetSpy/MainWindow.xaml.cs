@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -240,6 +240,12 @@ namespace RemoteNetGui
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
+            if (typesListBox.SelectedItem == null)
+            {
+                MessageBox.Show("Select a type first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
