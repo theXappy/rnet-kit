@@ -1,0 +1,281 @@
+﻿<Window x:Class="RemoteNetGui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RemoteNetGui"
+        mc:Ignorable="d"
+        Title="RemoteNET Spy"
+        Height="720" Width="1079"
+        Style="{DynamicResource CustomWindowStyle}"
+        Initialized="MainWindow_OnInitialized"
+        d:Background="#1e1e1e"
+        >
+    <Window.Resources>
+        <local:MemberToIconConverter x:Key="memToIconConverter"/>
+        <local:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
+        <local:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
+        <local:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
+        <local:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
+        <local:BoolToForegroundColor x:Key="boolToForegroundColor"/>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="23"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <GridSplitter Grid.Column="1" 
+                      Grid.Row="1"
+                      HorizontalAlignment="Left" 
+                      VerticalAlignment="Stretch"
+                      ShowsPreview="true"
+                      Width="5" Background="#00112233" 
+                      />
+        <GridSplitter Grid.Column="2" 
+                      Grid.Row="1"
+                      HorizontalAlignment="Left" 
+                      VerticalAlignment="Stretch"
+                      ShowsPreview="true"
+                      Width="5" Background="#00112233" 
+        />
+
+        <DockPanel Grid.ColumnSpan="4" Margin="5,5">
+            <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0">Target Process:</TextBlock>
+            <DockPanel>
+                <Button x:Name="procsRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="5,0,0,0" Click="ProcsRefreshButton_OnClick">
+                    <Image Source="icons/Refresh.png" Stretch="None"/>
+                </Button>
+                <Grid>
+                    <Border x:Name="procsBoxBorder">
+                        <ComboBox x:Name="procsBox" SelectionChanged="procsBox_SelectionChanged" FontFamily="Consolas"
+                                  IsTextSearchEnabled="True" TextSearch.TextPath="Name"
+                                  >
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:InjectableProcess}">
+                                    <DockPanel>
+                                        <!--<Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>-->
+                                        <TextBlock Text="{Binding Path=Name}" MinWidth="320"/>
+                                        <StackPanel MinWidth="100" Orientation="Horizontal">
+                                            <TextBlock Text="(PID: " />
+                                            <TextBlock Text="{Binding Path=Pid}" />
+                                            <TextBlock Text=")" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Path=DotNetVersion}" MinWidth="130"/>
+                                        <TextBlock Text="{Binding Path=DiverState}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="{x:Type ComboBoxItem}">
+                                    <Setter Property="TextSearch.Text" Value="{Binding Name}" />
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
+                    </Border>
+                    <TextBlock x:Name="procsBoxLoadingOverlay"
+                               HorizontalAlignment="Center"
+                               Visibility="Collapsed"
+                               d:Visibility="Visible"
+                               DockPanel.Dock="Left">
+                        <TextBlock.Text>Loading...</TextBlock.Text>
+                    </TextBlock>
+                </Grid>
+            </DockPanel>
+        </DockPanel>
+        <DockPanel Grid.Column="0"  Grid.Row="1" Margin="5,5,0,5">
+            <Label DockPanel.Dock="Top">Assemblies</Label>
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
+                    <TextBox x:Name="assembliesFilterBox" TextChanged="filterBox_TextChanged"/>
+                    <Button x:Name="clearAssembliesFilterButton" 
+                            DockPanel.Dock="Right" 
+                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+                </Grid>
+                <ListBox DockPanel.Dock="Top" x:Name="assembliesListBox" SelectionChanged="assembliesListBox_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel>
+                                <Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding Path=.}" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </DockPanel>
+        <DockPanel Grid.Column="1"  Grid.Row="1" Margin="5,5,0,5">
+            <DockPanel DockPanel.Dock="Top">
+                <Button x:Name="countButton" Padding="10,0" DockPanel.Dock="Right" Margin="2,2,0,2" Click="CountButton_Click">
+                    <Button.Content>
+                        <Grid>
+                            <TextBlock x:Name="countLabel">Count</TextBlock>
+                            <Image x:Name="rect1" RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
+                                <Image.RenderTransform>
+                                    <!-- giving the transform a name tells the framework not to freeze it -->
+                                    <RotateTransform x:Name="noFreeze" />
+                                </Image.RenderTransform>
+                                <Image.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
+                                                    To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Image.Triggers>
+                            </Image>
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <Label DockPanel.Dock="Left">Types</Label>
+            </DockPanel>
+            <DockPanel x:Name="typesContentPanel">
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
+                    <TextBox x:Name="typesFilterBox" TextChanged="filterBox_TextChanged"/>
+                    <Button x:Name="clearTypesFilterButton" 
+                            DockPanel.Dock="Right" 
+                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+                </Grid>
+                <ListBox DockPanel.Dock="Top" x:Name="typesListBox" SelectionChanged="typesListBox_SelectionChanged" 
+                             VirtualizingStackPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.CanContentScroll="True" 
+                             VirtualizingStackPanel.IsVirtualizing="True">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:DumpedType}">
+                            <DockPanel>
+                                <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding Path=FullTypeName}" Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" />
+                                <DockPanel Margin="10,0,0,0" Visibility="{Binding HaveInstances, Converter={StaticResource boolToVisabilityConverter}}">
+                                    <TextBlock Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}">(</TextBlock>
+                                    <TextBlock Text="{Binding Path=NumInstances}"  Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" />
+                                    <TextBlock Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" >)</TextBlock>
+                                </DockPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </DockPanel>
+        <DockPanel Grid.Column="2" Grid.Row="1"  Margin="5,5,0,5">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                <Label>Members</Label>
+            </StackPanel>
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
+                <TextBox x:Name="membersFilterBox" TextChanged="filterBox_TextChanged"/>
+                <Button x:Name="clearMembersFilterButton" 
+                            DockPanel.Dock="Right" 
+                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+            </Grid>
+            <ListBox x:Name="membersListBox" DockPanel.Dock="Top">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <Image Source="{Binding Path=., Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0"/>
+                            <TextBlock Text="{Binding Path=.}" MouseDown="MemberListItemMouseDown"/>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+        <TabControl x:Name="tabControl" Grid.ColumnSpan="3" Grid.Row="2"  Margin="5"
+                    SelectedIndex="0">
+            <TabItem Header="Heap Instances">
+                <DockPanel >
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                        <Button Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Image Source="icons/StatusBarSearch1.png" Height="16"/>
+                                <TextBlock Padding="5,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <ListBox x:Name="heapInstancesListBox" DockPanel.Dock="Top">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type local:HeapObject}">
+                                <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
+                                    <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Foreground="Aquamarine"
+                                               Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisabilityConverter}}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0"
+                                               > (Frozen)</TextBlock>
+                                    <Button DockPanel.Dock="Right"
+                                            IsEnabled="{Binding Path=Frozen}"
+                                            Padding="16,0"
+                                            Margin="0,0,4,0"
+                                            >
+                                        <Button.Content>
+                                            <DockPanel>
+                                                <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,0,3,0"/>
+                                                <TextBlock Text="Interact in rnet-explore"/>
+                                            </DockPanel>
+                                        </Button.Content>
+                                    </Button>
+                                    <Button DockPanel.Dock="Right" 
+                                            Click="FreezeUnfreezeHeapObject"
+                                            Padding="6,0"
+                                            Margin="0,0,4,0"
+                                            >
+                                        <Button.Content>
+                                            <DockPanel>
+                                                <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,0,3,0"/>
+                                                <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                            </DockPanel>
+                                        </Button.Content>
+                                    </Button>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+            <TabItem x:Name="tracingTabItem" Header="Tracing">
+                <DockPanel >
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                        <Button Click="RunTracesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Image Source="icons/Run.png" Height="16"/>
+                                <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace</TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="OpenTraceListClicked">
+                            <Image Source="icons/OpenFolder.png" Height="16"/>
+                        </Button>
+                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="SaveTraceListClicked">
+                            <Image Source="icons/Save.png" Height="16"/>
+                        </Button>
+                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="ClearTraceListButtonClicked">
+                            <Image Source="icons/ClearWindowContent.png" Height="16"/>
+                        </Button>
+                    </StackPanel>
+                    <ListBox x:Name="tracesListBox">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel>
+                                    <Image Source="/icons/NewMethod.png" Margin="0,0,3,0"/>
+                                    <TextBlock Text="{Binding Path=.}" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+        <DockPanel Background="#424242" Grid.Row="3" Grid.ColumnSpan="4"/>
+    </Grid>
+</Window>

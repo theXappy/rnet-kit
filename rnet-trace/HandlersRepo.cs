@@ -1,9 +1,11 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
-using System.Linq.Dynamic.Core;
-using Pastel;
-using RemoteNET.Internal;
+using System.Reflection;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.CSharp.RuntimeBinder;
+using Color = System.Drawing.Color;
 
 namespace RemotenetTrace
 {
@@ -24,65 +26,92 @@ namespace RemotenetTrace
             {
                 string exp = input;
                 System.Drawing.Color? color = null;
-                if (!input.TrimEnd().EndsWith('"'))
-                {
-                    int lastComma = input.LastIndexOf(',');
-                    color = System.Drawing.Color.FromName(input[(lastComma + 1)..]);
-                    exp = input.Substring(0, lastComma);
-                }
+                //if (!input.TrimEnd().EndsWith('"'))
+                //{
+                //    int lastComma = input.LastIndexOf(',');
+                //    color = System.Drawing.Color.FromName(input[(lastComma + 1)..]);
+                //    exp = input.Substring(0, lastComma);
+                //}
                 return new ColoredExpression(exp, color);
             }
 
-            public override string ToString() => Expression + (Color.HasValue ? $",{Color.Value.Name}" : string.Empty);
+            public override string ToString() =>
+                Expression
+                //+ (Color.HasValue ? $",{Color.Value.Name}" : string.Empty)
+                ;
         }
 
         private static CSharpStringsConverter _converter = new();
 
-        public static ICollection<ColoredExpression> Get(string className, string methodName, int numArgs)
+        public static string Get(string className, string methodName, int numArgs)
         {
-            string path = $"__rnet_handlers__/{methodName}";
-            ICollection<ColoredExpression> expressions;
+            string script = "";
+            string path = $"__rnet_handlers__/{className}!{methodName}!{numArgs}";
             if (File.Exists(path))
             {
-                expressions = File.ReadAllLines(path).Select(ColoredExpression.Parse).ToList();
+                script = File.ReadAllText(path);
             }
             else
             {
-                expressions = new List<ColoredExpression>();
-                expressions.Add(new ColoredExpression("$\"{Convert.ToInt32((DateTime.Now - context.StartTime).TotalMilliseconds)} ms  \""));
-                expressions.Add(new ColoredExpression("$\"[Class: {context.ClassName}] \"", Color.DarkOrange));
-                expressions.Add(new ColoredExpression("$\"{context.MethodName}\"", Color.LightGoldenrodYellow));
-                expressions.Add(new ColoredExpression("$\"({context.PrettyParametersList()})\\n\"", Color.DarkOrange));
-                expressions.Add(new ColoredExpression("$\"\\tArguments:\\n\" "));
+                
+                script += "Output.Append($\"{Convert.ToInt32((DateTime.Now - Context.StartTime).TotalMilliseconds)} ms  \");";
+                script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));";
+                script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));";
+                script += "Output.AppendLine($\"({Context.PrettyParametersList()})\\n\".Pastel(Color.FromArgb(220, 220, 170)));";
+                script += "Output.AppendLine($\"\\tArguments:\");";
                 for (int i = 0; i < numArgs; i++)
                 {
-                    expressions.Add(new ColoredExpression($"$\"\\t\\t[{i}] {{context.Parameters[{i}].Name}} = {{args[{i}].ToString()}}\\n\""));
+                    script += $"Output.AppendLine($\"\\t\\t[{i}] {{Context.Parameters[{i}].Name}} = {{Args[{i}].ToString()}}\");";
                 }
-                expressions.Add(new ColoredExpression("\"\\n\""));
+                script += "Output.AppendLine();";
 
                 if (!Directory.Exists("__rnet_handlers__"))
                     Directory.CreateDirectory("__rnet_handlers__");
-                File.WriteAllLines(path, expressions.Select(exp => exp.ToString()));
+                File.WriteAllText(path, script);
             }
 
-            foreach (ColoredExpression exp in expressions)
-            {
-                exp.Expression = _converter.ConvertToFormat(exp.Expression);
-            }
-
-            return expressions;
+            return script;
         }
 
-        public static Delegate Compile(ColoredExpression exp)
+        public static ScriptRunner<object> Compile(string script)
         {
-            var p1 = Expression.Parameter(typeof(TraceContext), "context");
-            var p2 = Expression.Parameter(typeof(DynamicRemoteObject), "instance");
-            var p3 = Expression.Parameter(typeof(DynamicRemoteObject[]), "args");
-            LambdaExpression e = DynamicExpressionParser.ParseLambda(new[] { p1, p2, p3 }, null, exp.Expression);
-            Delegate output = e.Compile();
-            if (!exp.Color.HasValue)
-                return output;
-            return (Func<TraceContext, DynamicRemoteObject, DynamicRemoteObject[], string>)((c, i, a) => (output.DynamicInvoke(c, i, a) as String).Pastel(exp.Color.Value));
+            List<MetadataReference> references = new List<MetadataReference>();
+            references.Add(MetadataReference.CreateFromFile(typeof(CSharpArgumentInfo).Assembly.Location));
+            references.Add(MetadataReference.CreateFromFile(typeof(Pastel.ConsoleExtensions).Assembly.Location));
+            references.Add(MetadataReference.CreateFromFile(typeof(System.Drawing.Color).Assembly.Location));
+            var domain = AppDomain.CurrentDomain;
+            foreach (Assembly assembly in domain.GetAssemblies())
+            {
+                try
+                {
+                    if (!assembly.IsDynamic && File.Exists(assembly.Location))
+                    {
+                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                    }
+                }
+                catch
+                {
+                    // Ignore
+                }
+            }
+
+            string usings = "using System.Drawing;\r\n" +
+                            "using System.Linq;\r\n" +
+                            "using System;\n" +
+                            "using Pastel;\n" +
+                            "using Color = System.Drawing.Color;\n\n";
+
+            string finalScript = usings + script;
+
+            Debug.WriteLine("Compiled handler:\n" + finalScript);
+
+            var compiledScript = CSharpScript.Create(
+                        code: finalScript,
+                        options: ScriptOptions.Default.WithReferences(references.ToArray()),
+                        globalsType: typeof(HandlerGlobals))
+                    .CreateDelegate();
+            return compiledScript;
+
         }
     }
 }

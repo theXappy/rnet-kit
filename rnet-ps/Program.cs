@@ -1,5 +1,6 @@
 ﻿using RemoteNET.Internal.Extensions;
 using System.Diagnostics;
+using RemoteNET.Internal;
 
 int ourPid = Process.GetCurrentProcess().Id;
 var allProcs = Process.GetProcesses();
@@ -22,18 +23,20 @@ foreach (var proc in allProcs.OrderBy(proc=>proc.ProcessName))
 
     _tasks.Enqueue(Task.Factory.StartNew(() =>
     {
-        var x = RemoteNET.Internal.Extensions.ProcessExt.GetModules(proc);
-        RemoteNET.Internal.DiverState status = RemoteNET.Internal.DiverDiscovery.QueryStatus(proc);
+        DiverState status = DiverDiscovery.QueryStatus(proc);
         string diverStatusString = "";
         switch (status)
         {
-            case RemoteNET.Internal.DiverState.NoDiver:
+            case DiverState.NoDiver:
                 break;
-            case RemoteNET.Internal.DiverState.Alive:
+            case DiverState.Alive:
                 diverStatusString = "[Diver Injected]";
                 break;
-            case RemoteNET.Internal.DiverState.Corpse:
+            case DiverState.Corpse:
                 diverStatusString = "[Dead Diver! Restart this process before targeting]";
+                break;
+            case DiverState.HollowSnapshot:
+                diverStatusString = "[Hollow Snapshot. Select parent with Diver instead]";
                 break;
         }
 

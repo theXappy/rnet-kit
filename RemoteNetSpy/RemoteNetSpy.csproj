@@ -1,0 +1,114 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>puppet.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="icons\Cancelled_Snowflake.png" />
+    <None Remove="icons\Class.png" />
+    <None Remove="icons\ClearWindowContent.png" />
+    <None Remove="icons\Document.png" />
+    <None Remove="icons\EditDocument.png" />
+    <None Remove="icons\Event.png" />
+    <None Remove="icons\Field.png" />
+    <None Remove="icons\InteractiveMode.png" />
+    <None Remove="icons\Loading.png" />
+    <None Remove="icons\Method.png" />
+    <None Remove="icons\MissingFile.png" />
+    <None Remove="icons\ModulePublic.png" />
+    <None Remove="icons\NewMethod.png" />
+    <None Remove="icons\OpenFolder.png" />
+    <None Remove="icons\Property.png" />
+    <None Remove="icons\Refresh.png" />
+    <None Remove="icons\Remove.png" />
+    <None Remove="icons\Run.png" />
+    <None Remove="icons\Save.png" />
+    <None Remove="icons\Snowflake.png" />
+    <None Remove="icons\StatusBarSearch1.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="icons\Cancelled_Snowflake.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Class.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\ClearWindowContent.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Document.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\EditDocument.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Event.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Field.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\InteractiveMode.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Loading.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Method.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\MissingFile.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\ModulePublic.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\NewMethod.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\OpenFolder.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Property.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Refresh.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Remove.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Run.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Save.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Snowflake.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\StatusBarSearch1.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="puppet.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CliWrap" Version="3.5.0" />
+    <PackageReference Include="Dirkster.AvalonDock" Version="4.70.2" />
+    <PackageReference Include="RemoteNET" Version="1.0.1.22" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
+    <ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
+    <ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
+  </ItemGroup>
+
+</Project>

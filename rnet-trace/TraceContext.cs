@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RemotenetTrace
 {
-    internal class TraceContext
+    public class TraceContext
     {
         public class MethodParameter
         {
