@@ -106,9 +106,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\rnet-kit\rnet-dump\rnet-dump.csproj" />
-    <ProjectReference Include="..\rnet-kit\rnet-ps\rnet-ps.csproj" />
-    <ProjectReference Include="..\rnet-kit\rnet-trace\rnet-trace.csproj" />
+    <ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
+    <ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
+    <ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
   </ItemGroup>
 
 </Project>
