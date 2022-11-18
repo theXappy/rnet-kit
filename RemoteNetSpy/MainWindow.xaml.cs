@@ -21,6 +21,22 @@ using RemoteNET;
 
 namespace RemoteNetGui
 {
+    public class InjectableProcess
+    {
+        public int Pid{ get; set; }
+        public string Name { get; set; }
+        public string DotNetVersion { get; set; }
+        public string DiverState { get; set; }
+
+        public InjectableProcess(int pid, string name, string dotNetVersion, string diverState)
+        {
+            Pid = pid;
+            Name = name;
+            DotNetVersion = dotNetVersion;
+            DiverState = diverState;
+        }
+    }
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -50,11 +66,10 @@ namespace RemoteNetGui
             var res = await x.Task;
             var xx = res.StandardOutput.Split('\n')
                 .Skip(1)
-                //.ToList()
-                //.Select(line => line.Split('\t').ToArray())
-                //.Where(arr => arr.Length > 2)
-                //.Select(arr => arr[1])
-                .Select(str => str.Trim())
+                .ToList()
+                .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
+                .Where(arr => arr.Length > 2)
+                .Select(arr => new InjectableProcess(int.Parse(arr[0]),arr[1], arr[2], arr[3]))
                 .ToList();
             procsBox.ItemsSource = xx;
             procsBox.IsEnabled = true;
@@ -95,10 +110,11 @@ namespace RemoteNetGui
         }
 
 
-        private string _procBoxCurrItem;
-        public string ProcName => _procBoxCurrItem.Split('\t').ToArray()[1].Trim();
+        private InjectableProcess _procBoxCurrItem;
+        public string ProcName => _procBoxCurrItem.Name;
 
-        public string ClassName => (typesListBox.SelectedItem as DumpedType).FullTypeName;
+        private DumpedType _currSelectedType;
+        public string ClassName => _currSelectedType.FullTypeName;
 
         private void StopGlow()
         {
@@ -113,13 +129,19 @@ namespace RemoteNetGui
             if (procsBox.SelectedIndex == -1)
                 return;
 
-            _procBoxCurrItem = procsBox.SelectedItem as string;
+            _procBoxCurrItem = procsBox.SelectedItem as InjectableProcess;
 
             StopGlow();
 
             if (_app != null)
             {
-                _app.Dispose();
+                try
+                {
+                    _app.Dispose();
+                }
+                catch
+                {
+                }
                 _app = null;
             }
             _app = await Task.Run(() => RemoteApp.Connect(ProcName));
@@ -194,13 +216,14 @@ namespace RemoteNetGui
 
         private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
+            _currSelectedType = (typesListBox.SelectedItem as DumpedType);
+            string type = _currSelectedType?.FullTypeName;
             if (type == null)
                 return;
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {ProcName} -q {type}")
+                .WithArguments($"members -t {ProcName} -q \"{type}\"")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -217,10 +240,10 @@ namespace RemoteNetGui
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
-            string type = typesListBox.SelectedItem as string;
+            string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {ProcName} -q {type}")
+                .WithArguments($"heap -t {ProcName} -q \"{type}\"")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -287,11 +310,11 @@ namespace RemoteNetGui
             foreach (string funcToTrace in _traceList)
             {
                 args.Add("-i");
-                args.Add($"\"{funcToTrace}\"");
+                string reducedSignaturee = funcToTrace.Substring(0, funcToTrace.IndexOf('('));
+                args.Add($"\"{reducedSignaturee}\"");
             }
 
             string argsLine = string.Join(' ', args);
-            MessageBox.Show(argsLine);
             ProcessStartInfo psi = new ProcessStartInfo("rnet-trace.exe", argsLine)
             {
                 UseShellExecute = true
@@ -482,7 +505,7 @@ namespace RemoteNetGui
         }
     }
 
-    public class HeapObject : INotifyPropertyChanged
+    public class HeapObject : INotifyPropertyChanged, IComparable
     {
         private ulong _address;
         private RemoteObject remoteObject;
@@ -533,6 +556,13 @@ namespace RemoteNetGui
         public override string ToString()
         {
             return $"0x{Address:X8} {FullTypeName}";
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if(obj is HeapObject casted)
+                return this._address.CompareTo(casted._address);
+            return -1;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
