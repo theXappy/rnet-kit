@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -18,6 +18,7 @@ using CliWrap;
 using CliWrap.Buffered;
 using Microsoft.Win32;
 using RemoteNET;
+using RemoteNetSpy;
 
 namespace RemoteNetGui
 {
@@ -110,8 +111,8 @@ namespace RemoteNetGui
         }
 
 
-        private InjectableProcess _procBoxCurrItem;
-        public string ProcName => _procBoxCurrItem.Name;
+        private InjectableProcess? _procBoxCurrItem;
+        public string? ProcName => _procBoxCurrItem?.Name;
 
         private DumpedType _currSelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
@@ -539,6 +540,21 @@ namespace RemoteNetGui
                 };
                 Process.Start(psi);
             }
+        }
+
+        private void TypeMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string typeName = (mi.DataContext as DumpedType).FullTypeName;
+            Clipboard.SetText(typeName);
+        }
+
+        private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string member = (mi.DataContext as string);
+            member = member[(member.IndexOf(']') + 1)..];
+            Clipboard.SetText(member);
         }
     }
 
