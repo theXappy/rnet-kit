@@ -308,7 +308,13 @@ namespace RemoteNetGui
         {
             if (!_traceList.Any())
             {
-                MessageBox.Show("List of functions to trace is empty.");
+                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (_procBoxCurrItem == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
