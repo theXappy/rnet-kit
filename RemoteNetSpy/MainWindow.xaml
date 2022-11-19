@@ -45,6 +45,13 @@
                       ShowsPreview="true"
                       Width="5" Background="#00112233" 
         />
+        <GridSplitter Grid.ColumnSpan="3" 
+                      Grid.Row="1"
+                      HorizontalAlignment="Stretch" 
+                      VerticalAlignment="Bottom"
+                      ShowsPreview="true"
+                      Height="5" Background="#00112233" 
+        />
 
         <DockPanel Grid.ColumnSpan="4" Margin="5,5">
             <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0">Target Process:</TextBlock>
