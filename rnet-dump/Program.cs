@@ -1,4 +1,6 @@
-﻿using CommandLine;
+﻿using System.Reflection;
+using System.Text.RegularExpressions;
+using CommandLine;
 using RemoteNET;
 
 public class Program
@@ -30,6 +32,10 @@ public class Program
         public string? TargetProcess { get; set; }
         [Option('q', "type-query", Required = true, HelpText = "Query for the Full Name of the type to dump")]
         public string Query { get; set; }
+        [Option('r', "raw_generics", Default = true, HelpText = "Whether to print the un-normalize types names. This mean generic types are less readable.")]
+        public bool PrintRaw { get; set; }
+        [Option('n', "normalized_generics", Default = false, HelpText = "Whether to print normalize inner generic types ([[System.Byte, ..., PublicKey=...]] to System.Byte)")]
+        public bool PrintNormalizedGenerics { get; set; }
     }
 
     static int DumpTypes(TypesDumpOptions opts)
@@ -93,10 +99,36 @@ public class Program
             return 1;
         }
 
+        Regex genericPartRegex = new Regex(@"`\d+\[\[.*?\]\]");
+        Regex r = new Regex(@"\[(.*?), .*?\]");
         Console.WriteLine($"Members of type {dumpedType.FullName}:");
         foreach (var member in dumpedType.GetMembers())
         {
-            Console.WriteLine($"[{member.MemberType}] {member}");
+            if(opts.PrintRaw)
+                Console.WriteLine($"[{member.MemberType}] {member}");
+
+            if (opts.PrintNormalizedGenerics)
+            {
+                string memberString = member.ToString();
+                var matches = genericPartRegex.Matches(memberString);
+                while (matches.Any())
+                {
+                    Match match = matches.First();
+                    string matchData = match.Groups[0].ToString();
+                    // This line will give us "`2[System.String, System.Byte]
+                    string withTypesNormalized = r.Replace(matchData, $"$1");
+
+                    // This line will give us "<System.String, System.Byte>"
+                    string withTriangles = "<" +
+                                        withTypesNormalized[(withTypesNormalized.IndexOf('[') + 1)..^1]
+                                        + ">";
+
+                    memberString = memberString.Replace(matchData, withTriangles);
+
+                    matches = genericPartRegex.Matches(memberString);
+                }
+                Console.WriteLine($"[{member.MemberType}] {memberString}");
+            }
         }
         return 0;
     }
