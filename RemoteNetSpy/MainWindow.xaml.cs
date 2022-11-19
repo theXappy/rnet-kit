@@ -287,7 +287,12 @@ namespace RemoteNetGui
             }
             else
             {
-                view.Filter = (o) => (o as DumpedType)?.FullTypeName?.Contains(filter) == true;
+                view.Filter = (o) =>
+                {
+                    if (sender == typesFilterBox)
+                        return (o as DumpedType)?.FullTypeName?.Contains(filter) == true;
+                    return (o as string)?.Contains(filter) == true;
+                };
             }
 
         }
