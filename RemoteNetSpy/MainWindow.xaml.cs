@@ -495,6 +495,40 @@ namespace RemoteNetGui
 
             countButton.IsEnabled = true;
         }
+
+        private void ManualTraceClicked(object sender, RoutedEventArgs e)
+        {
+            if (_procBoxCurrItem == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            TraceQueryWindow qWin = new TraceQueryWindow();
+            bool? res = qWin.ShowDialog();
+            if (res == true)
+            {
+
+                List<string> args = new List<string>() { "-t", ProcName };
+                string[] funcsToTrace = qWin.Queries;
+                foreach (string funcToTrace in funcsToTrace)
+                {
+                    args.Add("-i");
+
+                    string reducedSignaturee = funcToTrace;
+                    if(funcToTrace.Contains('(')) 
+                        reducedSignaturee = funcToTrace.Substring(0, funcToTrace.IndexOf('('));
+                    args.Add($"\"{reducedSignaturee}\"");
+                }
+
+                string argsLine = string.Join(' ', args);
+                ProcessStartInfo psi = new ProcessStartInfo("rnet-trace.exe", argsLine)
+                {
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+            }
+        }
     }
 
     public class DumpedType
