@@ -374,7 +374,7 @@ namespace RemoteNetGui
             bool? success = ofd.ShowDialog();
             if (success == true)
             {
-                string path = ofd.SafeFileName;
+                string path = ofd.FileName;
                 if (path == null)
                 {
                     MessageBox.Show("Invalid file name.");
