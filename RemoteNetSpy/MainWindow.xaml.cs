@@ -6,10 +6,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -24,7 +26,7 @@ namespace RemoteNetGui
 {
     public class InjectableProcess
     {
-        public int Pid{ get; set; }
+        public int Pid { get; set; }
         public string Name { get; set; }
         public string DotNetVersion { get; set; }
         public string DiverState { get; set; }
@@ -70,7 +72,7 @@ namespace RemoteNetGui
                 .ToList()
                 .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
                 .Where(arr => arr.Length > 2)
-                .Select(arr => new InjectableProcess(int.Parse(arr[0]),arr[1], arr[2], arr[3]))
+                .Select(arr => new InjectableProcess(int.Parse(arr[0]), arr[1], arr[2], arr[3]))
                 .ToList();
             procsBox.ItemsSource = xx;
             procsBox.IsEnabled = true;
@@ -279,16 +281,25 @@ namespace RemoteNetGui
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            bool matchCase = true;
             ListBox associatedBox = null;
             if (sender == typesFilterBox)
+            {
                 associatedBox = typesListBox;
+                matchCase = _matchCaseTypes;
+            }
             if (sender == assembliesFilterBox)
+            {
                 associatedBox = assembliesListBox;
+            }
             if (sender == membersFilterBox)
+            {
                 associatedBox = membersListBox;
+            }
 
             if (associatedBox == null)
                 return;
+
 
             string filter = (sender as TextBox)?.Text;
             ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
@@ -299,12 +310,14 @@ namespace RemoteNetGui
             }
             else
             {
+                StringComparison comp =
+                    matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase; 
                 view.Filter = (o) =>
                 {
                     if (sender == membersListBox)
-                        return (o as DumpedMember)?.NormalizedName?.Contains(filter) == true;
+                        return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     if (sender == typesFilterBox)
-                        return (o as DumpedType)?.FullTypeName?.Contains(filter) == true;
+                        return (o as DumpedType)?.FullTypeName?.Contains(filter, comp) == true;
                     return (o as string)?.Contains(filter) == true;
                 };
             }
@@ -541,7 +554,7 @@ namespace RemoteNetGui
                     args.Add("-i");
 
                     string reducedSignaturee = funcToTrace;
-                    if(funcToTrace.Contains('(')) 
+                    if (funcToTrace.Contains('('))
                         reducedSignaturee = funcToTrace.Substring(0, funcToTrace.IndexOf('('));
                     args.Add($"\"{reducedSignaturee}\"");
                 }
@@ -567,6 +580,16 @@ namespace RemoteNetGui
             MenuItem mi = sender as MenuItem;
             string member = (mi.DataContext as DumpedMember).NormalizedName;
             Clipboard.SetText(member);
+        }
+
+        private bool _matchCaseTypes = false;
+        private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            _matchCaseTypes = !_matchCaseTypes;
+            Button b = (sender as Button);
+            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
+            b.Background = _matchCaseTypes ? brush : null;
+            filterBox_TextChanged(typesFilterBox, null);
         }
     }
 
@@ -646,7 +669,7 @@ namespace RemoteNetGui
 
         public int CompareTo(object? obj)
         {
-            if(obj is HeapObject casted)
+            if (obj is HeapObject casted)
                 return this._address.CompareTo(casted._address);
             return -1;
         }
