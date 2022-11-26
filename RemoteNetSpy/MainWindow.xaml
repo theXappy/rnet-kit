@@ -192,12 +192,12 @@
             </Grid>
             <ListBox x:Name="membersListBox" DockPanel.Dock="Top">
                 <ListBox.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate DataType="{x:Type local:DumpedMember}">
                         <DockPanel>
-                            <Image Source="{Binding Path=., Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0"/>
-                            <TextBlock Text="{Binding Path=.}" MouseDown="MemberListItemMouseDown">
+                            <Image Source="{Binding Path=NormalizedName, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0"/>
+                            <TextBlock Text="{Binding Path=NormalizedName}" MouseDown="MemberListItemMouseDown">
                                 <TextBlock.ContextMenu>
-                                    <ContextMenu Tag="{Binding Path=.}">
+                                    <ContextMenu>
                                         <MenuItem Header="Copy Member" DataContext="{Binding Mode=OneWay}"
                                                   Click="MemberMenuItem_OnClick"/>
                                     </ContextMenu>
