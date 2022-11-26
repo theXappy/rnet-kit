@@ -148,9 +148,19 @@
             <DockPanel x:Name="typesContentPanel">
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
                     <TextBox x:Name="typesFilterBox" TextChanged="filterBox_TextChanged"/>
-                    <Button x:Name="clearTypesFilterButton" 
+                    <DockPanel>
+                        <Button x:Name="clearTypesFilterButton" 
                             DockPanel.Dock="Right" 
                             Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+                        <Button x:Name="typesMatchCaseButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                                      ToolTip="Match Case"
+                                      Background="{x:Null}"
+                                      BorderBrush="{x:Null}"
+                                      Click="TypesMatchCaseButton_OnClick"
+                                      >
+                            <Button.Content>Aa</Button.Content>
+                        </Button>
+                    </DockPanel>
                 </Grid>
                 <ListBox DockPanel.Dock="Top" x:Name="typesListBox" SelectionChanged="typesListBox_SelectionChanged" 
                              VirtualizingStackPanel.VirtualizationMode="Recycling"
