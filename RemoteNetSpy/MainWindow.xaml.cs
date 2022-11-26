@@ -224,7 +224,7 @@ namespace RemoteNetGui
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {ProcName} -q \"{type}\"")
+                .WithArguments($"members -t {ProcName} -q \"{type}\" -n true")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -233,10 +233,21 @@ namespace RemoteNetGui
                 .Skip(1)
                 .Select(str => str.Trim());
 
-            List<string> membersList = xx.ToList();
-            membersList.Sort();
+            List<string> rawLinesList = xx.ToList();
+            List<DumpedMember> dumpedMembers = new List<DumpedMember>();
+            for (int i = 0; i < rawLinesList.Count; i += 2)
+            {
+                DumpedMember dumpedMember = new DumpedMember()
+                {
+                    RawName = rawLinesList[i],
+                    NormalizedName = rawLinesList[i + 1]
+                };
+                dumpedMembers.Add(dumpedMember);
+            }
 
-            membersListBox.ItemsSource = membersList;
+            dumpedMembers.Sort((member1, member2) => member1.RawName.CompareTo(member2.NormalizedName));
+
+            membersListBox.ItemsSource = dumpedMembers;
         }
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
@@ -290,6 +301,8 @@ namespace RemoteNetGui
             {
                 view.Filter = (o) =>
                 {
+                    if (sender == membersListBox)
+                        return (o as DumpedMember)?.NormalizedName?.Contains(filter) == true;
                     if (sender == typesFilterBox)
                         return (o as DumpedType)?.FullTypeName?.Contains(filter) == true;
                     return (o as string)?.Contains(filter) == true;
@@ -552,10 +565,16 @@ namespace RemoteNetGui
         private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
             MenuItem mi = sender as MenuItem;
-            string member = (mi.DataContext as string);
-            member = member[(member.IndexOf(']') + 1)..];
+            string member = (mi.DataContext as DumpedMember).NormalizedName;
             Clipboard.SetText(member);
         }
+    }
+
+    public class DumpedMember
+    {
+        public string RawName { get; set; }
+        // This one has generic args normalized from [[System.Byte, ... ]] to <System.Byte>
+        public string NormalizedName { get; set; }
     }
 
     public class DumpedType
