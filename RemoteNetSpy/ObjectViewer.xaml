@@ -40,10 +40,10 @@
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Name" Width="50">
+                <DataGridTemplateColumn Header="Name" MinWidth="50" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <DockPanel MinWidth="45">
+                            <DockPanel>
                                 <Image DockPanel.Dock="Left"
                                 Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16"/>
                                 <TextBlock DockPanel.Dock="Left"

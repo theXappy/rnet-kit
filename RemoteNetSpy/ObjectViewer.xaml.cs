@@ -64,6 +64,45 @@ namespace RemoteNetSpy
                 }
                 items.Add(mgi);
             }
+            foreach (PropertyInfo field in _type.GetProperties((BindingFlags)0xffff))
+            {
+                MembersGridItem mgi = new MembersGridItem()
+                {
+                    MemberType = "Property",
+                    Name = field.Name,
+                    Type = field.PropertyType.ToString() // Specifying expected type
+                };
+                try
+                {
+                    if (DynamicRemoteObject.TryGetDynamicMember(dro, field.Name, out dynamic res))
+                    {
+                        if (res == null)
+                        {
+                            mgi.Value = "null";
+                            continue;
+                        }
+
+                        mgi.Value = res.ToString();
+                        string acutalType = res.GetType().FullName;
+                        if (mgi.Type != acutalType)
+                        {
+                            // Specifying actual type if it's different (might be a subclass)
+                            mgi.Type += " {" + acutalType +
+                                        '}';
+                        }
+                    }
+                    else
+                    {
+                        mgi.Value = "ERROR: Couldn't read value";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    mgi.Value = $"ERROR: Couldn't read value (Exception thrown: {ex.Message})";
+                }
+
+                items.Add(mgi);
+            }
 
             membersGrid.ItemsSource = items;
         }
