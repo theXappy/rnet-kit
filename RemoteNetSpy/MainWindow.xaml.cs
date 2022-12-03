@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -247,7 +247,7 @@ namespace RemoteNetGui
                 dumpedMembers.Add(dumpedMember);
             }
 
-            dumpedMembers.Sort((member1, member2) => member1.RawName.CompareTo(member2.NormalizedName));
+            dumpedMembers.Sort((member1, member2) => member1.RawName.CompareTo(member2.RawName));
 
             membersListBox.ItemsSource = dumpedMembers;
         }
