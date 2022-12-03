@@ -324,7 +324,7 @@ namespace RemoteNetGui
                     matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase; 
                 view.Filter = (o) =>
                 {
-                    if (sender == membersListBox)
+                    if (sender == membersFilterBox)
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     if (sender == typesFilterBox)
                         return (o as DumpedType)?.FullTypeName?.Contains(filter, comp) == true;
