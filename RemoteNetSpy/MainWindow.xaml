@@ -250,11 +250,13 @@
                                             IsEnabled="{Binding Path=Frozen}"
                                             Padding="16,0"
                                             Margin="0,0,4,0"
+                                            Click="InspectButtonBaseOnClick"
                                             >
                                         <Button.Content>
                                             <DockPanel>
                                                 <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,0,3,0"/>
-                                                <TextBlock Text="Interact in rnet-explore"/>
+                                                <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                                <TextBlock Text="Inspect"/>
                                             </DockPanel>
                                         </Button.Content>
                                     </Button>
