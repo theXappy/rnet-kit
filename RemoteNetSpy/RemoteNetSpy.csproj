@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -28,6 +28,7 @@
     <None Remove="icons\Remove.png" />
     <None Remove="icons\Run.png" />
     <None Remove="icons\Save.png" />
+    <None Remove="icons\Search.png" />
     <None Remove="icons\Snowflake.png" />
     <None Remove="icons\StatusBarSearch1.png" />
   </ItemGroup>
@@ -88,6 +89,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\Save.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\Search.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\Snowflake.png">
