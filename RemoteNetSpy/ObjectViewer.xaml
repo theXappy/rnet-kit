@@ -6,21 +6,22 @@
         xmlns:local="clr-namespace:RemoteNetSpy"
         xmlns:remoteNetGui="clr-namespace:RemoteNetGui"
         mc:Ignorable="d"
-        Title="ObjectViewer" Height="560" Width="903"
+        Title="Object Viewer" Height="560" Width="903"
         Style="{DynamicResource CustomWindowStyle}">
     <Window.Resources>
         <remoteNetGui:MemberToIconConverter x:Key="memToIconConverter"/>
+        <remoteNetGui:RawValueToVisibilityConverter x:Key="rawValueToVisabilityConverter"/>
     </Window.Resources>
-    <DockPanel>
-        <DockPanel DockPanel.Dock="Top" Margin="5">
-            <DockPanel DockPanel.Dock="Top" Margin="2">
+    <DockPanel Margin="7">
+        <DockPanel DockPanel.Dock="Top">
+            <DockPanel DockPanel.Dock="Top" Margin="0,2">
                 <DockPanel DockPanel.Dock="Top" Margin="0,3">
-                    <TextBlock DockPanel.Dock="Left" Padding="0,0,10,0">Object Type:</TextBlock>
+                    <TextBlock DockPanel.Dock="Left" Padding="0,0,5,0">Object Type:</TextBlock>
                     <Image DockPanel.Dock="Left" MaxHeight="14" Source="/icons/Class.png" Margin="0,0,3,0" />
                     <TextBlock x:Name="objTypeTextBox"></TextBlock>
                 </DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,3">
-                    <TextBlock>Object Address:</TextBlock>
+                    <TextBlock Margin="0,0,5,0">Object Address:</TextBlock>
                     <TextBlock x:Name="objAddrTextBox"/>
                 </DockPanel>
             </DockPanel>
@@ -28,7 +29,10 @@
                 <TextBlock>Members:</TextBlock>
             </DockPanel>
         </DockPanel>
-        <DataGrid x:Name="membersGrid" DockPanel.Dock="Top" Margin="5" 
+        <DockPanel Dock="Bottom" HorizontalAlignment="Right">
+            <Button DockPanel.Dock="Right" Height="30" Width="120" Click="CloseButtonClicked">Close</Button>
+        </DockPanel>
+        <DataGrid x:Name="membersGrid" DockPanel.Dock="Top" Margin="0,5" 
                   CanUserAddRows="False"
                   IsReadOnly="True"
                   RowHeaderWidth="0"
@@ -37,10 +41,11 @@
             <DataGrid.Resources>
                 <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" TargetType="{x:Type DataGridColumnHeader}">
                     <Setter Property="Background" Value="{StaticResource ControlDarkerBackground}" />
+                    <Setter Property="Padding" Value="4,0,0,4" />
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Name" MinWidth="50" Width="*">
+                <DataGridTemplateColumn Header="Name" Width="4*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <DockPanel>
@@ -52,10 +57,30 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Value" Binding="{Binding Value}"
-                                    MinWidth="30" Width="*" />
+                <DataGridTemplateColumn Header="Value" MinWidth="30" Width="10*" >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <DockPanel Margin="2,0">
+                                <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource rawValueToVisabilityConverter}}"
+                                        Padding="2,1"
+                                        VerticalContentAlignment="Center">
+                                    <DockPanel>
+                                        <Image Margin="0,0,3,0" Height="14" 
+                                               Source="/icons/Search.png"
+                                               />
+                                        <TextBlock Padding="5,1">Inspect</TextBlock>
+                                    </DockPanel>
+                                </Button>
+                                <Grid DockPanel.Dock="Left">
+                                    <TextBlock Text="{Binding Path=Value}"  MouseLeftButtonDown="UIElement_OnPreviewMouseRightButtonDown"/>
+                                    <TextBox Visibility="Hidden" Text="{Binding Path=Value}" LostFocus="UIElement_OnLostFocus" Background="White" Foreground="Black"/>
+                                </Grid>
+                            </DockPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Type" Binding="{Binding Type}"
-                                    MinWidth="10" Width="120" />
+                                    MinWidth="50" Width="6*"/>
             </DataGrid.Columns>
         </DataGrid>
 
