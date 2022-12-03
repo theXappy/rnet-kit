@@ -136,18 +136,26 @@ namespace RemoteNetGui
 
             StopGlow();
 
-            if (_app != null)
+            // Saving aside last RemoteApp
+            var oldApp = _app;
+
+            // Creating new RemoteApp
+            _app = await Task.Run(() => RemoteApp.Connect(ProcName));
+
+            // Only now we try to dispose of the old RemoteApp.
+            // We must do it after creating a new one for the case where the user re-attaches to the same
+            // app. Closing our old one before the new one is connected willl cause the Diver to die.
+            if (oldApp != null)
             {
                 try
                 {
-                    _app.Dispose();
+                    oldApp.Dispose();
                 }
                 catch
                 {
                 }
-                _app = null;
+                oldApp = null;
             }
-            _app = await Task.Run(() => RemoteApp.Connect(ProcName));
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
                 .WithArguments($"types -t {ProcName} -q *")
@@ -197,6 +205,8 @@ namespace RemoteNetGui
         {
             string assembly = assembliesListBox.SelectedItem as string;
             List<string> types = null;
+            if (assembly == null)
+                return new List<string>();
             if (assembly == "* All")
             {
                 await Task.Run(() =>
