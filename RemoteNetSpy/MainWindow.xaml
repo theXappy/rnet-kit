@@ -248,26 +248,27 @@
                                                > (Frozen)</TextBlock>
                                     <Button DockPanel.Dock="Right"
                                             IsEnabled="{Binding Path=Frozen}"
-                                            Padding="16,0"
+                                            Padding="8,0"
                                             Margin="0,0,4,0"
                                             Click="InspectButtonBaseOnClick"
                                             >
                                         <Button.Content>
                                             <DockPanel>
-                                                <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,0,3,0"/>
-                                                <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                                <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
                                                 <TextBlock Text="Inspect"/>
                                             </DockPanel>
                                         </Button.Content>
                                     </Button>
                                     <Button DockPanel.Dock="Right" 
                                             Click="FreezeUnfreezeHeapObject"
-                                            Padding="6,0"
+                                            Padding="8,0"
                                             Margin="0,0,4,0"
+                                            MinWidth="85"
                                             >
                                         <Button.Content>
                                             <DockPanel>
-                                                <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,0,3,0"/>
+                                                <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
+                                                <!--<TextBlock Text="Interact in rnet-explore"/>-->
                                                 <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
                                             </DockPanel>
                                         </Button.Content>
