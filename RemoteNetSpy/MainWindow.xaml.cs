@@ -591,6 +591,19 @@ namespace RemoteNetGui
             b.Background = _matchCaseTypes ? brush : null;
             filterBox_TextChanged(typesFilterBox, null);
         }
+
+        private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
+        {
+            Button senderButton = sender as Button;
+            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozed.");
+            return;
+            }
+
+            (new ObjectViewer(this, dataContext.RemoteObject)).ShowDialog();
+        }
     }
 
     public class DumpedMember

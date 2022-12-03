@@ -13,7 +13,9 @@ public class MemberToIconConverter : IValueConverter
         string str = value as string;
         if (str == null)
             return null;
-        char c = str[1];
+        char c = str[0];
+        if ( c == '[')
+            c = str[1];
         //if (str.StartsWith("[Event]"))
         if (c == 'E')
             return "/icons/Event.png";
