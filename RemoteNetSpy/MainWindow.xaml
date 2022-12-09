@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:RemoteNetGui"
         mc:Ignorable="d"
         Title="RemoteNET Spy"
-        Height="720" Width="1079"
+        Height="820" Width="1450"
+        WindowStartupLocation="CenterScreen"
         Style="{DynamicResource CustomWindowStyle}"
         Initialized="MainWindow_OnInitialized"
         d:Background="#1e1e1e"
@@ -28,9 +29,9 @@
             <RowDefinition Height="23"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="5*"/>
+            <ColumnDefinition Width="8*"/>
+            <ColumnDefinition Width="9*"/>
         </Grid.ColumnDefinitions>
         <GridSplitter Grid.Column="1" 
                       Grid.Row="1"
