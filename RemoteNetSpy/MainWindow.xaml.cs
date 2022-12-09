@@ -233,7 +233,10 @@ namespace RemoteNetGui
             _currSelectedType = (typesListBox.SelectedItem as DumpedType);
             string type = _currSelectedType?.FullTypeName;
             if (type == null)
+            {
+                membersListBox.ItemsSource = null;
                 return;
+            }
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
@@ -285,7 +288,7 @@ namespace RemoteNetGui
                 .Select(HeapObject.Parse);
 
             // Carry with us all previously frozen objects
-            if(_instancesList != null)
+            if (_instancesList != null)
                 newInstances = newInstances.Concat(_instancesList.Where(oldObj => oldObj.Frozen));
 
             _instancesList = newInstances.ToList();
@@ -328,13 +331,13 @@ namespace RemoteNetGui
             else
             {
                 StringComparison comp =
-                    matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase; 
+                    matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
                 view.Filter = (o) =>
                 {
                     if (sender == membersFilterBox)
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     if (sender == typesFilterBox)
-                        return  (_dumpedTypeToDescription.Convert(o, null, null, null) as string)?.Contains(filter, comp) == true;
+                        return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)?.Contains(filter, comp) == true;
                     return (o as string)?.Contains(filter) == true;
                 };
             }
@@ -350,7 +353,16 @@ namespace RemoteNetGui
                 membersFilterBox.Clear();
         }
 
-        private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshProcessesList();
+        private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            membersListBox.ItemsSource = null;
+            typesListBox.ItemsSource = null;
+            assembliesListBox.ItemsSource = null;
+            heapInstancesListBox.ItemsSource = null;
+            tracesListBox.ItemsSource = null;
+
+            await RefreshProcessesList();
+        }
 
         private void RunTracesButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -531,15 +543,29 @@ namespace RemoteNetGui
                     typesAndIInstancesCount[heapObjectType]++;
             }
 
+            string lastSelected = (typesListBox.SelectedItem as DumpedType).FullTypeName;
+            DumpedType typeToReselect = null;
+
             List<DumpedType> dumpedTypes = new List<DumpedType>();
             foreach (KeyValuePair<string, int> kvp in typesAndIInstancesCount)
             {
+
                 int? numInstances = kvp.Value != 0 ? kvp.Value : null;
                 DumpedType dt = new DumpedType(kvp.Key, numInstances);
                 dumpedTypes.Add(dt);
+
+                // Check if this was the last selected type  in the listbox
+                if (kvp.Key == lastSelected)
+                {
+                    typeToReselect = dt;
+                }
             }
 
             typesListBox.ItemsSource = dumpedTypes;
+            if (typeToReselect != null)
+            {
+                typesListBox.SelectedItem = typeToReselect;
+            }
 
             // Reapply filter
             filterBox_TextChanged(typesFilterBox, null);
@@ -615,7 +641,7 @@ namespace RemoteNetGui
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
                 MessageBox.Show("ERROR: Object must be frozed.");
-            return;
+                return;
             }
 
             (new ObjectViewer(this, dataContext.RemoteObject)).ShowDialog();
