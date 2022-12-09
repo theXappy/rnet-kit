@@ -277,17 +277,23 @@ namespace RemoteNetGui
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            var newInstances = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .SkipWhile(line => !line.Contains("Found "))
                 .Skip(1)
                 .Select(str => str.Trim())
                 .Select(HeapObject.Parse);
 
-            List<HeapObject> instancesList = xx.ToList();
-            instancesList.Sort();
+            // Carry with us all previously frozen objects
+            if(_instancesList != null)
+                newInstances = newInstances.Concat(_instancesList.Where(oldObj => oldObj.Frozen));
 
-            heapInstancesListBox.ItemsSource = instancesList;
+            _instancesList = newInstances.ToList();
+            _instancesList.Sort();
+
+            heapInstancesListBox.ItemsSource = _instancesList;
         }
+
+        private List<HeapObject> _instancesList;
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
