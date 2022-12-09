@@ -18,6 +18,7 @@
         <local:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
         <local:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
         <local:BoolToForegroundColor x:Key="boolToForegroundColor"/>
+        <local:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -170,7 +171,7 @@
                         <DataTemplate DataType="{x:Type local:DumpedType}">
                             <DockPanel>
                                 <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
-                                <TextBlock Text="{Binding Path=FullTypeName}" Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" 
+                                <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" 
                                            >
                                     <TextBlock.ContextMenu>
                                         <ContextMenu>
@@ -179,11 +180,6 @@
                                         </ContextMenu>
                                     </TextBlock.ContextMenu>
                                 </TextBlock>
-                                <DockPanel Margin="10,0,0,0" Visibility="{Binding HaveInstances, Converter={StaticResource boolToVisabilityConverter}}">
-                                    <TextBlock Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}">(</TextBlock>
-                                    <TextBlock Text="{Binding Path=NumInstances}"  Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" />
-                                    <TextBlock Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" >)</TextBlock>
-                                </DockPanel>
                             </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -226,7 +222,10 @@
                         <Button Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Image Source="icons/StatusBarSearch1.png" Height="16"/>
-                                <TextBlock Padding="5,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
+                                <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
+                                <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(local:DumpedType.FullTypeName), FallbackValue='(?)'}"
+                                           Foreground="#976e01"
+                                           />
                             </StackPanel>
                         </Button>
                     </StackPanel>

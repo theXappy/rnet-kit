@@ -103,6 +103,25 @@ public class BoolToVisabilityConverter : IValueConverter
 }
 
 
+public class DumpedTypeToDescription : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        DumpedType a = value as DumpedType;
+        if (a == null)
+            return "Error: null";
+
+        string desc = a.FullTypeName;
+        if (a.HaveInstances)
+            desc += $" ({a.NumInstances})";
+        return desc;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
 
 public class BoolToForegroundColor : IValueConverter
 {

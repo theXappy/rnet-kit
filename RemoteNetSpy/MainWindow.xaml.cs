@@ -46,6 +46,7 @@ namespace RemoteNetGui
     public partial class MainWindow : Window
     {
         RemoteApp _app = null;
+        private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
 
         public MainWindow()
         {
@@ -197,8 +198,8 @@ namespace RemoteNetGui
             List<DumpedType> dumpedTypes = types.Select(str => new DumpedType(str, null)).ToList();
             typesListBox.ItemsSource = dumpedTypes;
 
-            // Reapply filter
-            filterBox_TextChanged(sender, null);
+            // Reapply filter for types
+            filterBox_TextChanged(typesFilterBox, null);
         }
 
         private async Task<List<string>?> GetTypesList()
@@ -266,7 +267,7 @@ namespace RemoteNetGui
         {
             if (typesListBox.SelectedItem == null)
             {
-                MessageBox.Show("Select a type first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("You must select a type from the \"Types\" listbox first.", $"{this.Title} Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -333,11 +334,10 @@ namespace RemoteNetGui
                     if (sender == membersFilterBox)
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     if (sender == typesFilterBox)
-                        return (o as DumpedType)?.FullTypeName?.Contains(filter, comp) == true;
+                        return  (_dumpedTypeToDescription.Convert(o, null, null, null) as string)?.Contains(filter, comp) == true;
                     return (o as string)?.Contains(filter) == true;
                 };
             }
-
         }
 
         private void clearTypesFilterButton_OnClick(object sender, RoutedEventArgs e)
