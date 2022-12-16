@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using CommandLine;
 using RemoteNET;
@@ -44,7 +46,21 @@ public class Program
         List<CandidateType>? candidates = null;
         try
         {
-            using var app = RemoteApp.Connect(opts.TargetProcess);
+            Process target = null;
+            if (int.TryParse(opts.TargetProcess, out int pid))
+            {
+                try
+                {
+                     target= Process.GetProcessById(pid);
+                }
+                catch
+                {
+                }
+            }
+            
+            using var app = target != null ?
+                RemoteApp.Connect(target) : 
+                RemoteApp.Connect(opts.TargetProcess);
             candidates = app.QueryTypes(opts.Query).ToList();
         }
         catch (Exception e)

@@ -6,6 +6,7 @@ using RemoteNET;
 using RemotenetTrace;
 using ScubaDiver.API.Hooking;
 using Microsoft.CodeAnalysis.Scripting;
+using System.Diagnostics;
 
 namespace QuickStart
 {
@@ -34,12 +35,26 @@ namespace QuickStart
             p.ParseArguments<TraceOptions>(args).WithParsed(Run);
         }
 
-        private static void Run(TraceOptions options)
+        private static void Run(TraceOptions opts)
         {
             RemoteApp app;
             try
             {
-                app = RemoteApp.Connect(options.TargetProcess);
+                Process target = null;
+                if (int.TryParse(opts.TargetProcess, out int pid))
+                {
+                    try
+                    {
+                        target = Process.GetProcessById(pid);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                app = target != null ?
+                    RemoteApp.Connect(target) :
+                    RemoteApp.Connect(opts.TargetProcess);
             }
             catch (ArgumentException ex)
             {
@@ -52,7 +67,7 @@ namespace QuickStart
 
             List<MethodBase> methodsToHook = new();
             // Collect all methods answering "include" queries
-            foreach (var method in options.IncludedMethods)
+            foreach (var method in opts.IncludedMethods)
             {
                 string fullTypeNameQuery, methodNameQuery, encodedParametersQuery;
                 ParseMethodIdentifier(method, out fullTypeNameQuery, out methodNameQuery, out encodedParametersQuery);
@@ -89,7 +104,7 @@ namespace QuickStart
             }
 
             // Remove all "included" methods answering any of the "exclude" queries
-            foreach (var method in options.ExcludedMethods)
+            foreach (var method in opts.ExcludedMethods)
             {
                 string fullTypeNameQuery, methodNameQuery, encodedParametersQuery;
                 ParseMethodIdentifier(method, out fullTypeNameQuery, out methodNameQuery, out encodedParametersQuery);
