@@ -305,7 +305,7 @@
                                 <DockPanel>
                                     <DockPanel.ContextMenu>
                                         <ContextMenu>
-                                            <MenuItem Header="Delete" Click="MenuItem_OnClick"/>
+                                            <MenuItem Header="Delete" Click="TraceLineDelete_OnClick"/>
                                         </ContextMenu>
                                     </DockPanel.ContextMenu>
                                     <Image Source="/icons/NewMethod.png" Margin="0,0,3,0"/>
