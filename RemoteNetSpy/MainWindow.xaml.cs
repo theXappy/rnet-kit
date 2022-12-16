@@ -551,7 +551,7 @@ namespace RemoteNetGui
                     typesAndIInstancesCount[heapObjectType]++;
             }
 
-            string lastSelected = (typesListBox.SelectedItem as DumpedType).FullTypeName;
+            string lastSelected = (typesListBox?.SelectedItem as DumpedType)?.FullTypeName;
             DumpedType typeToReselect = null;
 
             List<DumpedType> dumpedTypes = new List<DumpedType>();
