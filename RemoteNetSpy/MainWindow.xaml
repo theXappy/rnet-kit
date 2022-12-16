@@ -1,4 +1,4 @@
-﻿<Window x:Class="RemoteNetGui.MainWindow"
+<Window x:Class="RemoteNetGui.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -297,12 +297,17 @@
                         <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="ClearTraceListButtonClicked">
                             <Image Source="icons/ClearWindowContent.png" Height="16"/>
                         </Button>
-                        <Button Padding="5,0" Margin="2,2" Click="ManualTraceClicked">Manual Trace</Button>
+                        <Button Padding="5,0" Margin="2,2" Click="ManualTraceClicked" Visibility="Collapsed">Manual Trace</Button>
                     </StackPanel>
                     <ListBox x:Name="tracesListBox">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel>
+                                    <DockPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Delete" Click="MenuItem_OnClick"/>
+                                        </ContextMenu>
+                                    </DockPanel.ContextMenu>
                                     <Image Source="/icons/NewMethod.png" Margin="0,0,3,0"/>
                                     <TextBlock Text="{Binding Path=.}" />
                                 </DockPanel>
