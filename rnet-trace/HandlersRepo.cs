@@ -54,16 +54,21 @@ namespace RemotenetTrace
             else
             {
                 
-                script += "Output.Append($\"{Convert.ToInt32((DateTime.Now - Context.StartTime).TotalMilliseconds)} ms  \");";
-                script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));";
-                script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));";
-                script += "Output.AppendLine($\"({Context.PrettyParametersList()})\\n\".Pastel(Color.FromArgb(220, 220, 170)));";
-                script += "Output.AppendLine($\"\\tArguments:\");";
+                script += "Output.Append($\"{Convert.ToInt32((DateTime.Now - Context.StartTime).TotalMilliseconds)} ms  \");\r\n";
+                script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));\r\n";
+                script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
+                script += "Output.AppendLine($\"({Context.PrettyParametersList()})\\n\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
+                script += "Output.AppendLine($\"\\tArguments:\");\r\n";
                 for (int i = 0; i < numArgs; i++)
                 {
-                    script += $"Output.AppendLine($\"\\t\\t[{i}] {{Context.Parameters[{i}].Name}} = {{Args[{i}].ToString()}}\");";
+                    script += $"Output.Append($\"\\t\\t [{i}] {{Context.Parameters[{i}].Name}} = \");\r\n";
+                    script +=  "try {\r\n";
+                    script += $"\tOutput.AppendLine($\"{{Args[{i}].ToString()}}\");\r\n";
+                    script +=  "} catch (Exception ex) {\r\n";
+                    script +=  "Output.AppendLine($\"(!) Error reading parameter: {ex}\");\r\n";
+                    script +=  "}\r\n";
                 }
-                script += "Output.AppendLine();";
+                script += "Output.AppendLine();\r\n";
 
                 if (!Directory.Exists("__rnet_handlers__"))
                     Directory.CreateDirectory("__rnet_handlers__");
