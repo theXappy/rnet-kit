@@ -114,7 +114,7 @@ namespace RemoteNetGui
 
 
         private InjectableProcess? _procBoxCurrItem;
-        public string? ProcName => _procBoxCurrItem?.Name;
+        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
 
         private DumpedType _currSelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
@@ -140,7 +140,7 @@ namespace RemoteNetGui
             var oldApp = _app;
 
             // Creating new RemoteApp
-            _app = await Task.Run(() => RemoteApp.Connect(ProcName));
+            _app = await Task.Run(() => RemoteApp.Connect(Process.GetProcessById(TargetPid)));
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
@@ -158,7 +158,7 @@ namespace RemoteNetGui
             }
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"types -t {ProcName} -q *")
+                .WithArguments($"types -t {TargetPid} -q *")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -239,7 +239,7 @@ namespace RemoteNetGui
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {ProcName} -q \"{type}\" -n true")
+                .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -276,7 +276,7 @@ namespace RemoteNetGui
             string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {ProcName} -q \"{type}\"")
+                .WithArguments($"heap -t {TargetPid} -q \"{type}\"")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -386,7 +386,7 @@ namespace RemoteNetGui
                 return;
             }
 
-            List<string> args = new List<string>() { "-t", ProcName };
+            List<string> args = new List<string>() { "-t", TargetPid.ToString() };
             foreach (string funcToTrace in _traceList)
             {
                 args.Add("-i");
@@ -535,7 +535,7 @@ namespace RemoteNetGui
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {ProcName} -q *")
+                .WithArguments($"heap -t {TargetPid} -q *")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -597,7 +597,7 @@ namespace RemoteNetGui
             if (res == true)
             {
 
-                List<string> args = new List<string>() { "-t", ProcName };
+                List<string> args = new List<string>() { "-t", TargetPid.ToString() };
                 string[] funcsToTrace = qWin.Queries;
                 foreach (string funcToTrace in funcsToTrace)
                 {
