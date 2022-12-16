@@ -183,7 +183,7 @@ namespace QuickStart
             if (encodedMethodQuery.Contains("..ctor"))
             {
                 fullTypeNameQuery = fullMethodIdentifier.Substring(0, fullMethodIdentifier.LastIndexOf("..ctor"));
-                methodName = fullMethodIdentifier.Substring(fullMethodIdentifier.LastIndexOf("..ctor") + 1);
+                methodName = "." + methodName;
             }
             encodedParameters = null;
             if (methodName.Contains("("))
@@ -261,7 +261,7 @@ namespace QuickStart
                 // "(object myObj)" ==> "object"
                 encodedParametersQuery = encodedParametersQuery.TrimStart('(').TrimEnd(')');
                 string[] paramFilters = encodedParametersQuery.Split(',').Select(paramType => paramType.Trim().Split(' ').First()).ToArray();
-                foreach (MethodInfo methodInfo in matchingMethods)
+                foreach (MethodBase methodInfo in matchingMethods)
                 {
                     if (CheckParameters(methodInfo, paramFilters))
                     {
@@ -273,7 +273,7 @@ namespace QuickStart
             return output;
         }
 
-        private static bool CheckParameters(MethodInfo methodInfo, string[] parameterFilters)
+        private static bool CheckParameters(MethodBase methodInfo, string[] parameterFilters)
         {
             var parameters = methodInfo.GetParameters();
             if (parameters.Length != parameterFilters.Length)
@@ -283,13 +283,31 @@ namespace QuickStart
             for (int i = 0; i < parameterFilters.Length; i++)
             {
                 Regex r = SimpleFilterToRegex(parameterFilters[i]);
-                if (!r.IsMatch(parameters[i].ParameterType.FullName))
+                string normalizedParameterType = NormalizeGenericTypeFullName(parameters[i].ParameterType.FullName);
+                if (!r.IsMatch(normalizedParameterType))
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        private static string NormalizeGenericTypeFullName(string fullName)
+        {
+            // Use a regular expression to match and replace the extra type information
+            string parsedFullName = Regex.Replace(fullName, @",\s*[^,]+\s*,\s*Version=\d+\.\d+\.\d+\.\d+\s*,\s*Culture=\w+\s*,\s*PublicKeyToken=\w+", "");
+
+            // Use another regular expression to match and replace the square brackets
+            parsedFullName = parsedFullName.Replace("[[", "<");
+            parsedFullName = parsedFullName.Replace("]]", ">");
+            parsedFullName = Regex.Replace(parsedFullName, @"<([^<>]*)\],\[([^<>]*)>", "<$1, $2>");
+
+            // Use another regular expression to match and remove the backtick and number after it
+            parsedFullName = Regex.Replace(parsedFullName, @"\`\d", "");
+
+            // Output the parsed full name of the generic type, which should be "System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<System.Int32, System.String>>>"
+            return parsedFullName;
         }
 
         /// <summary>
