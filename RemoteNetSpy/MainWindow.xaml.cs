@@ -646,6 +646,15 @@ namespace RemoteNetGui
 
             (new ObjectViewer(this, dataContext.RemoteObject)).ShowDialog();
         }
+
+        private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
+        {
+            string trace = (sender as FrameworkElement)?.DataContext as string;
+            if (trace != null)
+            {
+                _traceList.Remove(trace);
+            }
+        }
     }
 
     public class DumpedMember
