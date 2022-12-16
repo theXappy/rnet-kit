@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
@@ -289,7 +288,16 @@ namespace RemoteNetGui
 
             // Carry with us all previously frozen objects
             if (_instancesList != null)
-                newInstances = newInstances.Concat(_instancesList.Where(oldObj => oldObj.Frozen));
+            {
+                List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
+                foreach (var instance in newInstances)
+                {
+                    if(!combined.Contains(instance))
+                        combined.Add(instance);
+                }
+
+                newInstances = combined;
+            }
 
             _instancesList = newInstances.ToList();
             _instancesList.Sort();
@@ -359,7 +367,7 @@ namespace RemoteNetGui
             typesListBox.ItemsSource = null;
             assembliesListBox.ItemsSource = null;
             heapInstancesListBox.ItemsSource = null;
-            tracesListBox.ItemsSource = null;
+            _traceList.Clear();
 
             await RefreshProcessesList();
         }
@@ -382,7 +390,7 @@ namespace RemoteNetGui
             foreach (string funcToTrace in _traceList)
             {
                 args.Add("-i");
-                string reducedSignaturee = funcToTrace.Substring(0, funcToTrace.IndexOf('('));
+                string reducedSignaturee = funcToTrace;//.Substring(0, funcToTrace.IndexOf('('));
                 args.Add($"\"{reducedSignaturee}\"");
             }
 
@@ -675,82 +683,6 @@ namespace RemoteNetGui
         {
             FullTypeName = fullTypeName;
             _numInstances = numInstances;
-        }
-    }
-
-    public class HeapObject : INotifyPropertyChanged, IComparable
-    {
-        private ulong _address;
-        private RemoteObject remoteObject;
-
-        public ulong Address
-        {
-            get
-            {
-                if (RemoteObject != null)
-                    return RemoteObject.RemoteToken;
-                return _address;
-            }
-            set
-            {
-                if (RemoteObject != null)
-                    throw new Exception("Can't set address for frozen heap object");
-                _address = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string FullTypeName { get; set; }
-
-        public RemoteObject RemoteObject
-        {
-            get => remoteObject;
-            set
-            {
-                remoteObject = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(Frozen));
-            }
-        }
-
-        public bool Frozen => RemoteObject != null;
-
-        public static HeapObject Parse(string text)
-        {
-            string[] splitted = text.Split(' ');
-            string addressStr = splitted[0];
-            if (addressStr.StartsWith("0x"))
-                addressStr = addressStr[2..];
-            ulong address = Convert.ToUInt64(addressStr, 16);
-
-            return new HeapObject() { Address = address, FullTypeName = splitted[1] };
-        }
-
-        public override string ToString()
-        {
-            return $"0x{Address:X8} {FullTypeName}";
-        }
-
-        public int CompareTo(object? obj)
-        {
-            if (obj is HeapObject casted)
-                return this._address.CompareTo(casted._address);
-            return -1;
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
         }
     }
 }
