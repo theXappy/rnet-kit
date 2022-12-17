@@ -40,27 +40,34 @@ public class Program
         public bool PrintNormalizedGenerics { get; set; }
     }
 
+
+    private static RemoteApp Connect(string target)
+    {
+        Process targetProc = null;
+        if (int.TryParse(target, out int pid))
+        {
+            try
+            {
+                targetProc = Process.GetProcessById(pid);
+            }
+            catch
+            {
+                // ignored
+            }
+        }
+
+        return targetProc != null ?
+            RemoteApp.Connect(targetProc) :
+            RemoteApp.Connect(target);
+    }
+
     static int DumpTypes(TypesDumpOptions opts)
     {
         Console.WriteLine("Loading...");
         List<CandidateType>? candidates = null;
         try
         {
-            Process target = null;
-            if (int.TryParse(opts.TargetProcess, out int pid))
-            {
-                try
-                {
-                     target= Process.GetProcessById(pid);
-                }
-                catch
-                {
-                }
-            }
-            
-            using var app = target != null ?
-                RemoteApp.Connect(target) : 
-                RemoteApp.Connect(opts.TargetProcess);
+            using RemoteApp app = Connect(opts.TargetProcess);
             candidates = app.QueryTypes(opts.Query).ToList();
         }
         catch (Exception e)
@@ -100,7 +107,7 @@ public class Program
         Type dumpedType;
         try
         {
-            using var app = RemoteApp.Connect(opts.TargetProcess);
+            using RemoteApp app = Connect(opts.TargetProcess);
             dumpedType = app.GetRemoteType(target);
         }
         catch (Exception e)
@@ -154,7 +161,7 @@ public class Program
         Console.WriteLine("Loading...");
         try
         {
-            using var app = RemoteApp.Connect(opts.TargetProcess);
+            using var app = Connect(opts.TargetProcess);
             var matches = app.QueryInstances(opts.TypeQuery, false).ToList();
             Console.WriteLine($"Found {matches.Count} objects.");
             foreach (var candidate in matches)
