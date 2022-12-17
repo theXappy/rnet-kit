@@ -266,11 +266,30 @@
                                             MinWidth="85"
                                             >
                                         <Button.Content>
-                                            <DockPanel>
-                                                <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
-                                                <!--<TextBlock Text="Interact in rnet-explore"/>-->
-                                                <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
-                                            </DockPanel>
+                                            <Grid>
+                                                <DockPanel>
+                                                    <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
+                                                    <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                                    <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                                </DockPanel>
+                                                <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
+                                                    <Image.RenderTransform>
+                                                        <!-- giving the transform a name tells the framework not to freeze it -->
+                                                        <RotateTransform x:Name="noFreeze" />
+                                                    </Image.RenderTransform>
+                                                    <Image.Triggers>
+                                                        <EventTrigger RoutedEvent="Loaded">
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation
+                                                                        Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
+                                                                        To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </Image.Triggers>
+                                                </Image>
+                                            </Grid>
                                         </Button.Content>
                                     </Button>
                                 </DockPanel>

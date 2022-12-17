@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -15,6 +16,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
 using Microsoft.Win32;
@@ -292,7 +294,7 @@ namespace RemoteNetGui
                 List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
                 foreach (var instance in newInstances)
                 {
-                    if(!combined.Contains(instance))
+                    if (!combined.Contains(instance))
                         combined.Add(instance);
                 }
 
@@ -491,32 +493,54 @@ namespace RemoteNetGui
             }
         }
 
-        private void FreezeUnfreezeHeapObject(object sender, RoutedEventArgs e)
+        private async void FreezeUnfreezeHeapObject(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
+            var grid = senderButton.FindLogicalChildren<Grid>().Single();
+            var dPanel = grid.Children.OfType<DockPanel>().Single();
+            var loadingImage = grid.Children.OfType<Image>().Single();
+
+            dPanel.Visibility = Visibility.Collapsed;
+            loadingImage.Visibility = Visibility.Visible;
+
             HeapObject? dataContext = senderButton.DataContext as HeapObject;
-            if (dataContext.Frozen)
+
+            bool isFrozen = dataContext.Frozen;
+            try
             {
-                // Unfreezing
-                ulong lastKnownAddres = dataContext.Address;
-                dataContext.RemoteObject = null;
-                dataContext.Address = lastKnownAddres;
+                if (isFrozen)
+                {
+                    // Unfreezing
+                    ulong lastKnownAddres = dataContext.Address;
+                    dataContext.RemoteObject = null;
+                    dataContext.Address = lastKnownAddres;
+                }
+                else
+                {
+                    // Freeze
+                    ulong address = dataContext.Address;
+                    Task dumperTask = Task.Run(() =>
+                    {
+                        RemoteObject ro = _app.GetRemoteObject(address, dataContext.FullTypeName);
+                        dataContext.Address = ro.RemoteToken;
+                        dataContext.RemoteObject = ro;
+                    });
+                    await dumperTask;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Freeze
-                ulong address = dataContext.Address;
-                try
-                {
-                    RemoteObject ro = _app.GetRemoteObject(address);
-                    dataContext.Address = ro.RemoteToken;
-                    dataContext.RemoteObject = ro;
-                }
-                catch
-                {
-                    MessageBox.Show($"Failed to get object at 0x{address:X8}.\n" +
-                                    $"Please refresh heap instances panel and retry.");
-                }
+                // ignored
+                string error = "Error while unfreezing.\r\n";
+                if (!isFrozen)
+                    error = "Error while freezing.\r\nPlease refresh the heap search and retry.\r\n";
+                error += "Exception: " + ex;
+                MessageBox.Show(error, "Error", MessageBoxButton.OK);
+            }
+            finally
+            {
+                dPanel.Visibility = Visibility.Visible;
+                loadingImage.Visibility = Visibility.Collapsed;
             }
         }
 
