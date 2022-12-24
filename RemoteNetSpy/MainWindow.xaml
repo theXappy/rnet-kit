@@ -250,6 +250,19 @@
                                             IsEnabled="{Binding Path=Frozen}"
                                             Padding="8,0"
                                             Margin="0,0,4,0"
+                                            Click="ExploreButtonBaseOnClick"
+                                    >
+                                        <Button.Content>
+                                            <DockPanel>
+                                                <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,2,3,2" Height="16"/>
+                                                <TextBlock Text="Explore"/>
+                                            </DockPanel>
+                                        </Button.Content>
+                                    </Button>
+                                    <Button DockPanel.Dock="Right"
+                                            IsEnabled="{Binding Path=Frozen}"
+                                            Padding="8,0"
+                                            Margin="0,0,4,0"
                                             Click="InspectButtonBaseOnClick"
                                             >
                                         <Button.Content>

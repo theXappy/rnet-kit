@@ -687,6 +687,28 @@ namespace RemoteNetGui
                 _traceList.Remove(trace);
             }
         }
+
+        private void ExploreButtonBaseOnClick(object sender, RoutedEventArgs e)
+        {
+            Button senderButton = sender as Button;
+            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozed.");
+                return;
+            }
+
+            string script = 
+@$"var app = RemoteApp.Connect(Process.GetProcessById({TargetPid}));
+var ro = app.GetRemoteObject(0x{dataContext.Address:X16}, ""{dataContext.FullTypeName}"");
+dynamic dro = ro.Dynamify();
+";
+
+            string path = Path.GetTempFileName();
+            File.WriteAllText(path, script);
+
+            Process.Start("rnet-repl.exe", new string[] { "--statementsFile", path });
+        }
     }
 
     public class DumpedMember
