@@ -31,7 +31,13 @@ namespace QuickStart
 
         static void Main(string[] args)
         {
-            Parser p = new Parser((settings) => settings.AllowMultiInstance = true);
+            Parser p = new Parser((settings) =>
+            {
+                settings.AllowMultiInstance = true;
+                settings.AutoHelp = true;
+                settings.AutoVersion = true;
+                settings.HelpWriter = Parser.Default.Settings.HelpWriter;
+            });
             p.ParseArguments<TraceOptions>(args).WithParsed(Run);
         }
 
