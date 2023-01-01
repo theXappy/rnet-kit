@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
 using RemoteNET;
@@ -82,11 +83,14 @@ public class Program
             return 1;
         }
 
+        StringBuilder sb = new StringBuilder();
         Console.WriteLine($"Matches:");
         foreach (var type in candidates)
         {
-            Console.WriteLine($"[{type.Assembly}] {type.TypeFullName}");
+            sb.AppendLine($"[{type.Assembly}] {type.TypeFullName}");
         }
+
+        Console.WriteLine(sb.ToString());
         return 0;
     }
 
