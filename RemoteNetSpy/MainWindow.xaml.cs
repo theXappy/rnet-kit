@@ -159,33 +159,56 @@ namespace RemoteNetGui
                 oldApp = null;
             }
 
-            var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"types -t {TargetPid} -q *")
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
-            var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n')
-                .Skip(2)
-                .Select(str => str.Trim());
-            foreach (string line in xx)
-            {
-                string[] parts = line.Split("]");
-                if (parts.Length < 2)
-                    continue;
-                string assembly = parts[0].Trim(' ', '[', ']');
-                string type = parts[1].Trim();
-                if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
-                {
-                    types = new List<string>();
-                    _assembliesToTypes[assembly] = types;
-                }
-                types.Add(type);
-            }
+            RefreshAssembliesAsync();
+        }
 
-            var assemblies = _assembliesToTypes.Keys.ToList();
-            assemblies.Add("* All");
-            assemblies.Sort();
-            assembliesListBox.ItemsSource = assemblies;
+
+        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => RefreshAssembliesAsync();
+
+        private Task RefreshAssembliesAsync()
+        {
+            return Task.Run(() =>
+            {
+
+                Dispatcher.Invoke(() =>
+                {
+                    assembliesSpinner.Visibility = Visibility.Visible;
+                });
+
+                var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+                    .WithArguments($"types -t {TargetPid} -q *")
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteBufferedAsync();
+                var res = x.Task.Result;
+                var xx = res.StandardOutput.Split('\n')
+                    .Skip(2)
+                    .Select(str => str.Trim());
+                foreach (string line in xx)
+                {
+                    string[] parts = line.Split("]");
+                    if (parts.Length < 2)
+                        continue;
+                    string assembly = parts[0].Trim(' ', '[', ']');
+                    string type = parts[1].Trim();
+                    if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
+                    {
+                        types = new List<string>();
+                        _assembliesToTypes[assembly] = types;
+                    }
+
+                    types.Add(type);
+                }
+
+                var assemblies = _assembliesToTypes.Keys.ToList();
+                assemblies.Add("* All");
+                assemblies.Sort();
+
+                Dispatcher.Invoke(() =>
+                {
+                    assembliesListBox.ItemsSource = assemblies;
+                    assembliesSpinner.Visibility = Visibility.Collapsed;
+                });
+            });
         }
 
         private Dictionary<string, List<string>> _assembliesToTypes = new Dictionary<string, List<string>>();
@@ -275,6 +298,10 @@ namespace RemoteNetGui
                 return;
             }
 
+            findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
+            findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
+            findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
+
             string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
@@ -305,6 +332,9 @@ namespace RemoteNetGui
             _instancesList.Sort();
 
             heapInstancesListBox.ItemsSource = _instancesList;
+
+            findHeapInstancesButtonSpinner.Visibility = Visibility.Collapsed;
+            findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
         }
 
         private List<HeapObject> _instancesList;
@@ -552,7 +582,7 @@ namespace RemoteNetGui
             Brush transparentColor = originalBrush.Clone();
             transparentColor.Opacity = 0;
             countLabel.Foreground = transparentColor;
-            rect1.Visibility = Visibility.Visible;
+            spinner1.Visibility = Visibility.Visible;
 
             List<string> types = await GetTypesList();
             Dictionary<string, int> typesAndIInstancesCount = types.ToDictionary(t => t, t => 0);
@@ -602,7 +632,7 @@ namespace RemoteNetGui
             // Reapply filter
             filterBox_TextChanged(typesFilterBox, null);
 
-            rect1.Visibility = Visibility.Collapsed;
+            spinner1.Visibility = Visibility.Collapsed;
             countLabel.Foreground = originalBrush;
 
             countButton.IsEnabled = true;
