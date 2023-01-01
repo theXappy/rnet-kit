@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RemoteNetGui"
+        xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
         mc:Ignorable="d"
         Title="RemoteNET Spy"
         Height="820" Width="1450"
@@ -99,7 +100,12 @@
             </DockPanel>
         </DockPanel>
         <DockPanel Grid.Column="0"  Grid.Row="1" Margin="5,5,0,5">
-            <Label DockPanel.Dock="Top">Assemblies</Label>
+            <DockPanel Dock="Top">
+                <Button x:Name="assembliesRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="5,2,0,2" Click="AssembliesRefreshButton_OnClick">
+                    <Image Source="icons/Refresh.png" Stretch="None"/>
+                </Button>
+                <Label DockPanel.Dock="Left">Assemblies</Label>
+            </DockPanel>
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
                     <TextBox x:Name="assembliesFilterBox" TextChanged="filterBox_TextChanged"/>
@@ -107,16 +113,19 @@
                             DockPanel.Dock="Right" 
                             Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
                 </Grid>
-                <ListBox DockPanel.Dock="Top" x:Name="assembliesListBox" SelectionChanged="assembliesListBox_SelectionChanged">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <DockPanel>
-                                <Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>
-                                <TextBlock Text="{Binding Path=.}" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <Grid>
+                    <ListBox DockPanel.Dock="Top" x:Name="assembliesListBox" SelectionChanged="assembliesListBox_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel>
+                                    <Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>
+                                    <TextBlock Text="{Binding Path=.}" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
+                </Grid>
             </DockPanel>
         </DockPanel>
         <DockPanel Grid.Column="1"  Grid.Row="1" Margin="5,5,0,5">
@@ -125,23 +134,7 @@
                     <Button.Content>
                         <Grid>
                             <TextBlock x:Name="countLabel">Count</TextBlock>
-                            <Image x:Name="rect1" RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
-                                <Image.RenderTransform>
-                                    <!-- giving the transform a name tells the framework not to freeze it -->
-                                    <RotateTransform x:Name="noFreeze" />
-                                </Image.RenderTransform>
-                                <Image.Triggers>
-                                    <EventTrigger RoutedEvent="Loaded">
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation
-                                                    Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
-                                                    To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                </Image.Triggers>
-                            </Image>
+                            <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
                         </Grid>
                     </Button.Content>
                 </Button>
@@ -221,13 +214,16 @@
                 <DockPanel >
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                         <Button Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Image Source="icons/StatusBarSearch1.png" Height="16"/>
-                                <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
-                                <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(local:DumpedType.FullTypeName), FallbackValue='(?)'}"
+                            <Grid>
+                                <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Image Source="icons/StatusBarSearch1.png" Height="16"/>
+                                    <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
+                                    <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(local:DumpedType.FullTypeName), FallbackValue='(?)'}"
                                            Foreground="#976e01"
                                            />
-                            </StackPanel>
+                                </StackPanel>
+                                <remoteNetSpy:Spinner x:Name="findHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
+                            </Grid>
                         </Button>
                     </StackPanel>
                     <ListBox x:Name="heapInstancesListBox" DockPanel.Dock="Top">
