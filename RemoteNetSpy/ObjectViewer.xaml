@@ -9,8 +9,12 @@
         Title="Object Viewer" Height="560" Width="903"
         Style="{DynamicResource CustomWindowStyle}">
     <Window.Resources>
+        <remoteNetGui:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
+        <remoteNetGui:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
         <remoteNetGui:MemberToIconConverter x:Key="memToIconConverter"/>
-        <remoteNetGui:RawValueToVisibilityConverter x:Key="rawValueToVisabilityConverter"/>
+        <remoteNetGui:StrValueToVisibilityConverter x:Key="strValueToVisabilityConverter"/>
+        <remoteNetGui:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
+        <remoteNetGui:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
     </Window.Resources>
     <DockPanel Margin="7">
         <DockPanel DockPanel.Dock="Top">
@@ -18,6 +22,7 @@
                 <DockPanel DockPanel.Dock="Top" Margin="0,3">
                     <TextBlock DockPanel.Dock="Left" Padding="0,0,5,0">Object Type:</TextBlock>
                     <Image DockPanel.Dock="Left" MaxHeight="14" Source="/icons/Class.png" Margin="0,0,3,0" />
+
                     <TextBlock x:Name="objTypeTextBox"></TextBlock>
                 </DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,3">
@@ -49,6 +54,24 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <DockPanel>
+                                <!-- Button to expend IEnumerables -->
+                                <DockPanel Width="30" 
+                                            Visibility="{Binding Path=Name, Converter={StaticResource rawViewItemToVisabilityConverter}}" 
+                                           />
+                                <Button Visibility="{Binding Path=Name, Converter={StaticResource rawViewToVisabilityConverter}}" 
+                                        Padding="5,0"
+                                        Click="EnumerateRawValueButton_OnClick"
+                                        Background="Transparent"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="0"
+                                >
+                                    <Canvas Width="5" Height="5">
+                                        <Polygon Points="0,0 4,2.5, 0,5" Stroke="White" Fill="Transparent"
+                                                 Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisabilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
+                                        <Polygon Points="4,4 0,4 4,0" Stroke="White" Fill="White" 
+                                                 Visibility="{Binding IsEnabled, Converter={StaticResource InverseBoolToVisabilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
+                                    </Canvas>
+                                </Button>
                                 <Image DockPanel.Dock="Left"
                                 Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16"/>
                                 <TextBlock DockPanel.Dock="Left"
@@ -61,7 +84,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <DockPanel Margin="2,0">
-                                <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource rawValueToVisabilityConverter}}"
+                                <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource strValueToVisabilityConverter}}"
                                         Padding="2,1"
                                         VerticalContentAlignment="Center">
                                     <DockPanel>

@@ -15,6 +15,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using ICSharpCode.Decompiler.TypeSystem;
 using RemoteNET;
 using RemoteNET.Internal;
 
@@ -27,6 +28,8 @@ namespace RemoteNetSpy
     {
         private RemoteObject _ro;
         private Type _type;
+        ObservableCollection<MembersGridItem> _items;
+
 
         public ObjectViewer(Window parent, RemoteObject ro)
         {
@@ -38,12 +41,12 @@ namespace RemoteNetSpy
             _ro = ro;
             _type = _ro.GetType();
 
-            objTypeTextBox.Text = _ro.GetType().FullName;
+            objTypeTextBox.Text = NormalizeGenericTypeFullName(_ro.GetType().FullName);
             objAddrTextBox.Text = $"0x{_ro.RemoteToken:x8}";
 
             DynamicRemoteObject dro = _ro.Dynamify() as DynamicRemoteObject;
 
-            ObservableCollection<MembersGridItem> items = new ObservableCollection<MembersGridItem>();
+            _items = new ObservableCollection<MembersGridItem>();
 
             IEnumerable<MemberInfo> fields = _type.GetFields((BindingFlags)0xffff);
             IEnumerable<MemberInfo> props = _type.GetProperties((BindingFlags)0xffff);
@@ -59,6 +62,7 @@ namespace RemoteNetSpy
                     mgi.MemberType = "Field";
                     mgi.Type = NormalizeGenericTypeFullName(fi.FieldType.ToString()); // Specifying expected type
                 }
+
                 if (member is PropertyInfo pi)
                 {
                     mgi.MemberType = "Property";
@@ -74,10 +78,24 @@ namespace RemoteNetSpy
                     mgi.Value = $"ERROR: Couldn't read value (Exception thrown: {ex.Message})";
                 }
 
-                items.Add(mgi);
+                _items.Add(mgi);
             }
-           
-            membersGrid.ItemsSource = items;
+
+            // Try to spot IEnumerables
+            IEnumerable<MemberInfo> methods = _type.GetMethods((BindingFlags)0xffff);
+            if (methods.Any(mi => mi.Name == "GetEnumerator"))
+            {
+                MembersGridItem iEnumerableMgi = new MembersGridItem()
+                {
+                    MemberType = "Field",
+                    Name = "Raw View",
+                    Value = "",
+                    Type = "IEnumerable",
+                };
+                _items.Add(iEnumerableMgi);
+            }
+
+            membersGrid.ItemsSource = _items;
         }
 
         private static void GetMemberValue(DynamicRemoteObject? dro, MemberInfo field, MembersGridItem mgi)
@@ -144,7 +162,7 @@ namespace RemoteNetSpy
             MembersGridItem mgi = (sender as Button)?.DataContext as MembersGridItem;
             if (mgi == null)
                 return;
-            if(mgi.RawValue == null)
+            if (mgi.RawValue == null)
                 return;
             RemoteObject? ro = mgi.RawValue as RemoteObject;
             if (mgi.RawValue is not RemoteObject)
@@ -162,7 +180,7 @@ namespace RemoteNetSpy
         {
             var parent = (sender as TextBlock).Parent as Grid;
             TextBox? tBox = parent?.Children.Cast<UIElement>().Single(c => c is TextBox) as TextBox;
-            if(tBox == null)
+            if (tBox == null)
                 return;
             tBox.Visibility = Visibility.Visible;
             tBox.Focus();
@@ -188,6 +206,36 @@ namespace RemoteNetSpy
         private void UIElement_OnLostFocus(object sender, RoutedEventArgs e)
         {
             (sender as TextBox).Visibility = Visibility.Hidden;
+        }
+
+        private void EnumerateRawValueButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            // TODO: Add children to that _items source thingy
+            dynamic dro = _ro.Dynamify();
+            int i = 0;
+            foreach (dynamic item in dro)
+            {
+                MembersGridItem itemMgi = new MembersGridItem()
+                {
+                    MemberType = "Field",
+                    Name = $"Raw View[{i}]",
+                    RawValue = item,
+                    Value = item?.ToString() ?? "null",
+                    Type = "???",
+                };
+                try
+                {
+                    itemMgi.Type = NormalizeGenericTypeFullName(item.GetType().FullName);
+                }
+                catch
+                {
+                }
+
+                _items.Add(itemMgi);
+                i++;
+            }
+            
+            (sender as Button).IsEnabled = false;
         }
     }
 }
