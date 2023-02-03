@@ -1,0 +1,42 @@
+﻿<UserControl x:Class="RemoteNetSpy.Spinner"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RemoteNetSpy"
+             mc:Ignorable="d" 
+             d:DesignHeight="32" d:DesignWidth="32">
+    <DockPanel x:Name="panel" Background="#DD252525">
+        <Image x:Name="dots" RenderTransformOrigin="0.48,0.47" Source="icons/Loading.png" Height="16" Width="16">
+            <Image.RenderTransform>
+                <!-- giving the transform a name tells the framework not to freeze it -->
+                <RotateTransform x:Name="noFreeze" />
+            </Image.RenderTransform>
+            <Image.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard
+                        BeginTime="00:00:00"
+                        RepeatBehavior="Forever"
+                        Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)">
+                            <DoubleAnimationUsingKeyFrames Duration="0:0:0.9">
+                                <DoubleKeyFrameCollection>
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.0" Value="0" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.1" Value="36" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.2" Value="72" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.3" Value="108" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.4" Value="144" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.5" Value="180" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.6" Value="216" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.7" Value="252" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.8" Value="288" />
+                                    <DiscreteDoubleKeyFrame KeyTime="0:0:0.9" Value="324" />
+                                </DoubleKeyFrameCollection>
+                            </DoubleAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Image.Triggers>
+        </Image>
+        </DockPanel>
+</UserControl>
