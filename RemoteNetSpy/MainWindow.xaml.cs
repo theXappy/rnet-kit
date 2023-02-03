@@ -1,29 +1,33 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
 using Microsoft.Win32;
 using RemoteNET;
+using RemoteNetSpy;
 
 namespace RemoteNetGui
 {
     public class InjectableProcess
     {
-        public int Pid{ get; set; }
+        public int Pid { get; set; }
         public string Name { get; set; }
         public string DotNetVersion { get; set; }
         public string DiverState { get; set; }
@@ -43,6 +47,7 @@ namespace RemoteNetGui
     public partial class MainWindow : Window
     {
         RemoteApp _app = null;
+        private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
 
         public MainWindow()
         {
@@ -69,7 +74,7 @@ namespace RemoteNetGui
                 .ToList()
                 .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
                 .Where(arr => arr.Length > 2)
-                .Select(arr => new InjectableProcess(int.Parse(arr[0]),arr[1], arr[2], arr[3]))
+                .Select(arr => new InjectableProcess(int.Parse(arr[0]), arr[1], arr[2], arr[3]))
                 .ToList();
             procsBox.ItemsSource = xx;
             procsBox.IsEnabled = true;
@@ -110,8 +115,8 @@ namespace RemoteNetGui
         }
 
 
-        private InjectableProcess _procBoxCurrItem;
-        public string ProcName => _procBoxCurrItem.Name;
+        private InjectableProcess? _procBoxCurrItem;
+        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
 
         private DumpedType _currSelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
@@ -133,46 +138,77 @@ namespace RemoteNetGui
 
             StopGlow();
 
-            if (_app != null)
+            // Saving aside last RemoteApp
+            var oldApp = _app;
+
+            // Creating new RemoteApp
+            _app = await Task.Run(() => RemoteApp.Connect(Process.GetProcessById(TargetPid)));
+
+            // Only now we try to dispose of the old RemoteApp.
+            // We must do it after creating a new one for the case where the user re-attaches to the same
+            // app. Closing our old one before the new one is connected willl cause the Diver to die.
+            if (oldApp != null)
             {
                 try
                 {
-                    _app.Dispose();
+                    oldApp.Dispose();
                 }
                 catch
                 {
                 }
-                _app = null;
+                oldApp = null;
             }
-            _app = await Task.Run(() => RemoteApp.Connect(ProcName));
 
-            var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"types -t {ProcName} -q *")
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
-            var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n')
-                .Skip(2)
-                .Select(str => str.Trim());
-            foreach (string line in xx)
+            RefreshAssembliesAsync();
+        }
+
+
+        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => RefreshAssembliesAsync();
+
+        private Task RefreshAssembliesAsync()
+        {
+            return Task.Run(() =>
             {
-                string[] parts = line.Split("]");
-                if (parts.Length < 2)
-                    continue;
-                string assembly = parts[0].Trim(' ', '[', ']');
-                string type = parts[1].Trim();
-                if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
-                {
-                    types = new List<string>();
-                    _assembliesToTypes[assembly] = types;
-                }
-                types.Add(type);
-            }
 
-            var assemblies = _assembliesToTypes.Keys.ToList();
-            assemblies.Add("* All");
-            assemblies.Sort();
-            assembliesListBox.ItemsSource = assemblies;
+                Dispatcher.Invoke(() =>
+                {
+                    assembliesSpinner.Visibility = Visibility.Visible;
+                });
+
+                var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+                    .WithArguments($"types -t {TargetPid} -q *")
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteBufferedAsync();
+                var res = x.Task.Result;
+                var xx = res.StandardOutput.Split('\n')
+                    .Skip(2)
+                    .Select(str => str.Trim());
+                foreach (string line in xx)
+                {
+                    string[] parts = line.Split("]");
+                    if (parts.Length < 2)
+                        continue;
+                    string assembly = parts[0].Trim(' ', '[', ']');
+                    string type = parts[1].Trim();
+                    if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
+                    {
+                        types = new List<string>();
+                        _assembliesToTypes[assembly] = types;
+                    }
+
+                    types.Add(type);
+                }
+
+                var assemblies = _assembliesToTypes.Keys.ToList();
+                assemblies.Add("* All");
+                assemblies.Sort();
+
+                Dispatcher.Invoke(() =>
+                {
+                    assembliesListBox.ItemsSource = assemblies;
+                    assembliesSpinner.Visibility = Visibility.Collapsed;
+                });
+            });
         }
 
         private Dictionary<string, List<string>> _assembliesToTypes = new Dictionary<string, List<string>>();
@@ -186,14 +222,16 @@ namespace RemoteNetGui
             List<DumpedType> dumpedTypes = types.Select(str => new DumpedType(str, null)).ToList();
             typesListBox.ItemsSource = dumpedTypes;
 
-            // Reapply filter
-            filterBox_TextChanged(sender, null);
+            // Reapply filter for types
+            filterBox_TextChanged(typesFilterBox, null);
         }
 
         private async Task<List<string>?> GetTypesList()
         {
             string assembly = assembliesListBox.SelectedItem as string;
             List<string> types = null;
+            if (assembly == null)
+                return new List<string>();
             if (assembly == "* All")
             {
                 await Task.Run(() =>
@@ -219,11 +257,14 @@ namespace RemoteNetGui
             _currSelectedType = (typesListBox.SelectedItem as DumpedType);
             string type = _currSelectedType?.FullTypeName;
             if (type == null)
+            {
+                membersListBox.ItemsSource = null;
                 return;
+            }
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {ProcName} -q \"{type}\"")
+                .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -232,45 +273,93 @@ namespace RemoteNetGui
                 .Skip(1)
                 .Select(str => str.Trim());
 
-            List<string> membersList = xx.ToList();
-            membersList.Sort();
+            List<string> rawLinesList = xx.ToList();
+            List<DumpedMember> dumpedMembers = new List<DumpedMember>();
+            for (int i = 0; i < rawLinesList.Count; i += 2)
+            {
+                DumpedMember dumpedMember = new DumpedMember()
+                {
+                    RawName = rawLinesList[i],
+                    NormalizedName = rawLinesList[i + 1]
+                };
+                dumpedMembers.Add(dumpedMember);
+            }
 
-            membersListBox.ItemsSource = membersList;
+            dumpedMembers.Sort((member1, member2) => member1.RawName.CompareTo(member2.RawName));
+
+            membersListBox.ItemsSource = dumpedMembers;
         }
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
+            if (typesListBox.SelectedItem == null)
+            {
+                MessageBox.Show("You must select a type from the \"Types\" listbox first.", $"{this.Title} Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
+            findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
+            findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
+
             string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {ProcName} -q \"{type}\"")
+                .WithArguments($"heap -t {TargetPid} -q \"{type}\"")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            var newInstances = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .SkipWhile(line => !line.Contains("Found "))
                 .Skip(1)
                 .Select(str => str.Trim())
                 .Select(HeapObject.Parse);
 
-            List<HeapObject> instancesList = xx.ToList();
-            instancesList.Sort();
+            // Carry with us all previously frozen objects
+            if (_instancesList != null)
+            {
+                List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
+                foreach (var instance in newInstances)
+                {
+                    if (!combined.Contains(instance))
+                        combined.Add(instance);
+                }
 
-            heapInstancesListBox.ItemsSource = instancesList;
+                newInstances = combined;
+            }
+
+            _instancesList = newInstances.ToList();
+            _instancesList.Sort();
+
+            heapInstancesListBox.ItemsSource = _instancesList;
+
+            findHeapInstancesButtonSpinner.Visibility = Visibility.Collapsed;
+            findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
         }
+
+        private List<HeapObject> _instancesList;
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            bool matchCase = true;
             ListBox associatedBox = null;
             if (sender == typesFilterBox)
+            {
                 associatedBox = typesListBox;
+                matchCase = _matchCaseTypes;
+            }
             if (sender == assembliesFilterBox)
+            {
                 associatedBox = assembliesListBox;
+            }
             if (sender == membersFilterBox)
+            {
                 associatedBox = membersListBox;
+            }
 
             if (associatedBox == null)
                 return;
+
 
             string filter = (sender as TextBox)?.Text;
             ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
@@ -281,9 +370,17 @@ namespace RemoteNetGui
             }
             else
             {
-                view.Filter = (o) => (o as DumpedType)?.FullTypeName?.Contains(filter) == true;
+                StringComparison comp =
+                    matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
+                view.Filter = (o) =>
+                {
+                    if (sender == membersFilterBox)
+                        return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
+                    if (sender == typesFilterBox)
+                        return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)?.Contains(filter, comp) == true;
+                    return (o as string)?.Contains(filter) == true;
+                };
             }
-
         }
 
         private void clearTypesFilterButton_OnClick(object sender, RoutedEventArgs e)
@@ -296,21 +393,36 @@ namespace RemoteNetGui
                 membersFilterBox.Clear();
         }
 
-        private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshProcessesList();
+        private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            membersListBox.ItemsSource = null;
+            typesListBox.ItemsSource = null;
+            assembliesListBox.ItemsSource = null;
+            heapInstancesListBox.ItemsSource = null;
+            _traceList.Clear();
+
+            await RefreshProcessesList();
+        }
 
         private void RunTracesButtonClicked(object sender, RoutedEventArgs e)
         {
             if (!_traceList.Any())
             {
-                MessageBox.Show("List of functions to trace is empty.");
+                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            List<string> args = new List<string>() { "-t", ProcName };
+            if (_procBoxCurrItem == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            List<string> args = new List<string>() { "-t", TargetPid.ToString() };
             foreach (string funcToTrace in _traceList)
             {
                 args.Add("-i");
-                string reducedSignaturee = funcToTrace.Substring(0, funcToTrace.IndexOf('('));
+                string reducedSignaturee = funcToTrace;//.Substring(0, funcToTrace.IndexOf('('));
                 args.Add($"\"{reducedSignaturee}\"");
             }
 
@@ -368,7 +480,7 @@ namespace RemoteNetGui
             bool? success = ofd.ShowDialog();
             if (success == true)
             {
-                string path = ofd.SafeFileName;
+                string path = ofd.FileName;
                 if (path == null)
                 {
                     MessageBox.Show("Invalid file name.");
@@ -411,32 +523,54 @@ namespace RemoteNetGui
             }
         }
 
-        private void FreezeUnfreezeHeapObject(object sender, RoutedEventArgs e)
+        private async void FreezeUnfreezeHeapObject(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
+            var grid = senderButton.FindLogicalChildren<Grid>().Single();
+            var dPanel = grid.Children.OfType<DockPanel>().Single();
+            var loadingImage = grid.Children.OfType<Image>().Single();
+
+            dPanel.Visibility = Visibility.Collapsed;
+            loadingImage.Visibility = Visibility.Visible;
+
             HeapObject? dataContext = senderButton.DataContext as HeapObject;
-            if (dataContext.Frozen)
+
+            bool isFrozen = dataContext.Frozen;
+            try
             {
-                // Unfreezing
-                ulong lastKnownAddres = dataContext.Address;
-                dataContext.RemoteObject = null;
-                dataContext.Address = lastKnownAddres;
+                if (isFrozen)
+                {
+                    // Unfreezing
+                    ulong lastKnownAddres = dataContext.Address;
+                    dataContext.RemoteObject = null;
+                    dataContext.Address = lastKnownAddres;
+                }
+                else
+                {
+                    // Freeze
+                    ulong address = dataContext.Address;
+                    Task dumperTask = Task.Run(() =>
+                    {
+                        RemoteObject ro = _app.GetRemoteObject(address, dataContext.FullTypeName);
+                        dataContext.Address = ro.RemoteToken;
+                        dataContext.RemoteObject = ro;
+                    });
+                    await dumperTask;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Freeze
-                ulong address = dataContext.Address;
-                try
-                {
-                    RemoteObject ro = _app.GetRemoteObject(address);
-                    dataContext.Address = ro.RemoteToken;
-                    dataContext.RemoteObject = ro;
-                }
-                catch
-                {
-                    MessageBox.Show($"Failed to get object at 0x{address:X8}.\n" +
-                                    $"Please refresh heap instances panel and retry.");
-                }
+                // ignored
+                string error = "Error while unfreezing.\r\n";
+                if (!isFrozen)
+                    error = "Error while freezing.\r\nPlease refresh the heap search and retry.\r\n";
+                error += "Exception: " + ex;
+                MessageBox.Show(error, "Error", MessageBoxButton.OK);
+            }
+            finally
+            {
+                dPanel.Visibility = Visibility.Visible;
+                loadingImage.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -448,14 +582,14 @@ namespace RemoteNetGui
             Brush transparentColor = originalBrush.Clone();
             transparentColor.Opacity = 0;
             countLabel.Foreground = transparentColor;
-            rect1.Visibility = Visibility.Visible;
+            spinner1.Visibility = Visibility.Visible;
 
             List<string> types = await GetTypesList();
             Dictionary<string, int> typesAndIInstancesCount = types.ToDictionary(t => t, t => 0);
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {ProcName} -q *")
+                .WithArguments($"heap -t {TargetPid} -q *")
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -471,24 +605,147 @@ namespace RemoteNetGui
                     typesAndIInstancesCount[heapObjectType]++;
             }
 
+            string lastSelected = (typesListBox?.SelectedItem as DumpedType)?.FullTypeName;
+            DumpedType typeToReselect = null;
+
             List<DumpedType> dumpedTypes = new List<DumpedType>();
             foreach (KeyValuePair<string, int> kvp in typesAndIInstancesCount)
             {
+
                 int? numInstances = kvp.Value != 0 ? kvp.Value : null;
                 DumpedType dt = new DumpedType(kvp.Key, numInstances);
                 dumpedTypes.Add(dt);
+
+                // Check if this was the last selected type  in the listbox
+                if (kvp.Key == lastSelected)
+                {
+                    typeToReselect = dt;
+                }
             }
 
             typesListBox.ItemsSource = dumpedTypes;
+            if (typeToReselect != null)
+            {
+                typesListBox.SelectedItem = typeToReselect;
+            }
 
             // Reapply filter
             filterBox_TextChanged(typesFilterBox, null);
 
-            rect1.Visibility = Visibility.Collapsed;
+            spinner1.Visibility = Visibility.Collapsed;
             countLabel.Foreground = originalBrush;
 
             countButton.IsEnabled = true;
         }
+
+        private void ManualTraceClicked(object sender, RoutedEventArgs e)
+        {
+            if (_procBoxCurrItem == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            TraceQueryWindow qWin = new TraceQueryWindow();
+            bool? res = qWin.ShowDialog();
+            if (res == true)
+            {
+
+                List<string> args = new List<string>() { "-t", TargetPid.ToString() };
+                string[] funcsToTrace = qWin.Queries;
+                foreach (string funcToTrace in funcsToTrace)
+                {
+                    args.Add("-i");
+
+                    string reducedSignaturee = funcToTrace;
+                    if (funcToTrace.Contains('('))
+                        reducedSignaturee = funcToTrace.Substring(0, funcToTrace.IndexOf('('));
+                    args.Add($"\"{reducedSignaturee}\"");
+                }
+
+                string argsLine = string.Join(' ', args);
+                ProcessStartInfo psi = new ProcessStartInfo("rnet-trace.exe", argsLine)
+                {
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+            }
+        }
+
+        private void TypeMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string typeName = (mi.DataContext as DumpedType).FullTypeName;
+            Clipboard.SetText(typeName);
+        }
+
+        private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string member = (mi.DataContext as DumpedMember).NormalizedName;
+            Clipboard.SetText(member);
+        }
+
+        private bool _matchCaseTypes = false;
+        private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            _matchCaseTypes = !_matchCaseTypes;
+            Button b = (sender as Button);
+            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
+            b.Background = _matchCaseTypes ? brush : null;
+            filterBox_TextChanged(typesFilterBox, null);
+        }
+
+        private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
+        {
+            Button senderButton = sender as Button;
+            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozed.");
+                return;
+            }
+
+            (new ObjectViewer(this, dataContext.RemoteObject)).ShowDialog();
+        }
+
+        private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
+        {
+            string trace = (sender as FrameworkElement)?.DataContext as string;
+            if (trace != null)
+            {
+                _traceList.Remove(trace);
+            }
+        }
+
+        private void ExploreButtonBaseOnClick(object sender, RoutedEventArgs e)
+        {
+            Button senderButton = sender as Button;
+            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozed.");
+                return;
+            }
+
+            string script = 
+@$"var app = RemoteApp.Connect(Process.GetProcessById({TargetPid}));
+var ro = app.GetRemoteObject(0x{dataContext.Address:X16}, ""{dataContext.FullTypeName}"");
+dynamic dro = ro.Dynamify();
+";
+
+            string path = Path.GetTempFileName();
+            File.WriteAllText(path, script);
+
+            Process.Start("rnet-repl.exe", new string[] { "--statementsFile", path });
+        }
+    }
+
+    public class DumpedMember
+    {
+        public string RawName { get; set; }
+        // This one has generic args normalized from [[System.Byte, ... ]] to <System.Byte>
+        public string NormalizedName { get; set; }
     }
 
     public class DumpedType
@@ -502,82 +759,6 @@ namespace RemoteNetGui
         {
             FullTypeName = fullTypeName;
             _numInstances = numInstances;
-        }
-    }
-
-    public class HeapObject : INotifyPropertyChanged, IComparable
-    {
-        private ulong _address;
-        private RemoteObject remoteObject;
-
-        public ulong Address
-        {
-            get
-            {
-                if (RemoteObject != null)
-                    return RemoteObject.RemoteToken;
-                return _address;
-            }
-            set
-            {
-                if (RemoteObject != null)
-                    throw new Exception("Can't set address for frozen heap object");
-                _address = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string FullTypeName { get; set; }
-
-        public RemoteObject RemoteObject
-        {
-            get => remoteObject;
-            set
-            {
-                remoteObject = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(Frozen));
-            }
-        }
-
-        public bool Frozen => RemoteObject != null;
-
-        public static HeapObject Parse(string text)
-        {
-            string[] splitted = text.Split(' ');
-            string addressStr = splitted[0];
-            if (addressStr.StartsWith("0x"))
-                addressStr = addressStr[2..];
-            ulong address = Convert.ToUInt64(addressStr, 16);
-
-            return new HeapObject() { Address = address, FullTypeName = splitted[1] };
-        }
-
-        public override string ToString()
-        {
-            return $"0x{Address:X8} {FullTypeName}";
-        }
-
-        public int CompareTo(object? obj)
-        {
-            if(obj is HeapObject casted)
-                return this._address.CompareTo(casted._address);
-            return -1;
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
         }
     }
 }

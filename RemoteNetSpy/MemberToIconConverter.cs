@@ -13,7 +13,9 @@ public class MemberToIconConverter : IValueConverter
         string str = value as string;
         if (str == null)
             return null;
-        char c = str[1];
+        char c = str[0];
+        if ( c == '[')
+            c = str[1];
         //if (str.StartsWith("[Event]"))
         if (c == 'E')
             return "/icons/Event.png";
@@ -99,8 +101,40 @@ public class BoolToVisabilityConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+public class InverseBoolToVisabilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return (bool)value ? Visibility.Collapsed : Visibility.Visible;
+
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
 
 
+public class DumpedTypeToDescription : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        DumpedType a = value as DumpedType;
+        if (a == null)
+            return "Error: null";
+
+        string desc = a.FullTypeName;
+        if (a.HaveInstances)
+            desc += $" ({a.NumInstances})";
+        return desc;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
 
 public class BoolToForegroundColor : IValueConverter
 {
