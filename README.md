@@ -1,10 +1,11 @@
 # RemoteNetSpy
-`RemoteNetSpy.exe` is a GUI application utilizing the RemoteNET library.  
-Use this app to research and explore .NET targets:
+`RemoteNetSpy.exe` is a GUI application utilizing the [RemoteNET library](https://github.com/theXappy/RemoteNET).  
+Use this app to research and explore .NET apps:
 1. Find loaded assemblies & types
 2. Find and inspect every object instance
 3. Quickly set hooks on methods to trace when they're called.
 
+![screenshot](https://raw.githubusercontent.com/theXappy/rnet-kit/main/pr.png)
 
 # rnet-kit
 This repo also contains other programs that use RemoteNET. Together with RemoteNetSpy, they are called the *rnet-kit*.  
