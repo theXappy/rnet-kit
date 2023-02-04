@@ -10,9 +10,11 @@ Use this app to research and explore .NET apps:
 ![screenshot](https://raw.githubusercontent.com/theXappy/rnet-kit/main/pr.png)
 
 # rnet-kit
-This repo also contains other programs that use RemoteNET. Together with RemoteNetSpy, they are called the *rnet-kit*.  
-Every other program has a command-line interface and is meant for very specific tasks.  
-RemoteNetSpy uses some of those command-line programs to gather information. Using RemoteNetSpy itself should be enough for most use cases.  
+This repo also contains other programs that use RemoteNET.  
+Together with RemoteNetSpy, they are called the **rnet-kit**.   
+Every other program has a command-line interface and is meant for specific, "lower-level", tasks.  
+RemoteNetSpy uses some of those command-line programs to gather information and operate.  
+Using RemoteNetSpy itself should be enough for most research use-cases.  
 
 The other utilities in this repo:
 1. `rnet-trace.exe`  
