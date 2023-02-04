@@ -12,7 +12,7 @@
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.3.1" />
     <PackageReference Include="Pastel" Version="3.0.1" />
-    <PackageReference Include="RemoteNET" Version="1.0.1.25" />
+    <PackageReference Include="RemoteNET" Version="1.0.1.26" />
   </ItemGroup>
 
 </Project>
