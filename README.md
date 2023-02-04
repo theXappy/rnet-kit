@@ -23,3 +23,7 @@ Dump specific peices of info from a .NET process. Like Assemblies, Types, Object
 List injectable .NET processes in the system. Only processes that return from rnet-ps can be used with the other utils.
 4. `rnet-repl.exe`  
 A REPL console that allows low level access to a target app. You can grab objects, exmaine or modify them, hook methods and even inejct other .NET assemblies.
+
+
+## Thanks
+**icons8** for the "Puppet" icon
