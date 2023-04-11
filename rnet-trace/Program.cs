@@ -7,6 +7,7 @@ using RemotenetTrace;
 using ScubaDiver.API.Hooking;
 using Microsoft.CodeAnalysis.Scripting;
 using System.Diagnostics;
+using RnetKit.Common;
 
 namespace QuickStart
 {
@@ -131,8 +132,22 @@ namespace QuickStart
             // Display all overloads to the user
             foreach (MethodBase methodToHook in methodsToHook)
             {
-                Console.WriteLine($"Hooking Method: (Class: {methodToHook.DeclaringType.FullName}) {methodToHook}");
+                Console.Write($"Hooking Method: (Class: {methodToHook.DeclaringType.FullName}) ");
+                switch (methodToHook)
+                {
+                    case MethodInfo mi:
+                            Console.Write($"{mi.ReturnType} {mi.Name}(");
+                            Console.Write(string.Join(", ",
+                            mi.GetParameters().Select(pi =>
+                                TypeNameUtils.Normalize(pi.ParameterType.FullName) + " " + pi.Name)));
+                            Console.WriteLine(")");
+                        break;
+                    default:
+                            Console.WriteLine(methodToHook);
+                        break;
+                }
             }
+
 
             // Create local handler functions for all future hooks
             Dictionary<MethodBase, HookAction> hookHandlers = CreateHookHandlers(methodsToHook);
@@ -304,7 +319,7 @@ namespace QuickStart
             for (int i = 0; i < parameterFilters.Length; i++)
             {
                 Regex r = SimpleFilterToRegex(parameterFilters[i]);
-                string normalizedParameterType = NormalizeGenericTypeFullName(parameters[i].ParameterType.FullName);
+                string normalizedParameterType = TypeNameUtils.Normalize(parameters[i].ParameterType.FullName);
                 if (!r.IsMatch(normalizedParameterType))
                 {
                     return false;
@@ -312,23 +327,6 @@ namespace QuickStart
             }
 
             return true;
-        }
-
-        private static string NormalizeGenericTypeFullName(string fullName)
-        {
-            // Use a regular expression to match and replace the extra type information
-            string parsedFullName = Regex.Replace(fullName, @",\s*[^,]+\s*,\s*Version=\d+\.\d+\.\d+\.\d+\s*,\s*Culture=\w+\s*,\s*PublicKeyToken=\w+", "");
-
-            // Use another regular expression to match and replace the square brackets
-            parsedFullName = parsedFullName.Replace("[[", "<");
-            parsedFullName = parsedFullName.Replace("]]", ">");
-            parsedFullName = Regex.Replace(parsedFullName, @"<([^<>]*)\],\[([^<>]*)>", "<$1, $2>");
-
-            // Use another regular expression to match and remove the backtick and number after it
-            parsedFullName = Regex.Replace(parsedFullName, @"\`\d", "");
-
-            // Output the parsed full name of the generic type, which should be "System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<System.Int32, System.String>>>"
-            return parsedFullName;
         }
 
         /// <summary>
