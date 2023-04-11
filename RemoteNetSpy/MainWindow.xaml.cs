@@ -706,7 +706,7 @@ namespace RemoteNetGui
                 return;
             }
 
-            (new ObjectViewer(this, dataContext.RemoteObject)).ShowDialog();
+            (ObjectViewer.CreateViewerWindow(this, dataContext.RemoteObject)).ShowDialog();
         }
 
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
