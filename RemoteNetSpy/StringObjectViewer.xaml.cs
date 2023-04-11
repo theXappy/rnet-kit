@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using RemoteNET;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -12,23 +12,18 @@ namespace RemoteNetSpy
     /// </summary>
     public partial class StringObjectViewer : Window
     {
-        private RemoteObject _ro;
         private Type _type;
 
-        public StringObjectViewer(Window parent, RemoteObject ro)
+        public StringObjectViewer(Window parent, string str)
         {
             InitializeComponent();
             double multiplier = parent is ObjectViewer ? 1 : 0.9;
             this.Height = parent.Height * multiplier;
             this.Width = parent.Width * multiplier;
-            _ro = ro;
-            _type = _ro.GetType();
+            _type = str.GetType();
 
-            DynamicRemoteObject dro = _ro.Dynamify() as DynamicRemoteObject;
-
-            objTypeTextBox.Text = TypeNameUtils.Normalize(_ro.GetType().FullName);
-            objAddrTextBox.Text = $"0x{_ro.RemoteToken:x8}";
-            contentTextBox.Text = dro.ToString();
+            objTypeTextBox.Text = TypeNameUtils.Normalize(_type.FullName);
+            contentTextBox.Text = str;
         }
 
         private void CloseButtonClicked(object sender, RoutedEventArgs e)
