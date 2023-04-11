@@ -159,12 +159,16 @@ namespace RemoteNetSpy
             if (mgi.RawValue is not RemoteObject)
                 ro = (mgi.RawValue as DynamicRemoteObject)?.__ro;
 
-            if (ro == null)
+
+            // Make sure we forward either the RO or the primitive (this is mostly here for strings)
+            object obj = mgi.RawValue;
+            if (ro != null)
             {
-                MessageBox.Show("Value is not a Remote Object.\nHere's a ToString():\n" + ro);
+                obj = ro;
             }
 
-            (ObjectViewer.CreateViewerWindow(this, ro)).ShowDialog();
+            //MessageBox.Show("Value is not a Remote Object.\nHere's a ToString():\n" + ro);
+            CreateViewerWindow(this, obj).ShowDialog();
         }
 
         private void UIElement_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -215,9 +219,13 @@ namespace RemoteNetSpy
         }
 
 
-        public static Window CreateViewerWindow(Window parent, RemoteObject ro)
+        public static Window CreateViewerWindow(Window parent, object obj)
         {
-            return new ObjectViewer(parent, ro);
+            if(obj is RemoteObject ro)
+                return new ObjectViewer(parent, ro);
+            if (obj is string str)
+                return new StringObjectViewer(parent, str);
+            throw new Exception($"Unsupported object type to view. Type: {obj.GetType().Name}");
         }
     }
 }

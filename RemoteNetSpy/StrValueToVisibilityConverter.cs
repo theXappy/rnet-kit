@@ -18,6 +18,8 @@ public class StrValueToVisibilityConverter : IValueConverter
             return Visibility.Visible;
         if (value.GetType().IsArray)
             return Visibility.Visible;
+        if (value is string)
+            return Visibility.Visible;
         return Visibility.Collapsed;
     }
 
