@@ -53,11 +53,10 @@ namespace RemotenetTrace
             }
             else
             {
-                
                 script += "Output.Append($\"{Convert.ToInt32((DateTime.Now - Context.StartTime).TotalMilliseconds)} ms  \");\r\n";
                 script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));\r\n";
                 script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
-                script += "Output.AppendLine($\"({Context.PrettyParametersList()})\\n\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
+                script += "Output.AppendLine($\"({Context.PrettyParametersList()})\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
                 script += "Output.AppendLine($\"\\tArguments:\");\r\n";
                 for (int i = 0; i < numArgs; i++)
                 {

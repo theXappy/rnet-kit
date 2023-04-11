@@ -22,6 +22,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpRepl.Services", "rnet
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteNetSpy", "RemoteNetSpy\RemoteNetSpy.csproj", "{A2864E9C-DDD7-463E-B963-410768A16C4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RnetKit.Common", "RnetKit.Common\RnetKit.Common.csproj", "{D076919A-FA21-48F5-A909-FC125AC51EBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{A2864E9C-DDD7-463E-B963-410768A16C4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2864E9C-DDD7-463E-B963-410768A16C4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A2864E9C-DDD7-463E-B963-410768A16C4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D076919A-FA21-48F5-A909-FC125AC51EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D076919A-FA21-48F5-A909-FC125AC51EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D076919A-FA21-48F5-A909-FC125AC51EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D076919A-FA21-48F5-A909-FC125AC51EBF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

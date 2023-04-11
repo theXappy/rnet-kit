@@ -4,6 +4,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RnetKit.Common;
 
 namespace RemotenetTrace
 {
@@ -38,7 +39,9 @@ namespace RemotenetTrace
             Parameters = paramTypes.Zip(paramNames).Select(tuple => new MethodParameter(tuple.First, tuple.Second)).ToArray();
         }
 
-        public string PrettyParametersList() => String.Join(", ", Parameters.Select(p => p.ToString()));
+        private string PrettyPrintTypeName(string typeName) => TypeNameUtils.Normalize(typeName);
+        private string PrettyPrintParameter(MethodParameter parameter) => $"{PrettyPrintTypeName(parameter.Type)} {parameter.Name}";
+        public string PrettyParametersList() => String.Join(", ", Parameters.Select(PrettyPrintParameter));
 
         public Dictionary<string, object> ToDictionary()
         {

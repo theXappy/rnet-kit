@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -114,6 +114,7 @@
     <ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
     <ProjectReference Include="..\rnet-repl\RemoteNetRepl\CSharpRepl\CSharpRepl.csproj" />
     <ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
+    <ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
   </ItemGroup>
 
 </Project>
