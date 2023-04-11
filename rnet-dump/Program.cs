@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
 using RemoteNET;
+using RnetKit.Common;
 
 public class Program
 {
@@ -103,9 +104,7 @@ public class Program
         // Convert SomeType<T1,T2> --to--> SomeType`2
         if (target.Contains('<') && target.EndsWith('>'))
         {
-            string genericPart = target.Substring(target.IndexOf('<'));
-            int numGenericArgs = genericPart.Count(c => c == ',') + 1;
-            target = target.Substring(0, target.IndexOf('<')) + $"`{numGenericArgs}";
+            target = TypeNameUtils.DenormalizeShort(target);
         }
 
         Type dumpedType;
