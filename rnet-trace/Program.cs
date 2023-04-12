@@ -133,19 +133,7 @@ namespace QuickStart
             foreach (MethodBase methodToHook in methodsToHook)
             {
                 Console.Write($"Hooking Method: (Class: {methodToHook.DeclaringType.FullName}) ");
-                switch (methodToHook)
-                {
-                    case MethodInfo mi:
-                            Console.Write($"{mi.ReturnType} {mi.Name}(");
-                            Console.Write(string.Join(", ",
-                            mi.GetParameters().Select(pi =>
-                                TypeNameUtils.Normalize(pi.ParameterType.FullName) + " " + pi.Name)));
-                            Console.WriteLine(")");
-                        break;
-                    default:
-                            Console.WriteLine(methodToHook);
-                        break;
-                }
+                Console.WriteLine(TypeNameUtils.Normalize(methodToHook));
             }
 
 
