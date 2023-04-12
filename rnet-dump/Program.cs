@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -125,34 +125,15 @@ public class Program
             return 1;
         }
 
-        Regex genericPartRegex = new Regex(@"`\d+\[\[.*?\]\]");
-        Regex r = new Regex(@"\[(.*?), .*?\]");
         Console.WriteLine($"Members of type {dumpedType.FullName}:");
         foreach (var member in dumpedType.GetMembers())
         {
-            if(opts.PrintRaw)
+            if (!opts.SkipPrintRaw)
                 Console.WriteLine($"[{member.MemberType}] {member}");
 
             if (opts.PrintNormalizedGenerics)
             {
-                string memberString = member.ToString();
-                var matches = genericPartRegex.Matches(memberString);
-                while (matches.Any())
-                {
-                    Match match = matches.First();
-                    string matchData = match.Groups[0].ToString();
-                    // This line will give us "`2[System.String, System.Byte]
-                    string withTypesNormalized = r.Replace(matchData, $"$1");
-
-                    // This line will give us "<System.String, System.Byte>"
-                    string withTriangles = "<" +
-                                        withTypesNormalized[(withTypesNormalized.IndexOf('[') + 1)..^1]
-                                        + ">";
-
-                    memberString = memberString.Replace(matchData, withTriangles);
-
-                    matches = genericPartRegex.Matches(memberString);
-                }
+                string memberString = TypeNameUtils.Normalize(member);
                 Console.WriteLine($"[{member.MemberType}] {memberString}");
             }
         }
