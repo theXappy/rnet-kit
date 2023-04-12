@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -36,8 +36,8 @@ public class Program
         public string? TargetProcess { get; set; }
         [Option('q', "type-query", Required = true, HelpText = "Query for the Full Name of the type to dump")]
         public string Query { get; set; }
-        [Option('r', "raw_generics", Default = true, HelpText = "Whether to print the un-normalize types names. This mean generic types are less readable.")]
-        public bool PrintRaw { get; set; }
+        [Option('r', "disable_raw_generics", Default = false, HelpText = "Whether to skip printing the un-normalize types names. Those are less readable than normalized.")]
+        public bool SkipPrintRaw { get; set; }
         [Option('n', "normalized_generics", Default = false, HelpText = "Whether to print normalize inner generic types ([[System.Byte, ..., PublicKey=...]] to System.Byte)")]
         public bool PrintNormalizedGenerics { get; set; }
     }
