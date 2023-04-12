@@ -39,9 +39,8 @@ namespace RemotenetTrace
             Parameters = paramTypes.Zip(paramNames).Select(tuple => new MethodParameter(tuple.First, tuple.Second)).ToArray();
         }
 
-        private string PrettyPrintTypeName(string typeName) => TypeNameUtils.Normalize(typeName);
-        private string PrettyPrintParameter(MethodParameter parameter) => $"{PrettyPrintTypeName(parameter.Type)} {parameter.Name}";
-        public string PrettyParametersList() => String.Join(", ", Parameters.Select(PrettyPrintParameter));
+        private string PrettyPrintParameter(MethodParameter parameter) => $"{TypeNameUtils.Normalize(parameter.Type)} {parameter.Name}";
+        public string PrettyParametersList() => string.Join(", ", Parameters.Select(PrettyPrintParameter));
 
         public Dictionary<string, object> ToDictionary()
         {
