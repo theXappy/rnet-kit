@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RemoteNET" Version="1.0.1.27" />
+    <PackageReference Include="RemoteNET" Version="1.0.1.28" />
   </ItemGroup>
 
 </Project>
