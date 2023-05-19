@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -19,6 +20,7 @@ using System.Windows.Media.Effects;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
+using CommandLine;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNetSpy;
@@ -115,7 +117,7 @@ namespace RemoteNetGui
         }
 
 
-        private InjectableProcess? _procBoxCurrItem;
+        public InjectableProcess? _procBoxCurrItem;
         public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
 
         private DumpedType _currSelectedType;
@@ -142,7 +144,7 @@ namespace RemoteNetGui
             var oldApp = _app;
 
             // Creating new RemoteApp
-            _app = await Task.Run(() => RemoteApp.Connect(Process.GetProcessById(TargetPid)));
+            _app = await Task.Run(() => RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Unmanaged));
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
@@ -165,6 +167,7 @@ namespace RemoteNetGui
 
         private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => RefreshAssembliesAsync();
 
+        private Regex r = new Regex(@"\[(.*?)\]\[(.*?)\](.*)");
         private Task RefreshAssembliesAsync()
         {
             return Task.Run(() =>
@@ -176,7 +179,7 @@ namespace RemoteNetGui
                 });
 
                 var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                    .WithArguments($"types -t {TargetPid} -q *")
+                    .WithArguments($"types -t {TargetPid} -q * " + UnmanagedFlagIfNeeded())
                     .WithValidation(CommandResultValidation.None)
                     .ExecuteBufferedAsync();
                 var res = x.Task.Result;
@@ -185,11 +188,14 @@ namespace RemoteNetGui
                     .Select(str => str.Trim());
                 foreach (string line in xx)
                 {
-                    string[] parts = line.Split("]");
-                    if (parts.Length < 2)
+                    var match = r.Match(line);
+                    string[] parts = match.Groups.Values.Select(g => g.Value).Skip(1).ToArray();
+                    if (parts.Length < 3)
                         continue;
-                    string assembly = parts[0].Trim(' ', '[', ']');
-                    string type = parts[1].Trim();
+                    string runtime = parts[0].Trim();
+                    string assemblyName = parts[1].Trim();
+                    var assembly = new AssemblyDesc(assemblyName, runtime);
+                    string type = parts[2].Trim();
                     if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
                     {
                         types = new List<string>();
@@ -200,8 +206,8 @@ namespace RemoteNetGui
                 }
 
                 var assemblies = _assembliesToTypes.Keys.ToList();
-                assemblies.Add("* All");
-                assemblies.Sort();
+                assemblies.Add(new AssemblyDesc("* All", RuntimeType.Unknown));
+                assemblies.Sort((desc, assemblyDesc) => desc.Name.CompareTo(assemblyDesc.Name));
 
                 Dispatcher.Invoke(() =>
                 {
@@ -211,7 +217,41 @@ namespace RemoteNetGui
             });
         }
 
-        private Dictionary<string, List<string>> _assembliesToTypes = new Dictionary<string, List<string>>();
+        private string UnmanagedFlagIfNeeded()
+        {
+            if (_app is UnmanagedRemoteApp)
+                return "-u";
+            return string.Empty;
+        }
+
+        private class AssemblyDesc
+        {
+            public string Name { get; private set; }
+            public RuntimeType Runtime { get; private set; }
+
+            public AssemblyDesc(string name, RuntimeType runtime)
+            {
+                Name = name;
+                Runtime = runtime;
+            }
+
+            public AssemblyDesc(string name, string runtime) : this(name, Enum.Parse<RuntimeType>(runtime))
+            {
+            }
+
+            public override bool Equals(object? obj)
+            {
+                if(obj is not AssemblyDesc other) return false;
+                return Name.Equals(other?.Name) && Runtime.Equals(other?.Runtime);
+            }
+
+            public override int GetHashCode()
+            {
+                return Name.GetHashCode();
+            }
+        }
+
+        private Dictionary<AssemblyDesc, List<string>> _assembliesToTypes = new Dictionary<AssemblyDesc, List<string>>();
 
         private async void assembliesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -228,11 +268,11 @@ namespace RemoteNetGui
 
         private async Task<List<string>?> GetTypesList()
         {
-            string assembly = assembliesListBox.SelectedItem as string;
+            AssemblyDesc assembly = assembliesListBox.SelectedItem as AssemblyDesc;
             List<string> types = null;
             if (assembly == null)
                 return new List<string>();
-            if (assembly == "* All")
+            if (assembly.Name == "* All")
             {
                 await Task.Run(() =>
                 {
@@ -264,7 +304,7 @@ namespace RemoteNetGui
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true")
+                .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -305,7 +345,7 @@ namespace RemoteNetGui
             string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {TargetPid} -q \"{type}\"")
+                .WithArguments($"heap -t {TargetPid} -q \"{type}\" " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -418,7 +458,7 @@ namespace RemoteNetGui
                 return;
             }
 
-            List<string> args = new List<string>() { "-t", TargetPid.ToString() };
+            List<string> args = new List<string>() { "-t", TargetPid.ToString(), UnmanagedFlagIfNeeded() };
             foreach (string funcToTrace in _traceList)
             {
                 args.Add("-i");
@@ -589,7 +629,7 @@ namespace RemoteNetGui
 
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {TargetPid} -q *")
+                .WithArguments($"heap -t {TargetPid} -q * " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -651,7 +691,7 @@ namespace RemoteNetGui
             if (res == true)
             {
 
-                List<string> args = new List<string>() { "-t", TargetPid.ToString() };
+                List<string> args = new List<string>() { "-t", TargetPid.ToString(), UnmanagedFlagIfNeeded() };
                 string[] funcsToTrace = qWin.Queries;
                 foreach (string funcToTrace in funcsToTrace)
                 {
@@ -728,8 +768,11 @@ namespace RemoteNetGui
                 return;
             }
 
-            string script = 
-@$"var app = RemoteApp.Connect(Process.GetProcessById({TargetPid}));
+            RuntimeType runtime = RuntimeType.Managed;
+            if (_app is UnmanagedRemoteApp)
+                runtime = RuntimeType.Unmanaged;
+            string script =
+@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {nameof(RuntimeType)}.{runtime});
 var ro = app.GetRemoteObject(0x{dataContext.Address:X16}, ""{dataContext.FullTypeName}"");
 dynamic dro = ro.Dynamify();
 ";

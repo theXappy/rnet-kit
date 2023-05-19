@@ -3,8 +3,26 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using RemoteNET;
 
 namespace RemoteNetGui;
+
+public class ModuleToIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        RuntimeType str = (RuntimeType)value;
+        if(str == RuntimeType.Unmanaged)
+            return "/icons/CPPProjectNode.png";
+        return "/icons/ModulePublic.png";
+    }
+
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
 
 public class MemberToIconConverter : IValueConverter
 {

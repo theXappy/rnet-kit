@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using CommandLine;
 using RemoteNET;
 using RnetKit.Common;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 
 public class Program
 {
@@ -18,6 +20,8 @@ public class Program
         public string? TargetProcess { get; set; }
         [Option('q', "type-query", Required = false, Default = "*", HelpText = "Specific query for the Full Name of the types of objects to dump")]
         public string TypeQuery { get; set; }
+        [Option('u', "unmanaged", Required = false, HelpText = "Whether the target is an native app")]
+        public bool Unmanaged { get; set; }
     }
     [Verb("types", HelpText = "Dump all types matching a query")]
     class TypesDumpOptions
@@ -27,6 +31,8 @@ public class Program
         public string? TargetProcess { get; set; }
         [Option('q', "type-query", Required = true, HelpText = "Query for the Full Name of the types to find")]
         public string Query { get; set; }
+        [Option('u', "unmanaged", Required = false, HelpText = "Whether the target is an native app")]
+        public bool Unmanaged { get; set; }
     }
     [Verb("members", HelpText = "Dump members (properties, methods, fields, events, and so on) for a type")]
     class MembersDumpOptions
@@ -40,13 +46,19 @@ public class Program
         public bool SkipPrintRaw { get; set; }
         [Option('n', "normalized_generics", Default = false, HelpText = "Whether to print normalize inner generic types ([[System.Byte, ..., PublicKey=...]] to System.Byte)")]
         public bool PrintNormalizedGenerics { get; set; }
+        [Option('u', "unmanaged", Required = false, HelpText = "Whether the target is an native app")]
+        public bool Unmanaged { get; set; }
     }
 
 
-    private static RemoteApp Connect(string target)
+    private static RemoteApp Connect(string targetQuery, bool unmanaged)
     {
+        RuntimeType runtime = RuntimeType.Managed;
+        if (unmanaged)
+            runtime = RuntimeType.Unmanaged;
+
         Process targetProc = null;
-        if (int.TryParse(target, out int pid))
+        if (int.TryParse(targetQuery, out int pid))
         {
             try
             {
@@ -59,17 +71,30 @@ public class Program
         }
 
         return targetProc != null ?
-            RemoteApp.Connect(targetProc) :
-            RemoteApp.Connect(target);
+            RemoteAppFactory.Connect(targetProc, runtime) :
+            RemoteAppFactory.Connect(targetQuery, runtime);
     }
 
     static int DumpTypes(TypesDumpOptions opts)
     {
+        bool IsReasonableUnmanagedTypeName(string str)
+        {
+            if (str.Length < 2)
+                return false;
+            bool valid = !str.Any(Char.IsControl);
+            if (!valid)
+                return false;
+            valid = !str.Any(c => c > 0xff || c == '\r' || c == '\n' || c == '"');
+            if (!valid)
+                return false;
+            return valid;
+        }
+
         Console.WriteLine("Loading...");
         List<CandidateType>? candidates = null;
         try
         {
-            using RemoteApp app = Connect(opts.TargetProcess);
+            using RemoteApp app = Connect(opts.TargetProcess, opts.Unmanaged);
             candidates = app.QueryTypes(opts.Query).ToList();
         }
         catch (Exception e)
@@ -88,12 +113,17 @@ public class Program
         Console.WriteLine($"Matches:");
         foreach (var type in candidates)
         {
-            sb.AppendLine($"[{type.Assembly}] {type.TypeFullName}");
+            // Skip types with unreasonable names. Our unmanaged types discovery logic is *very* permissive.
+            if (type.Runtime == RuntimeType.Unmanaged && !IsReasonableUnmanagedTypeName(type.TypeFullName))
+                continue;
+
+            sb.AppendLine($"[{type.Runtime}][{type.Assembly}] {type.TypeFullName}");
         }
 
         Console.WriteLine(sb.ToString());
         return 0;
     }
+
 
     static int DumpMembers(MembersDumpOptions opts)
     {
@@ -110,7 +140,7 @@ public class Program
         Type dumpedType;
         try
         {
-            using RemoteApp app = Connect(opts.TargetProcess);
+            using RemoteApp app = Connect(opts.TargetProcess, opts.Unmanaged);
             dumpedType = app.GetRemoteType(target);
         }
         catch (Exception e)
@@ -133,11 +163,36 @@ public class Program
 
             if (opts.PrintNormalizedGenerics)
             {
-                string memberString = TypeNameUtils.Normalize(member);
+                string memberString;
+                if (opts.Unmanaged)
+                    memberString = UnDecorateSymbolNameWrapper(member);
+                else
+                    memberString = TypeNameUtils.Normalize(member);
                 Console.WriteLine($"[{member.MemberType}] {memberString}");
             }
         }
         return 0;
+    }
+
+    private const int BUFFER_SIZE = 256;
+    public static string UnDecorateSymbolNameWrapper(string buffer)
+    {
+        unsafe
+        {
+            byte* target = stackalloc byte[BUFFER_SIZE];
+            uint len = Windows.Win32.PInvoke.UnDecorateSymbolName(buffer, new PSTR(target), BUFFER_SIZE, 0x1800);
+            return len != 0 ? Encoding.UTF8.GetString(target, (int)len) : null;
+        }
+    }
+    public static string UnDecorateSymbolNameWrapper(MemberInfo info)
+    {
+        switch (info)
+        {
+            case MethodInfo mi:
+                return $"Unk {UnDecorateSymbolNameWrapper(info.Name)}(...)";
+        }
+
+        return UnDecorateSymbolNameWrapper(info.Name);
     }
 
     static int DumpHeap(HeapOptions opts)
@@ -145,7 +200,7 @@ public class Program
         Console.WriteLine("Loading...");
         try
         {
-            using var app = Connect(opts.TargetProcess);
+            using var app = Connect(opts.TargetProcess, opts.Unmanaged);
             var matches = app.QueryInstances(opts.TypeQuery, false).ToList();
             Console.WriteLine($"Found {matches.Count} objects.");
             foreach (var candidate in matches)
