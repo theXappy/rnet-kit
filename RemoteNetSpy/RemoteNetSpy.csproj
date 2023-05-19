@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -12,6 +12,7 @@
     <None Remove="icons\Cancelled_Snowflake.png" />
     <None Remove="icons\Class.png" />
     <None Remove="icons\ClearWindowContent.png" />
+    <None Remove="icons\CPPProjectNode.png" />
     <None Remove="icons\Document.png" />
     <None Remove="icons\EditDocument.png" />
     <None Remove="icons\Event.png" />
@@ -41,6 +42,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\ClearWindowContent.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\CPPProjectNode.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\Document.png">

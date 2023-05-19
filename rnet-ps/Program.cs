@@ -28,21 +28,28 @@ foreach (var proc in allProcs.OrderBy(proc=>proc.ProcessName))
         _tasks.Enqueue(Task.Factory.StartNew(() =>
         {
 
-            DiverState status = DiverDiscovery.QueryStatus(proc);
+            DiverDiscovery.QueryStatus(proc, out DiverState managedState, out DiverState unmanagedDiverState);
             string diverStatusString = "";
-            switch (status)
+            if (unmanagedDiverState == DiverState.Alive)
             {
-                case DiverState.NoDiver:
-                    break;
-                case DiverState.Alive:
-                    diverStatusString = "[Diver Injected]";
-                    break;
-                case DiverState.Corpse:
-                    diverStatusString = "[Dead Diver! Restart this process before targeting]";
-                    break;
-                case DiverState.HollowSnapshot:
-                    diverStatusString = "[Hollow Snapshot. Select parent with Diver instead]";
-                    break;
+                diverStatusString = "[Unmanaged Diver Injected]";
+            }
+            else
+            {
+                switch (managedState)
+                {
+                    case DiverState.NoDiver:
+                        break;
+                    case DiverState.Alive:
+                        diverStatusString = "[Diver Injected]";
+                        break;
+                    case DiverState.Corpse:
+                        diverStatusString = "[Dead Diver! Restart this process before targeting]";
+                        break;
+                    case DiverState.HollowSnapshot:
+                        diverStatusString = "[Hollow Snapshot. Select parent with Diver instead]";
+                        break;
+                }
             }
 
             return $"{proc.Id,6}\t{proc.ProcessName,-40}\t{dotNetVer,-10}\t{diverStatusString}";

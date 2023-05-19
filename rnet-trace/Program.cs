@@ -28,6 +28,8 @@ namespace QuickStart
                 "     \"System.Text.StringBuilder.Append(String)\". " +
                 "Method substring can contain '*'s as wildcardss")]
             public IEnumerable<string> ExcludedMethods { get; set; }
+            [Option('u', "unmanaged", Required = false, HelpText = "Whether the target is an native app")]
+            public bool Unmanaged { get; set; }
         }
 
         static void Main(string[] args)
@@ -44,6 +46,10 @@ namespace QuickStart
 
         private static void Run(TraceOptions opts)
         {
+            RuntimeType runtime = RuntimeType.Managed;
+            if (opts.Unmanaged)
+                runtime = RuntimeType.Unmanaged;
+
             RemoteApp app;
             try
             {
@@ -59,9 +65,9 @@ namespace QuickStart
                     }
                 }
 
-                app = target != null ?
-                    RemoteApp.Connect(target) :
-                    RemoteApp.Connect(opts.TargetProcess);
+                app = target != null
+                    ? RemoteAppFactory.Connect(target, runtime)
+                    : RemoteAppFactory.Connect(opts.TargetProcess, runtime);
             }
             catch (ArgumentException ex)
             {
@@ -152,7 +158,7 @@ namespace QuickStart
                 Console.WriteLine("Unhooking...");
                 foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
                 {
-                    app.Harmony.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
+                    (app as ManagedRemoteApp).Harmony.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
                 }
                 Console.WriteLine("Unhooked");
                 app.Dispose();
@@ -172,7 +178,7 @@ namespace QuickStart
             foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
             {
                 Console.WriteLine(methodAndHook.Key.Name);
-                app.Harmony.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
+                (app as ManagedRemoteApp).Harmony.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
             }
 
             mre.WaitOne();

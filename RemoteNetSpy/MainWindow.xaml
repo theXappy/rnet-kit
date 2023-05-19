@@ -15,6 +15,7 @@
         >
     <Window.Resources>
         <local:MemberToIconConverter x:Key="memToIconConverter"/>
+        <local:ModuleToIconConverter x:Key="moduleToIconConverter"/>
         <local:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
         <local:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
         <local:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
@@ -118,8 +119,8 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel>
-                                    <Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>
-                                    <TextBlock Text="{Binding Path=.}" />
+                                    <Image Source="{Binding Path=Runtime, Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
+                                    <TextBlock Text="{Binding Path=Name}" />
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
