@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>puppet.ico</ApplicationIcon>
@@ -110,7 +110,7 @@
   <ItemGroup>
     <PackageReference Include="CliWrap" Version="3.5.0" />
     <PackageReference Include="Dirkster.AvalonDock" Version="4.70.2" />
-    <PackageReference Include="RemoteNET" Version="1.0.1.28" />
+    <PackageReference Include="RemoteNET" Version="1.0.2" />
   </ItemGroup>
 
   <ItemGroup>
