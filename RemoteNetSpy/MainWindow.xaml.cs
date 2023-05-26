@@ -418,6 +418,8 @@ namespace RemoteNetGui
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     if (sender == typesFilterBox)
                         return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)?.Contains(filter, comp) == true;
+                    if (sender == assembliesFilterBox)
+                        return (o as AssemblyDesc)?.Name?.Contains(filter, comp) == true;
                     return (o as string)?.Contains(filter) == true;
                 };
             }
