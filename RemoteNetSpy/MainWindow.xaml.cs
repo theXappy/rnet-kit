@@ -591,7 +591,7 @@ namespace RemoteNetGui
                     ulong address = dataContext.Address;
                     Task dumperTask = Task.Run(() =>
                     {
-                        RemoteObject ro = _app.GetRemoteObject(address, dataContext.FullTypeName);
+                        RemoteObject ro = (RemoteObject) _app.GetRemoteObject(address, dataContext.FullTypeName);
                         dataContext.Address = ro.RemoteToken;
                         dataContext.RemoteObject = ro;
                     });
