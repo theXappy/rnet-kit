@@ -5,9 +5,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
 using RemoteNET;
+using RemoteNET.Internal.Reflection;
+using RemoteNET.RttiReflection;
 using RnetKit.Common;
-using Windows.Win32;
-using Windows.Win32.Foundation;
 
 public class Program
 {
@@ -142,6 +142,7 @@ public class Program
         {
             using RemoteApp app = Connect(opts.TargetProcess, opts.Unmanaged);
             dumpedType = app.GetRemoteType(target);
+
         }
         catch (Exception e)
         {
@@ -156,7 +157,7 @@ public class Program
         }
 
         Console.WriteLine($"Members of type {dumpedType.FullName}:");
-        foreach (var member in dumpedType.GetMembers())
+        foreach (MemberInfo member in dumpedType.GetMembers())
         {
             if (!opts.SkipPrintRaw)
                 Console.WriteLine($"[{member.MemberType}] {member}");
@@ -171,6 +172,22 @@ public class Program
                 Console.WriteLine($"[{member.MemberType}] {memberString}");
             }
         }
+
+        if (dumpedType is RemoteRttiType rttiType)
+        {
+            foreach (string member in rttiType.UnresolvedMembers)
+            {
+                if (!opts.SkipPrintRaw)
+                    Console.WriteLine($"[Unknown Member] {member}");
+
+                if (opts.PrintNormalizedGenerics)
+                {
+                    string memberString = UnDecorateSymbolNameWrapper(member);
+                    Console.WriteLine($"[Unknown Member] {memberString}");
+                }
+            }
+        }
+
         return 0;
     }
 
@@ -180,7 +197,7 @@ public class Program
         unsafe
         {
             byte* target = stackalloc byte[BUFFER_SIZE];
-            uint len = Windows.Win32.PInvoke.UnDecorateSymbolName(buffer, new PSTR(target), BUFFER_SIZE, 0x1800);
+            uint len = Windows.Win32.PInvoke.UnDecorateSymbolName(buffer, new Windows.Win32.Foundation.PSTR(target), BUFFER_SIZE, 0x1800);
             return len != 0 ? Encoding.UTF8.GetString(target, (int)len) : null;
         }
     }
@@ -188,8 +205,8 @@ public class Program
     {
         switch (info)
         {
-            case MethodInfo mi:
-                return $"Unk {UnDecorateSymbolNameWrapper(info.Name)}(...)";
+            case RemoteRttiMethodInfo mi:
+                return mi.UndecoratedSignature();
         }
 
         return UnDecorateSymbolNameWrapper(info.Name);
