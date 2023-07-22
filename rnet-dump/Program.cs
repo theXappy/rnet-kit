@@ -222,6 +222,12 @@ public class Program
             Console.WriteLine($"Found {matches.Count} objects.");
             foreach (var candidate in matches)
             {
+                if (candidate.TypeFullName.Contains('\n') ||
+                    candidate.TypeFullName.Contains('\r'))
+                {
+                    continue;
+                }
+
                 Console.WriteLine($"0x{candidate.Address:X8} {candidate.TypeFullName}");
             }
             return matches.Count > 0 ? 0 : 1;
