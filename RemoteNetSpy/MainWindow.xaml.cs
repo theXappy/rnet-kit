@@ -144,7 +144,17 @@ namespace RemoteNetGui
             var oldApp = _app;
 
             // Creating new RemoteApp
-            _app = await Task.Run(() => RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Unmanaged));
+            _app = await Task.Run(() =>
+            {
+                try
+                {
+                    return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Unmanaged);
+                }
+                catch
+                {
+                    return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Managed);
+                }
+            });
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
@@ -773,8 +783,11 @@ namespace RemoteNetGui
             RuntimeType runtime = RuntimeType.Managed;
             if (_app is UnmanagedRemoteApp)
                 runtime = RuntimeType.Unmanaged;
+
+            string? RuntimeTypeFullTypeName = typeof(RuntimeType).FullName;
+
             string script =
-@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {nameof(RuntimeType)}.{runtime});
+@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});
 var ro = app.GetRemoteObject(0x{dataContext.Address:X16}, ""{dataContext.FullTypeName}"");
 dynamic dro = ro.Dynamify();
 ";
