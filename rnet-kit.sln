@@ -22,7 +22,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpRepl.Services", "rnet
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteNetSpy", "RemoteNetSpy\RemoteNetSpy.csproj", "{A2864E9C-DDD7-463E-B963-410768A16C4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RnetKit.Common", "RnetKit.Common\RnetKit.Common.csproj", "{D076919A-FA21-48F5-A909-FC125AC51EBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RnetKit.Common", "RnetKit.Common\RnetKit.Common.csproj", "{D076919A-FA21-48F5-A909-FC125AC51EBF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
