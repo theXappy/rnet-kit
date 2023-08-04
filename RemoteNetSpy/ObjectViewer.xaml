@@ -13,6 +13,7 @@
         <remoteNetGui:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
         <remoteNetGui:MemberToIconConverter x:Key="memToIconConverter"/>
         <remoteNetGui:StrValueToVisibilityConverter x:Key="strValueToVisabilityConverter"/>
+        <remoteNetGui:StrValueToInvokeButtonVisibilityConverter x:Key="strValueToInvokeButtonVisibilityConverter"/>
         <remoteNetGui:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
         <remoteNetGui:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
     </Window.Resources>
@@ -84,6 +85,18 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <DockPanel Margin="2,0">
+                                <!-- 'Invoke' button for methods. -->
+                                <Button DockPanel.Dock="Right" Click="InvokeClicked" Visibility="{Binding Converter={StaticResource strValueToInvokeButtonVisibilityConverter}}"
+                                        Padding="2,1"
+                                        VerticalContentAlignment="Center">
+                                    <DockPanel>
+                                        <Image Margin="0,0,3,0" Height="14" 
+                                               Source="/icons/Run.png"
+                                               />
+                                        <TextBlock Padding="5,1">Invoke</TextBlock>
+                                    </DockPanel>
+                                </Button>
+                                <!-- 'Inspect' button for non-primitive objects. -->
                                 <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource strValueToVisabilityConverter}}"
                                         Padding="2,1"
                                         VerticalContentAlignment="Center">

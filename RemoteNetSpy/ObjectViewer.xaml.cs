@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -8,6 +9,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using RemoteNET;
 using RemoteNET.Internal;
+using RemoteNET.Internal.Reflection;
+using RemoteNET.Internal.Reflection.DotNet;
 using RnetKit.Common;
 
 namespace RemoteNetSpy
@@ -39,12 +42,9 @@ namespace RemoteNetSpy
 
             _items = new ObservableCollection<MembersGridItem>();
 
-            IEnumerable<MemberInfo> fields = _type.GetFields((BindingFlags)0xffff);
-            IEnumerable<MemberInfo> props = _type.GetProperties((BindingFlags)0xffff);
-
-            foreach (MemberInfo member in fields.Concat(props).OrderBy(m => m.Name))
+            foreach (MemberInfo member in _type.GetMembers((BindingFlags)0xffff).OrderBy(m => m.Name))
             {
-                MembersGridItem mgi = new MembersGridItem()
+                MembersGridItem mgi = new MembersGridItem(member)
                 {
                     Name = member.Name,
                 };
@@ -53,11 +53,24 @@ namespace RemoteNetSpy
                     mgi.MemberType = "Field";
                     mgi.Type = TypeNameUtils.Normalize(fi.FieldType.ToString()); // Specifying expected type
                 }
-
-                if (member is PropertyInfo pi)
+                else if (member is PropertyInfo pi)
                 {
                     mgi.MemberType = "Property";
                     mgi.Type = TypeNameUtils.Normalize(pi.PropertyType.ToString()); // Specifying expected type
+                }
+                else if (member is MethodInfo mi)
+                {
+                    if (mi is RemoteRttiMethodInfo rmi)
+                    {
+                        mgi.Name = rmi.UndecoratedSignature;
+                    }
+
+                    mgi.MemberType = "Method";
+                    mgi.Type = TypeNameUtils.Normalize(mi.ReturnType.ToString()); // Specifying expected type
+                }
+                else
+                {
+                    continue;
                 }
 
                 try
@@ -76,7 +89,7 @@ namespace RemoteNetSpy
             IEnumerable<MemberInfo> methods = _type.GetMethods((BindingFlags)0xffff);
             if (methods.Any(mi => mi.Name == "GetEnumerator"))
             {
-                MembersGridItem iEnumerableMgi = new MembersGridItem()
+                MembersGridItem iEnumerableMgi = new MembersGridItem(null)
                 {
                     MemberType = "Field",
                     Name = "Raw View",
@@ -89,7 +102,26 @@ namespace RemoteNetSpy
             membersGrid.ItemsSource = _items;
         }
 
-        private static void GetMemberValue(DynamicRemoteObject? dro, MemberInfo field, MembersGridItem mgi)
+        private static void GetMemberValue(DynamicRemoteObject? dro, MemberInfo member, MembersGridItem mgi)
+        {
+            if (member is FieldInfo || member is PropertyInfo)
+            {
+                GetFieldPropValue(dro, member, mgi);
+            }
+            else if (member is MethodInfo mi)
+            {
+                if (mi.GetParameters().Length == 0)
+                {
+                    mgi.Value = "Invokable!";
+                }
+                else
+                {
+                    mgi.Value = "<Argumented functions not supported>";
+                }
+            }
+        }
+
+        private static void GetFieldPropValue(DynamicRemoteObject? dro, MemberInfo field, MembersGridItem mgi)
         {
             if (DynamicRemoteObject.TryGetDynamicMember(dro, field.Name, out dynamic res))
             {
@@ -108,7 +140,7 @@ namespace RemoteNetSpy
                     // TODO: Ugly hack...
                     if (mgi.Type == "System.Byte[]")
                     {
-                        byte[] LocalBytes = (res as DynamicRemoteObject).Cast<byte>().ToArray();
+                        byte[] LocalBytes = (byte[])(res as DynamicRemoteObject);
                         mgi.Value += " { ";
                         bool first = true;
                         foreach (byte localByte in LocalBytes)
@@ -119,6 +151,7 @@ namespace RemoteNetSpy
                             mgi.Value += "0x";
                             mgi.Value += localByte.ToString("X2");
                         }
+
                         mgi.Value += " }";
                     }
                 }
@@ -133,19 +166,107 @@ namespace RemoteNetSpy
             }
         }
 
-        public class MembersGridItem
+        public class MembersGridItem : INotifyPropertyChanged
         {
-            public object RawValue { get; set; }
+            private object _rawValue;
+            public object RawValue
+            {
+                get { return _rawValue; }
+                set
+                {
+                    if (_rawValue != value)
+                    {
+                        _rawValue = value;
+                        NotifyPropertyChanged(nameof(RawValue));
+                    }
+                }
+            }
 
-            public string MemberType { get; set; }
-            public string Name { get; set; }
-            public string Value { get; set; }
-            public string Type { get; set; }
+            private string _memberType;
+            public string MemberType
+            {
+                get { return _memberType; }
+                set
+                {
+                    if (_memberType != value)
+                    {
+                        _memberType = value;
+                        NotifyPropertyChanged(nameof(MemberType));
+                    }
+                }
+            }
+
+            private string _name;
+            public string Name
+            {
+                get { return _name; }
+                set
+                {
+                    if (_name != value)
+                    {
+                        _name = value;
+                        NotifyPropertyChanged(nameof(Name));
+                    }
+                }
+            }
+
+            private string _value;
+            public string Value
+            {
+                get { return _value; }
+                set
+                {
+                    if (_value != value)
+                    {
+                        _value = value;
+                        NotifyPropertyChanged(nameof(Value));
+                    }
+                }
+            }
+
+            private string _type;
+            public string Type
+            {
+                get { return _type; }
+                set
+                {
+                    if (_type != value)
+                    {
+                        _type = value;
+                        NotifyPropertyChanged(nameof(Type));
+                    }
+                }
+            }
+
+            private MemberInfo _memInfo;
+
+            public MembersGridItem(MemberInfo memInfo)
+            {
+                _memInfo = memInfo;
+            }
+
+            public MemberInfo GetOriginalMemberInfo() => _memInfo;
+
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            protected void NotifyPropertyChanged(string propertyName)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
         }
 
         private void CloseButtonClicked(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void InvokeClicked(object sender, RoutedEventArgs e)
+        {
+            MembersGridItem mgi = (sender as Button)?.DataContext as MembersGridItem;
+            MethodInfo memInfo = mgi.GetOriginalMemberInfo() as MethodInfo;
+            object results = memInfo.Invoke(_ro, Array.Empty<object?>());
+            mgi.RawValue = results;
+            mgi.Value = results.ToString();
         }
 
         private void InspectClicked(object sender, RoutedEventArgs e)
@@ -195,7 +316,7 @@ namespace RemoteNetSpy
             int i = 0;
             foreach (dynamic item in dro)
             {
-                MembersGridItem itemMgi = new MembersGridItem()
+                MembersGridItem itemMgi = new MembersGridItem(null)
                 {
                     MemberType = "Field",
                     Name = $"Raw View[{i}]",
