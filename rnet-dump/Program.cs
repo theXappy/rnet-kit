@@ -206,7 +206,7 @@ public class Program
         switch (info)
         {
             case RemoteRttiMethodInfo mi:
-                return mi.UndecoratedSignature();
+                return mi.UndecoratedSignature;
         }
 
         return UnDecorateSymbolNameWrapper(info.Name);

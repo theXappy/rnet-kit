@@ -7,6 +7,7 @@ using RemotenetTrace;
 using ScubaDiver.API.Hooking;
 using Microsoft.CodeAnalysis.Scripting;
 using System.Diagnostics;
+using RemoteNET.Common;
 using RnetKit.Common;
 
 namespace QuickStart
@@ -158,7 +159,7 @@ namespace QuickStart
                 Console.WriteLine("Unhooking...");
                 foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
                 {
-                    (app as ManagedRemoteApp).Harmony.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
+                    (app as ManagedRemoteApp).HookingManager.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
                 }
                 Console.WriteLine("Unhooked");
                 app.Dispose();
@@ -178,7 +179,7 @@ namespace QuickStart
             foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
             {
                 Console.WriteLine(methodAndHook.Key.Name);
-                (app as ManagedRemoteApp).Harmony.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
+                (app as ManagedRemoteApp).HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
             }
 
             mre.WaitOne();
