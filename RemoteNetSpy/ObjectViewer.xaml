@@ -90,7 +90,7 @@
                                         Padding="2,1"
                                         VerticalContentAlignment="Center">
                                     <DockPanel>
-                                        <Image Margin="0,0,3,0" Height="14" 
+                                        <Image Margin="0" Height="14" 
                                                Source="/icons/Run.png"
                                                />
                                         <TextBlock Padding="5,1">Invoke</TextBlock>
