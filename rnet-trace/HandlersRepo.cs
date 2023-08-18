@@ -46,7 +46,9 @@ namespace RemotenetTrace
         public static string Get(string className, string methodName, int numArgs)
         {
             string script = "";
-            string path = $"__rnet_handlers__/{className}!{methodName}!{numArgs}";
+            string uniqueId= $"{className}!{methodName}!{numArgs}";
+            // Sanitize path
+            string path = "__rnet_handlers__/" + string.Join("", uniqueId.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
             if (File.Exists(path))
             {
                 script = File.ReadAllText(path);
