@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -159,7 +159,7 @@ namespace QuickStart
                 Console.WriteLine("Unhooking...");
                 foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
                 {
-                    (app as ManagedRemoteApp).HookingManager.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
+                    app.HookingManager.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
                 }
                 Console.WriteLine("Unhooked");
                 app.Dispose();
@@ -179,7 +179,7 @@ namespace QuickStart
             foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
             {
                 Console.WriteLine(methodAndHook.Key.Name);
-                (app as ManagedRemoteApp).HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
+                app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
             }
 
             mre.WaitOne();
