@@ -306,6 +306,16 @@ namespace QuickStart
 
         private static bool CheckParameters(MethodBase methodInfo, string[] parameterFilters)
         {
+            return CheckParametersImplicitThis(methodInfo, parameterFilters) ||
+                     CheckParametersExplicitThis(methodInfo, parameterFilters);
+        }
+
+        /// <summary>
+        /// Checks for signatures where the 'this' parameter is implicit (not specified)
+        /// This is the case for .NET instance method signatures.
+        /// </summary>
+        private static bool CheckParametersImplicitThis(MethodBase methodInfo, string[] parameterFilters)
+        {
             var parameters = methodInfo.GetParameters();
             if (parameters.Length != parameterFilters.Length)
                 return false;
@@ -315,6 +325,44 @@ namespace QuickStart
             {
                 Regex r = SimpleFilterToRegex(parameterFilters[i]);
                 string normalizedParameterType = TypeNameUtils.Normalize(parameters[i].ParameterType.FullName);
+                if (!r.IsMatch(normalizedParameterType))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks for signatures where the 'this' parameter is explicit (It's the first parameter)
+        /// This is the case for C++ instance method signatures.
+        /// </summary>
+        private static bool CheckParametersExplicitThis(MethodBase methodInfo, string[] parameterFilters)
+        {
+            var parameters = methodInfo.GetParameters();
+            if (parameters.Length + 1 != parameterFilters.Length)
+                return false;
+
+            // Collect types of parameters and add the type of 'this'
+            string[] parameterTypesFullNames = parameters
+                .Select(p => p.ParameterType!.FullName)
+                .Prepend(methodInfo.DeclaringType!.FullName + "*") // The type of 'this' should be a pointer
+                .ToArray();
+
+            // Compare parameter types and filters given by the user
+            for (int i = 0; i < parameterFilters.Length; i++)
+            {
+                // Prepare pattern
+                string rawPattern = parameterFilters[i];
+                // HACK: If we don't have the module name, accept any module name (or none at all, for primitives like "uint64_t")
+                if (!rawPattern.Contains('!'))
+                    rawPattern = "(.*!)?" + rawPattern;
+                rawPattern = $"^{rawPattern}$";
+                Regex r = new Regex(rawPattern);
+
+                // Prepare target type name to check
+                string normalizedParameterType = TypeNameUtils.Normalize(parameterTypesFullNames[i]);
                 if (!r.IsMatch(normalizedParameterType))
                 {
                     return false;
