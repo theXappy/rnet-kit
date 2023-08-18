@@ -133,28 +133,6 @@ namespace RnetKit.Common
 
             // Output the parsed full name of the generic type, which should be "System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<System.Int32, System.String>>>"
             return parsedFullName;
-
-            //Regex genericPartRegex = new Regex(@"`\d+\[\[.*?\]\]");
-            //Regex r = new Regex(@"\[(.*?), .*?\]");
-            //string memberString = member.ToString();
-            //var matches = genericPartRegex.Matches(memberString);
-            //while (matches.Any())
-            //{
-            //    Match match = matches.First();
-            //    string matchData = match.Groups[0].ToString();
-            //    // This line will give us "`2[System.String, System.Byte]
-            //    string withTypesNormalized = r.Replace(matchData, $"$1");
-
-            //    // This line will give us "<System.String, System.Byte>"
-            //    string withTriangles = "<" +
-            //                           withTypesNormalized[(withTypesNormalized.IndexOf('[') + 1)..^1]
-            //                           + ">";
-
-            //    memberString = memberString.Replace(matchData, withTriangles);
-
-            //    matches = genericPartRegex.Matches(memberString);
-            //}
-
         }
 
         /// <summary>
