@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -380,17 +380,30 @@ namespace QuickStart
         {
             StringBuilder sb = new StringBuilder();
             sb.Append('^'); // Begining of string
+            char last = ' ';
             foreach (char c in simpleFilter)
             {
                 if (c == '*')
                 {
-                    sb.Append(".*");
+                    if (last == '\\') // Escaped '*'
+                        sb.Append("*");
+                    else // Wildcard '*'
+                        sb.Append(".*");
                 }
                 else
                 {
-                    string asEscaped = Regex.Escape(c.ToString());
+                    // Current is NOT a asterick, so if the last one was a backslash we need to escape it (by adding a second instance)
+                    if (last == '\\')
+                        sb.Append('\\');
+
+                    string asEscaped = c.ToString();
+                    // Not escaping backslash yet because it might be escaping a *
+                    if(c != '\\')
+                        asEscaped = Regex.Escape(c.ToString());
                     sb.Append(asEscaped);
                 }
+
+                last = c;
             }
             sb.Append('$'); // End of string
             return new Regex(sb.ToString());
