@@ -509,6 +509,10 @@ namespace RemoteNetGui
                 string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
                 string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
 
+                // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
+                parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
+                parametrs = parametrs.Replace("*", "\\*");
+
                 string sigWithoutReturnType = methodName + parametrs;
                 string targetClass = ClassName;
 
