@@ -251,7 +251,7 @@ namespace RemoteNetGui
 
             public override bool Equals(object? obj)
             {
-                if(obj is not AssemblyDesc other) return false;
+                if (obj is not AssemblyDesc other) return false;
                 return Name.Equals(other?.Name) && Runtime.Equals(other?.Runtime);
             }
 
@@ -607,7 +607,7 @@ namespace RemoteNetGui
                     ulong address = dataContext.Address;
                     Task dumperTask = Task.Run(() =>
                     {
-                        RemoteObject ro = (RemoteObject) _app.GetRemoteObject(address, dataContext.FullTypeName);
+                        RemoteObject ro = (RemoteObject)_app.GetRemoteObject(address, dataContext.FullTypeName);
                         dataContext.Address = ro.RemoteToken;
                         dataContext.RemoteObject = ro;
                     });
@@ -640,14 +640,21 @@ namespace RemoteNetGui
             countLabel.Foreground = transparentColor;
             spinner1.Visibility = Visibility.Visible;
 
-            List<string> types = await GetTypesList();
-            Dictionary<string, int> typesAndIInstancesCount = types.ToDictionary(t => t, t => 0);
 
+            AssemblyDesc assembly = assembliesListBox.SelectedItem as AssemblyDesc;
+            string assemblyFilter = assembly.Name;
+            if (assembly.Name == "* All")
+                assemblyFilter = "*"; // Wildcard
+
+            if (_app is UnmanagedRemoteApp)
+                assemblyFilter += "!*"; // Indicate we want any type within the module
+            else if (_app is ManagedRemoteApp)
+                assemblyFilter += ".*"; // Indicate we want any type within the assembly
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {TargetPid} -q * " + UnmanagedFlagIfNeeded())
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
+            .WithArguments($"heap -t {TargetPid} -q {assemblyFilter} " + UnmanagedFlagIfNeeded())
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteBufferedAsync();
             var res = await x.Task;
             var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .SkipWhile(line => !line.Contains("Found "))
@@ -655,6 +662,8 @@ namespace RemoteNetGui
                 .Select(str => str.Trim())
                 .Select(str => str.Split(' ')[1]);
 
+            List<string> types = await GetTypesList();
+            Dictionary<string, int> typesAndIInstancesCount = types.ToDictionary(t => t, t => 0);
             foreach (string heapObjectType in xx)
             {
                 if (typesAndIInstancesCount.ContainsKey(heapObjectType))
