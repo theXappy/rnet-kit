@@ -144,17 +144,25 @@ namespace RemoteNetGui
             var oldApp = _app;
 
             // Creating new RemoteApp
-            _app = await Task.Run(() =>
+            try
             {
-                try
+                _app = await Task.Run(() =>
                 {
-                    return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Unmanaged);
-                }
-                catch
-                {
-                    return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Managed);
-                }
-            });
+                    try
+                    {
+                        return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Unmanaged);
+                    }
+                    catch
+                    {
+                        return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Managed);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to connect to target '{_procBoxCurrItem.Name}'.\n\n" + ex);
+                return;
+            }
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
