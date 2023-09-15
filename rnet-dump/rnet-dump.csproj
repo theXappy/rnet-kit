@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -21,6 +21,18 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <NativeLibs Remove="MembersDumper.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <NativeLibs Remove="Common.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <NativeLibs Remove="HeapDumper.cs" />
 	</ItemGroup>
 
 </Project>
