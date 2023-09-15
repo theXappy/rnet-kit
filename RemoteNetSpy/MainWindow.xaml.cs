@@ -214,7 +214,11 @@ namespace RemoteNetGui
                     assembliesListBox.ItemsSource = assemblies;
                     assembliesSpinner.Visibility = Visibility.Collapsed;
                 });
-            });
+            })
+                .ContinueWith(_ =>
+                {
+                    Dispatcher.Invoke(() => filterBox_TextChanged(assembliesFilterBox, null));
+                });
         }
 
         private string UnmanagedFlagIfNeeded()
