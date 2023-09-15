@@ -12,6 +12,7 @@
         Style="{DynamicResource CustomWindowStyle}"
         Initialized="MainWindow_OnInitialized"
         d:Background="#1e1e1e"
+        PreviewKeyDown="MainWindow_OnPreviewKeyDown"
         >
     <Window.Resources>
         <local:MemberToIconConverter x:Key="memToIconConverter"/>
@@ -25,7 +26,7 @@
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="30"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="3*"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="23"/>
@@ -161,13 +162,16 @@
                 <ListBox DockPanel.Dock="Top" x:Name="typesListBox" SelectionChanged="typesListBox_SelectionChanged" 
                              VirtualizingStackPanel.VirtualizationMode="Recycling"
                              ScrollViewer.CanContentScroll="True" 
-                             VirtualizingStackPanel.IsVirtualizing="True">
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             >
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type local:DumpedType}">
                             <DockPanel>
                                 <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
-                                <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" 
-                                           >
+                                <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 
+                                           Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" 
+                                           FontSize="{Binding Path=FontSize, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"
+                                >
                                     <TextBlock.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Copy Type Name" 
