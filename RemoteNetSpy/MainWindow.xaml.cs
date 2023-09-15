@@ -5,14 +5,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.AccessControl;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -20,29 +17,13 @@ using System.Windows.Media.Effects;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
-using CommandLine;
+using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNetSpy;
 
 namespace RemoteNetGui
 {
-    public class InjectableProcess
-    {
-        public int Pid { get; set; }
-        public string Name { get; set; }
-        public string DotNetVersion { get; set; }
-        public string DiverState { get; set; }
-
-        public InjectableProcess(int pid, string name, string dotNetVersion, string diverState)
-        {
-            Pid = pid;
-            Name = name;
-            DotNetVersion = dotNetVersion;
-            DiverState = diverState;
-        }
-    }
-
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -61,6 +42,7 @@ namespace RemoteNetGui
         }
 
         private async void MainWindow_OnInitialized(object? sender, EventArgs e) => await RefreshProcessesList();
+
         private async Task RefreshProcessesList()
         {
             procsBox.ItemsSource = null;
@@ -176,6 +158,7 @@ namespace RemoteNetGui
                 catch
                 {
                 }
+
                 oldApp = null;
             }
 
@@ -183,18 +166,17 @@ namespace RemoteNetGui
         }
 
 
-        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => RefreshAssembliesAsync();
+        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) =>
+            RefreshAssembliesAsync();
 
         private Regex r = new Regex(@"\[(.*?)\]\[(.*?)\](.*)");
+
         private Task RefreshAssembliesAsync()
         {
             return Task.Run(() =>
             {
 
-                Dispatcher.Invoke(() =>
-                {
-                    assembliesSpinner.Visibility = Visibility.Visible;
-                });
+                Dispatcher.Invoke(() => { assembliesSpinner.Visibility = Visibility.Visible; });
 
                 var x = CliWrap.Cli.Wrap("rnet-dump.exe")
                     .WithArguments($"types -t {TargetPid} -q * " + UnmanagedFlagIfNeeded())
@@ -269,7 +251,8 @@ namespace RemoteNetGui
             }
         }
 
-        private Dictionary<AssemblyDesc, List<string>> _assembliesToTypes = new Dictionary<AssemblyDesc, List<string>>();
+        private Dictionary<AssemblyDesc, List<string>>
+            _assembliesToTypes = new Dictionary<AssemblyDesc, List<string>>();
 
         private async void assembliesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -352,7 +335,8 @@ namespace RemoteNetGui
         {
             if (typesListBox.SelectedItem == null)
             {
-                MessageBox.Show("You must select a type from the \"Types\" listbox first.", $"{this.Title} Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("You must select a type from the \"Types\" listbox first.", $"{this.Title} Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -406,10 +390,12 @@ namespace RemoteNetGui
                 associatedBox = typesListBox;
                 matchCase = _matchCaseTypes;
             }
+
             if (sender == assembliesFilterBox)
             {
                 associatedBox = assembliesListBox;
             }
+
             if (sender == membersFilterBox)
             {
                 associatedBox = membersListBox;
@@ -435,7 +421,8 @@ namespace RemoteNetGui
                     if (sender == membersFilterBox)
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     if (sender == typesFilterBox)
-                        return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)?.Contains(filter, comp) == true;
+                        return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)
+                            ?.Contains(filter, comp) == true;
                     if (sender == assembliesFilterBox)
                         return (o as AssemblyDesc)?.Name?.Contains(filter, comp) == true;
                     return (o as string)?.Contains(filter) == true;
@@ -468,13 +455,15 @@ namespace RemoteNetGui
         {
             if (!_traceList.Any())
             {
-                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
             if (_procBoxCurrItem == null)
             {
-                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -482,7 +471,7 @@ namespace RemoteNetGui
             foreach (string funcToTrace in _traceList)
             {
                 args.Add("-i");
-                string reducedSignaturee = funcToTrace;//.Substring(0, funcToTrace.IndexOf('('));
+                string reducedSignaturee = funcToTrace; //.Substring(0, funcToTrace.IndexOf('('));
                 args.Add($"\"{reducedSignaturee}\"");
             }
 
@@ -583,6 +572,7 @@ namespace RemoteNetGui
                 {
                     sw.WriteLine(traceFunction);
                 }
+
                 sw.Flush();
             }
         }
@@ -660,9 +650,9 @@ namespace RemoteNetGui
                 assemblyFilter += ".*"; // Indicate we want any type within the assembly
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-            .WithArguments($"heap -t {TargetPid} -q {assemblyFilter} " + UnmanagedFlagIfNeeded())
-            .WithValidation(CommandResultValidation.None)
-            .ExecuteBufferedAsync();
+                .WithArguments($"heap -t {TargetPid} -q {assemblyFilter} " + UnmanagedFlagIfNeeded())
+                .WithValidation(CommandResultValidation.None)
+                .ExecuteBufferedAsync();
             var res = await x.Task;
             var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .SkipWhile(line => !line.Contains("Found "))
@@ -715,7 +705,8 @@ namespace RemoteNetGui
         {
             if (_procBoxCurrItem == null)
             {
-                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -760,6 +751,7 @@ namespace RemoteNetGui
         }
 
         private bool _matchCaseTypes = false;
+
         private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
         {
             _matchCaseTypes = !_matchCaseTypes;
@@ -808,7 +800,7 @@ namespace RemoteNetGui
             string? RuntimeTypeFullTypeName = typeof(RuntimeType).FullName;
 
             string script =
-@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});
+                @$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});
 var ro = app.GetRemoteObject(0x{dataContext.Address:X16}, ""{dataContext.FullTypeName}"");
 dynamic dro = ro.Dynamify();
 ";
@@ -818,26 +810,124 @@ dynamic dro = ro.Dynamify();
 
             Process.Start("rnet-repl.exe", new string[] { "--statementsFile", path });
         }
-    }
 
-    public class DumpedMember
-    {
-        public string RawName { get; set; }
-        // This one has generic args normalized from [[System.Byte, ... ]] to <System.Byte>
-        public string NormalizedName { get; set; }
-    }
+        private object _scalingLock = new object();
+        private int _scalingFactor = 0;
+        private HashSet<Type> _forbiddens = new HashSet<Type>();
 
-    public class DumpedType
-    {
-        public string FullTypeName { get; private set; }
-        private int? _numInstances;
-        public bool HaveInstances => _numInstances != null;
-        public int NumInstances => _numInstances ?? 0;
-
-        public DumpedType(string fullTypeName, int? numInstances)
+        private void MainWindow_OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
-            FullTypeName = fullTypeName;
-            _numInstances = numInstances;
+            void ChangeAllFontSizes(bool up)
+            {
+                if (up)
+                {
+                    _scalingFactor++;
+                }
+                else
+                {
+                    // Make sure we're not scaling down below the default size
+                    if (_scalingFactor == 0)
+                        return;
+                    _scalingFactor--;
+                }
+
+                var allElements = WindowElementEnumerator.EnumerateAllElementsInWindow(this); // 'this' refers to your Window instance
+                foreach (FrameworkElement element in allElements)
+                {
+                    Type t = element.GetType();
+                    if (_forbiddens.Contains(t))
+                        continue;
+                    if (t.GetMembers().All(member => member.Name != "FontSize"))
+                    {
+                        _forbiddens.Add(t);
+                        continue;
+                    }
+
+                    if(element.IsPropertyBound("FontSize"))
+                        continue;
+
+                    if (element.HasAncestorWithName("titlebar"))
+                        continue;
+
+                    // Do something with each element, for example, print their names
+                    element.IndianaJones("FontSize", (double oldVal) => up ? (oldVal + 2) : (oldVal - 2));
+                }
+            }
+
+            lock (_scalingLock)
+            {
+                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                {
+                    bool scaleUp = (e.Key == Key.Add || e.Key == Key.OemPlus);
+                    bool scaleDown = (e.Key == Key.Subtract || e.Key == Key.OemMinus);
+                    if (scaleUp || scaleDown)
+                    {
+                        ChangeAllFontSizes(scaleUp);
+
+                        e.Handled = true;
+                    }
+                }
+            }
+        }
+    }
+
+    public static class VisualTreeHelperExtensions
+    {
+        public static IEnumerable<DependencyObject> EnumerateAllVisualChildren(this DependencyObject parent)
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                yield return child;
+
+                foreach (var visualChild in EnumerateAllVisualChildren(child))
+                {
+                    yield return visualChild;
+                }
+            }
+        }
+    }
+
+    public static class WindowElementEnumerator
+    {
+        public static IEnumerable<FrameworkElement> EnumerateAllElementsInWindow(Window window)
+        {
+            foreach (var child in window.EnumerateAllVisualChildren())
+            {
+                if (child is FrameworkElement frameworkElement)
+                {
+                    yield return frameworkElement;
+                }
+            }
+        }
+    }
+    public static class FrameworkElementExtensions
+    {
+        public static bool HasAncestorWithName(this FrameworkElement element, string ancestorName)
+        {
+            FrameworkElement currentElement = element;
+
+            while (currentElement != null)
+            {
+                if (currentElement.Name == ancestorName)
+                {
+                    return true;
+                }
+
+                currentElement = VisualTreeHelper.GetParent(currentElement) as FrameworkElement;
+            }
+
+            return false;
+        }
+
+        // Assuming 'element' is your WPF framework element, and 'propertyName' is the name of the property you want to check for binding.
+        public static bool IsPropertyBound(this FrameworkElement element, string propertyName)
+        {
+            // Try to get the binding for the specified property.
+            BindingBase binding = BindingOperations.GetBinding(element, DependencyPropertyDescriptor.FromName(propertyName, element.GetType(), element.GetType()).DependencyProperty);
+
+            // If the binding is not null, it means the property is data-bound.
+            return binding != null;
         }
     }
 }
