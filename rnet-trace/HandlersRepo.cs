@@ -69,7 +69,9 @@ namespace RemotenetTrace
                     script +=  "Output.AppendLine($\"(!) Error reading parameter: {ex}\");\r\n";
                     script +=  "}\r\n";
                 }
-                script += "Output.AppendLine();\r\n";
+                if(numArgs == 0)
+                    script += $"Output.AppendLine($\"\\t\\t No Args.\");\r\n";
+                //script += "Output.AppendLine();\r\n";
 
                 if (!Directory.Exists("__rnet_handlers__"))
                     Directory.CreateDirectory("__rnet_handlers__");
