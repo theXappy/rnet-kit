@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -139,13 +140,13 @@ namespace QuickStart
             // Display all overloads to the user
             foreach (MethodBase methodToHook in methodsToHook)
             {
-                Console.Write($"Hooking Method: (Class: {methodToHook.DeclaringType.FullName}) ");
+                Console.Write($"Found Method: (Class: {methodToHook.DeclaringType.FullName}) ");
                 Console.WriteLine(TypeNameUtils.Normalize(methodToHook));
             }
 
 
             // Create local handler functions for all future hooks
-            Dictionary<MethodBase, HookAction> hookHandlers = CreateHookHandlers(methodsToHook);
+            Dictionary<MethodBase, HooksPair> hookHandlers = CreateHookHandlers(methodsToHook);
 
             // Prepare clean-up code for when our program closes (gracefully)
             ManualResetEvent mre = new ManualResetEvent(false);
@@ -157,9 +158,10 @@ namespace QuickStart
                 unhooked = true;
 
                 Console.WriteLine("Unhooking...");
-                foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
+                foreach (KeyValuePair<MethodBase, HooksPair> methodAndHook in hookHandlers)
                 {
-                    app.HookingManager.UnhookMethod(methodAndHook.Key, methodAndHook.Value);
+                    app.HookingManager.UnhookMethod(methodAndHook.Key, methodAndHook.Value.Pre);
+                    app.HookingManager.UnhookMethod(methodAndHook.Key, methodAndHook.Value.Post);
                 }
                 Console.WriteLine("Unhooked");
                 app.Dispose();
@@ -176,10 +178,38 @@ namespace QuickStart
             Console.CancelKeyPress += Unhook;
 
             // Hook!
-            foreach (KeyValuePair<MethodBase, HookAction> methodAndHook in hookHandlers)
+            HashSet<string> alreadyHookedMangledNames = new HashSet<string>();
+            foreach (KeyValuePair<MethodBase, HooksPair> methodAndHook in hookHandlers)
             {
-                Console.WriteLine(methodAndHook.Key.Name);
-                app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value);
+                var method = methodAndHook.Key;
+                string actualFullName = $"{method.DeclaringType.FullName}.{method.Name}(";
+                // Append parameters
+                if (method is IRttiMethodBase rttiMethod)
+                {
+                    // Skipping 'this'
+                    actualFullName += string.Join(",",
+                        (rttiMethod).LazyParamInfos.Skip(1).Select(lpi => lpi.TypeResolver.TypeFullName));
+                }
+                else
+                {
+                    actualFullName += string.Join(",", (method).GetParameters().Select(lpi => lpi.ParameterType.FullName));
+                }
+                actualFullName += ")";
+
+                if (alreadyHookedMangledNames.Contains(actualFullName))
+                {
+                    Console.Write($"Skipping Method: (Class: {method.DeclaringType.FullName}) {method.Name}... (Already added in base class) ");
+                    continue;
+                }
+                alreadyHookedMangledNames.Add(actualFullName);
+
+
+                Console.Write($"Hooking Method: (Class: {method.DeclaringType.FullName}) {method.Name}... (Pre) ");
+                app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value.Pre);
+                Console.WriteLine($"OK!");
+                Console.Write($"Hooking Method: (Class: {method.DeclaringType.FullName}) {method.Name}... (Post) ");
+                app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Postfix, methodAndHook.Value.Post);
+                Console.WriteLine($"OK!");
             }
 
             mre.WaitOne();
@@ -224,23 +254,64 @@ namespace QuickStart
             }
         }
 
-        private static Dictionary<MethodBase, HookAction> CreateHookHandlers(List<MethodBase> methodsToHook)
+        static ConcurrentDictionary<int, ConcurrentStack<string>> semiCallStacks = new();
+
+        private class HooksPair
+        {
+            public HookAction Pre { get; set; }
+            public HookAction Post { get; set; }
+
+            public HooksPair(HookAction pre, HookAction post)
+            {
+                Pre = pre;
+                Post = post;
+            }
+        }
+        private static Dictionary<MethodBase, HooksPair> CreateHookHandlers(List<MethodBase> methodsToHook)
         {
             DateTime start = DateTime.Now;
-            Dictionary<MethodBase, HookAction> generatedHooks = new();
+            Dictionary<MethodBase, HooksPair> generatedHooks = new();
             // Generate unique hook for every overload - To show the right signature when invoked
             foreach (MethodBase method in methodsToHook)
             {
                 string humanizedParametersList = string.Join(", ", method.GetParameters().Select(pi => pi.ToString()));
                 string className = method.DeclaringType.FullName;
                 string methodName = method.Name;
-                string[] paramNames = method.GetParameters().Select(param => param.Name).ToArray();
-                string[] paramTypes = method.GetParameters().Select(param => param.ParameterType.ToString()).ToArray();
+                string[] paramNames;
+                string[] paramTypes;
+                if (method is IRttiMethodBase rttiMethod)
+                {
+                    // Skipping 'this'
+                    paramTypes = rttiMethod.LazyParamInfos.Skip(1).Select(resolver => resolver.TypeResolver.TypeFullName).ToArray();
+                    paramNames = rttiMethod.LazyParamInfos.Skip(1).Select(resolver => resolver.Name).ToArray();
+                }
+                else
+                {
+                    // This one will trigger remote type resolution for every parameter type...
+                    Debug.WriteLine("[@@@] SLOW paramter deconstruction!");
+                    paramNames = method.GetParameters().Select(param => param.Name).ToArray();
+                    paramTypes = method.GetParameters().Select(param => param.ParameterType.ToString()).ToArray();
+                }
+
+
 
                 var script = HandlersRepo.Get(className, method.Name, paramTypes.Length);
                 ScriptRunner<object> handlerScript = HandlersRepo.Compile(script);
-                HookAction hAction = (context, instance, args) =>
+
+
+                string uniqueId = $"{className}.{methodName}`{paramTypes.Length}";
+                HookAction preHook = (context, instance, args) =>
                 {
+                    var semiCallstack = GetSemiCallstack(context.ThreadId);
+                    semiCallstack.Push(uniqueId);
+                    string firstPrefix = new string('│', Math.Max(semiCallStacks.Count - 2, 0));
+                    if (semiCallStacks.Count == 1)
+                        firstPrefix += "┌";
+                    else
+                        firstPrefix += "├┬";
+                    firstPrefix += 
+
+
                     try
                     {
                         var scriptGlobals = new HandlerGlobals()
@@ -252,6 +323,12 @@ namespace QuickStart
                             Output = new StringBuilder()
                         };
                         handlerScript(scriptGlobals);
+
+                        StringBuilder output = scriptGlobals.Output;
+                        output.Replace("\n", "\n");
+                        output.Insert(0, $" [TID={context.ThreadId}] ");
+                        output.Insert(0, firstPrefix);
+                        output.AppendLine();
                         Console.Write(scriptGlobals.Output);
                     }
                     catch (Exception ex)
@@ -260,9 +337,37 @@ namespace QuickStart
                     }
                 };
 
-                generatedHooks[method] = hAction;
+                HookAction postHook = (context, instance, args) =>
+                {
+                    var semiCallstack = GetSemiCallstack(context.ThreadId);
+                    string prefix = new string('│', semiCallStacks.Count);
+                    string lastPrefix = prefix[..^1] + "└─ END";
+
+                    if (semiCallstack.TryPop(out string lastUniqueId))
+                    {
+                        if (lastUniqueId != uniqueId)
+                        {
+                            throw new Exception(
+                                $"ERROR: Mismatching popped method and currently exiting method. Current: {uniqueId} , Popped: {lastUniqueId}");
+                        }
+
+                        Console.WriteLine(lastPrefix);
+                    }
+                };
+
+                generatedHooks[method] = new HooksPair(preHook, postHook);
             }
             return generatedHooks;
+        }
+
+        private static ConcurrentStack<string> GetSemiCallstack(int threadId)
+        {
+            if (!semiCallStacks.TryGetValue(threadId, out var stack))
+            {
+                stack = new ConcurrentStack<string>();
+                semiCallStacks[threadId] = stack;
+            }
+            return stack;
         }
 
 
@@ -398,7 +503,7 @@ namespace QuickStart
 
                     string asEscaped = c.ToString();
                     // Not escaping backslash yet because it might be escaping a *
-                    if(c != '\\')
+                    if (c != '\\')
                         asEscaped = Regex.Escape(c.ToString());
                     sb.Append(asEscaped);
                 }
