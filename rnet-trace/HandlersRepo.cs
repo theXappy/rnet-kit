@@ -59,18 +59,17 @@ namespace RemotenetTrace
                 script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));\r\n";
                 script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
                 script += "Output.AppendLine($\"({Context.PrettyParametersList()})\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
-                script += "Output.AppendLine($\"\\tArguments:\");\r\n";
+                if (numArgs != 0)
+                    script += "Output.AppendLine($\"\\tArguments:\");\r\n";
                 for (int i = 0; i < numArgs; i++)
                 {
                     script += $"Output.Append($\"\\t\\t [{i}] {{Context.Parameters[{i}].Name}} = \");\r\n";
                     script +=  "try {\r\n";
-                    script += $"\tOutput.AppendLine($\"{{Args[{i}].ToString()}}\");\r\n";
+                    script += $"\tOutput.AppendLine((Args[{i}]?.ToString() ?? \"null\"));\r\n";
                     script +=  "} catch (Exception ex) {\r\n";
-                    script +=  "Output.AppendLine($\"(!) Error reading parameter: {ex}\");\r\n";
+                    script +=  "\tOutput.AppendLine($\"(!) Error reading parameter: {ex}\");\r\n";
                     script +=  "}\r\n";
                 }
-                if(numArgs == 0)
-                    script += $"Output.AppendLine($\"\\t\\t No Args.\");\r\n";
                 //script += "Output.AppendLine();\r\n";
 
                 if (!Directory.Exists("__rnet_handlers__"))
@@ -111,7 +110,7 @@ namespace RemotenetTrace
 
             string finalScript = usings + script;
 
-            Debug.WriteLine("Compiled handler:\n" + finalScript);
+            //Debug.WriteLine("Compiled handler:\n" + finalScript);
 
             var compiledScript = CSharpScript.Create(
                         code: finalScript,

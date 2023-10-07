@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using RemoteNET.Common;
+using RemoteNET.Internal.Reflection;
 
 namespace RnetKit.Common
 {
@@ -16,8 +18,9 @@ namespace RnetKit.Common
                     return $"{Normalize(pi.PropertyType)} {pi.Name}";
                 case EventInfo ei:
                     return $"{Normalize(ei.EventHandlerType)} {ei.Name}";
-                case MethodInfo mtd:
-                    return NormalizeMethodBase(mtd as MethodBase);
+                case MethodInfo:
+                case ConstructorInfo:
+                    return NormalizeMethodBase(mi as MethodBase);
             }
             return mi.ToString();
         }
@@ -26,9 +29,12 @@ namespace RnetKit.Common
         {
             switch (mi)
             {
+                case IRttiMethodBase rrmi:
+                    return rrmi.UndecoratedSignature;
                 case MethodInfo mtd:
                     string normalizedParams = Normalize(mtd.GetParameters());
                     return $"{Normalize(mtd.ReturnType)} {mtd.Name}({normalizedParams})";
+
             }
             return mi.ToString();
         }

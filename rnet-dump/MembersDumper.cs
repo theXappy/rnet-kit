@@ -1,13 +1,10 @@
-﻿using RemoteNET.RttiReflection;
+﻿using System.Diagnostics;
+using RemoteNET.RttiReflection;
 using RemoteNET;
 using RnetKit.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
-using RemoteNET.Internal.Reflection;
+using RemoteNET.Common;
 
 namespace remotenet_dump
 {
@@ -24,9 +21,10 @@ namespace remotenet_dump
                 target = TypeNameUtils.DenormalizeShort(target);
 
             Type dumpedType;
+            RemoteApp app;
             try
             {
-                using RemoteApp app = Common.Connect(opts.TargetProcess, opts.Unmanaged);
+                app = Common.Connect(opts.TargetProcess, opts.Unmanaged);
                 dumpedType = app.GetRemoteType(target);
 
             }
@@ -39,6 +37,7 @@ namespace remotenet_dump
             if (dumpedType == null)
             {
                 Console.WriteLine("ERROR: Failed to find remote type for given query");
+                app.Dispose();
                 return 1;
             }
 
@@ -52,6 +51,7 @@ namespace remotenet_dump
                 DumpMembersManaged(opts, dumpedType);
             }
 
+            app.Dispose();
             return 0;
         }
 
@@ -64,7 +64,16 @@ namespace remotenet_dump
 
                 if (opts.PrintNormalizedGenerics)
                 {
-                    string memberString = memberString = TypeNameUtils.Normalize(member);
+                    string memberString;
+                    try
+                    {
+                        memberString = TypeNameUtils.Normalize(member);
+                    }
+                    catch(Exception e) 
+                    {
+                        Debug.WriteLine($"ERROR when normalizing this member: {member}. Exception:\n{e}");
+                        memberString = member.ToString();
+                    }
                     Console.WriteLine($"[{member.MemberType}] {memberString}");
                 }
             }
@@ -112,11 +121,8 @@ namespace remotenet_dump
         }
         public static string UnDecorateSymbolNameWrapper(MemberInfo info)
         {
-            switch (info)
-            {
-                case RemoteRttiMethodInfo mi:
+            if(info is IRttiMethodBase mi)
                     return mi.UndecoratedSignature;
-            }
 
             return UnDecorateSymbolNameWrapper(info.Name);
         }
