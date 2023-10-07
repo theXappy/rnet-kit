@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using RemoteNET;
+using RemoteNET.Common;
 using RemoteNET.Internal;
 using RemoteNET.Internal.Reflection;
 using RemoteNET.Internal.Reflection.DotNet;
@@ -60,7 +61,7 @@ namespace RemoteNetSpy
                 }
                 else if (member is MethodInfo mi)
                 {
-                    if (mi is RemoteRttiMethodInfo rmi)
+                    if (mi is IRttiMethodBase rmi)
                     {
                         mgi.Name = rmi.UndecoratedSignature;
                     }

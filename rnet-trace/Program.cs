@@ -8,8 +8,10 @@ using RemotenetTrace;
 using ScubaDiver.API.Hooking;
 using Microsoft.CodeAnalysis.Scripting;
 using System.Diagnostics;
+using Pastel;
 using RemoteNET.Common;
 using RnetKit.Common;
+using System.Drawing;
 
 namespace QuickStart
 {
@@ -255,6 +257,8 @@ namespace QuickStart
         }
 
         static ConcurrentDictionary<int, ConcurrentStack<string>> semiCallStacks = new();
+        private static int _lastPrintingThreadId = 0;
+        private static object _printLock = new object();
 
         private class HooksPair
         {
@@ -304,13 +308,15 @@ namespace QuickStart
                 {
                     var semiCallstack = GetSemiCallstack(context.ThreadId);
                     semiCallstack.Push(uniqueId);
-                    string firstPrefix = new string('│', Math.Max(semiCallStacks.Count - 2, 0));
-                    if (semiCallStacks.Count == 1)
-                        firstPrefix += "┌";
-                    else
-                        firstPrefix += "├┬";
-                    firstPrefix += 
+                    string prefix = new string('│', semiCallstack.Count);
+                    string firstPrefix = "┌";
+                    if (semiCallstack.Count > 1)
+                        firstPrefix = new string('│', semiCallstack.Count - 2) + "├┬";
 
+                    // Color prefixes
+                    var color = GetModuloColor(context.ThreadId);
+                    firstPrefix = firstPrefix.Pastel(color);
+                    prefix = prefix.Pastel(color);
 
                     try
                     {
@@ -325,11 +331,18 @@ namespace QuickStart
                         handlerScript(scriptGlobals);
 
                         StringBuilder output = scriptGlobals.Output;
-                        output.Replace("\n", "\n");
-                        output.Insert(0, $" [TID={context.ThreadId}] ");
+                        output.Replace("\n", "\n" + prefix);
                         output.Insert(0, firstPrefix);
                         output.AppendLine();
-                        Console.Write(scriptGlobals.Output);
+                        lock (_printLock)
+                        {
+                            if (_lastPrintingThreadId != context.ThreadId)
+                            {
+                                _lastPrintingThreadId = context.ThreadId;
+                                Console.WriteLine($"[TID=0x{context.ThreadId:X}]".Pastel(color));
+                            }
+                            Console.Write(scriptGlobals.Output);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -340,8 +353,11 @@ namespace QuickStart
                 HookAction postHook = (context, instance, args) =>
                 {
                     var semiCallstack = GetSemiCallstack(context.ThreadId);
-                    string prefix = new string('│', semiCallStacks.Count);
-                    string lastPrefix = prefix[..^1] + "└─ END";
+                    string lastPrefix = new string('│', semiCallstack.Count - 1) + "└─ END";
+
+                    // Color prefix
+                    var color = GetModuloColor(context.ThreadId);
+                    lastPrefix = lastPrefix.Pastel(color);
 
                     if (semiCallstack.TryPop(out string lastUniqueId))
                     {
@@ -351,7 +367,15 @@ namespace QuickStart
                                 $"ERROR: Mismatching popped method and currently exiting method. Current: {uniqueId} , Popped: {lastUniqueId}");
                         }
 
-                        Console.WriteLine(lastPrefix);
+                        lock (_printLock)
+                        {
+                            if (_lastPrintingThreadId != context.ThreadId)
+                            {
+                                _lastPrintingThreadId = context.ThreadId;
+                                Console.WriteLine($"[TID=0x{context.ThreadId:X}]".Pastel(color));
+                            }
+                            Console.WriteLine(lastPrefix);
+                        }
                     }
                 };
 
@@ -369,6 +393,28 @@ namespace QuickStart
             }
             return stack;
         }
+        public static Color GetModuloColor(int i)
+        {
+            // Calculate the modulo of 'i' with 5 to get a value in the range [0, 4].
+            int moduloResult = i % 5;
+
+            // Use a switch statement to map the modulo result to a System.Drawing.Color.
+            switch (moduloResult)
+            {
+                case 0:
+                    return Color.Cyan;
+                case 1:
+                    return Color.LawnGreen;
+                case 2:
+                    return Color.IndianRed;
+                case 3:
+                    return Color.MediumPurple;
+                case 4:
+                    return Color.Orange;
+                default:
+                    throw new ArgumentOutOfRangeException("i", "Input 'i' should be a non-negative integer.");
+            }
+        }
 
 
         private static List<MethodBase> FindMethods(IEnumerable<MethodBase> allMethods, string fullTypeNameQuery, string nameQuery, string? encodedParametersQuery)
@@ -378,7 +424,16 @@ namespace QuickStart
             Regex methodNameRegex = SimpleFilterToRegex(nameQuery);
             MethodBase[]? matchingMethods = allMethods
                 .Where(mi => methodNameRegex.IsMatch(mi.Name))
-                .Where(mi => typeRegex.IsMatch(mi.DeclaringType.FullName))
+                .Where(mi =>
+                {
+                    if (mi is IRttiMethodBase rttiMethod)
+                    {
+                        return typeRegex.IsMatch(rttiMethod.LazyDeclaringType.TypeFullName);
+                    }
+                    // This one will trigger remote type resolution for every parameter type...
+                    Debug.WriteLine("[@@@] SLOW declaring type resolution!");
+                    return typeRegex.IsMatch(mi.DeclaringType.FullName);
+                })
                 .ToArray();
 
             // No we will filter only the overloads matching the parameters query

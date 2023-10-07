@@ -20,6 +20,7 @@ using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
+using RemoteNET.Internal;
 using RemoteNetSpy;
 
 namespace RemoteNetGui
@@ -126,18 +127,16 @@ namespace RemoteNetGui
             var oldApp = _app;
 
             // Creating new RemoteApp
+            Process proc = Process.GetProcessById(TargetPid);
             try
             {
                 _app = await Task.Run(() =>
                 {
-                    try
+                    if (_procBoxCurrItem.DotNetVersion.StartsWith("net"))
                     {
-                        return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Unmanaged);
+                        return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
                     }
-                    catch
-                    {
-                        return RemoteAppFactory.Connect(Process.GetProcessById(TargetPid), RuntimeType.Managed);
-                    }
+                    return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
                 });
             }
             catch (Exception ex)
