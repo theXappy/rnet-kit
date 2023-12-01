@@ -31,19 +31,14 @@ public class MemberToIconConverter : IValueConverter
         string str = value as string;
         if (str == null)
             return null;
-        char c = str[0];
-        if ( c == '[')
-            c = str[1];
-        //if (str.StartsWith("[Event]"))
-        if (c == 'E')
+        if (str.StartsWith("[Event]"))
             return "/icons/Event.png";
-        //if (str.StartsWith("[Method]"))
-        if (c == 'M' || c == 'C')
+        if (str.StartsWith("[Method]") || str.StartsWith("[Constructor]"))
             return "/icons/Method.png";
-        //if (str.StartsWith("[Property]"))
-        if (c == 'P')
+        if (str.StartsWith("[Property]"))
             return "/icons/Property.png";
-        //if (str.StartsWith("[Field]"))
+        if (str.StartsWith("[MethodTable]"))
+            return "/icons/MethodTable.png";
         return "/icons/Field.png";
     }
 

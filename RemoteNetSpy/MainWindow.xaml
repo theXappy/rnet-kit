@@ -199,7 +199,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="{x:Type local:DumpedMember}">
                         <DockPanel>
-                            <Image Source="{Binding Path=NormalizedName, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0"/>
+                            <Image Source="{Binding Path=NormalizedName, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16" Width="17"/>
                             <TextBlock Text="{Binding Path=NormalizedName}" MouseDown="MemberListItemMouseDown">
                                 <TextBlock.ContextMenu>
                                     <ContextMenu>

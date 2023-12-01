@@ -329,9 +329,27 @@ namespace RemoteNetGui
                 dumpedMembers.Add(dumpedMember);
             }
 
-            dumpedMembers.Sort((member1, member2) => member1.RawName.CompareTo(member2.RawName));
+            dumpedMembers.Sort(CompareDumperMembers);
 
             membersListBox.ItemsSource = dumpedMembers;
+        }
+
+        private int CompareDumperMembers(DumpedMember member1, DumpedMember member2)
+        {
+            var res = member1.MemberType.CompareTo(member2.MemberType);
+            if (res != 0)
+            {
+                // Member types mismatched.
+                // Order is mostly alphabetic except Method Tables, which go first.
+                if (member1.MemberType == "[MethodTable]")
+                    return -1;
+                if (member2.MemberType == "[MethodTable]")
+                    return 1;
+                return res;
+            }
+
+            // Same member type, sub-sort alphabetically (the member names).
+            return member1.RawName.CompareTo(member2.RawName);
         }
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
