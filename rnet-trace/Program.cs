@@ -148,7 +148,7 @@ namespace QuickStart
 
 
             // Create local handler functions for all future hooks
-            Dictionary<MethodBase, HooksPair> hookHandlers = CreateHookHandlers(methodsToHook);
+            Dictionary<MethodBase, HooksPair> hookHandlers = CreateHookHandlers(methodsToHook, app);
 
             // Prepare clean-up code for when our program closes (gracefully)
             ManualResetEvent mre = new ManualResetEvent(false);
@@ -271,7 +271,7 @@ namespace QuickStart
                 Post = post;
             }
         }
-        private static Dictionary<MethodBase, HooksPair> CreateHookHandlers(List<MethodBase> methodsToHook)
+        private static Dictionary<MethodBase, HooksPair> CreateHookHandlers(List<MethodBase> methodsToHook, RemoteApp app)
         {
             DateTime start = DateTime.Now;
             Dictionary<MethodBase, HooksPair> generatedHooks = new();
@@ -322,6 +322,7 @@ namespace QuickStart
                     {
                         var scriptGlobals = new HandlerGlobals()
                         {
+                            App = app,
                             Context = new TraceContext(context.StackTrace, start, className, methodName, paramTypes,
                                 paramNames),
                             Instance = instance,
@@ -451,7 +452,14 @@ namespace QuickStart
                 // Using 'Split(' ').First()' to get the TYPE part in case the user has given us also the parameter name:
                 // "(object myObj)" ==> "object"
                 encodedParametersQuery = encodedParametersQuery.TrimStart('(').TrimEnd(')');
-                string[] paramFilters = encodedParametersQuery.Split(',').Select(paramType => paramType.Trim().Split(' ').First()).ToArray();
+                string[] splitted = encodedParametersQuery.Split(',', StringSplitOptions.TrimEntries);
+                string[] paramFilters = new string[splitted.Length];
+                for (int i = 0; i < splitted.Length; i++)
+                {
+                    //.Select(paramType => paramType.Trim().Split(' ').First()).ToArray();
+                    paramFilters[i] = splitted[i].Substring(0, splitted[i].LastIndexOf(' '));
+                }
+
                 foreach (MethodBase methodInfo in matchingMethods)
                 {
                     if (CheckParameters(methodInfo, paramFilters))
