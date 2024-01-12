@@ -106,7 +106,7 @@ namespace remotenet_dump
                         Console.WriteLine($"[Unknown Member] {memberString}");
                     }
                 }
-                foreach (KeyValuePair<string, IntPtr> kvp in rttiType.MethodTables)
+                foreach (KeyValuePair<string, long> kvp in rttiType.MethodTables)
                 {
                     if (!opts.SkipPrintRaw)
                         Console.WriteLine($"[MethodTable] {kvp.Key} = 0x{kvp.Value:x16}");

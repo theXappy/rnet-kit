@@ -83,6 +83,7 @@ namespace RemotenetTrace
         public static ScriptRunner<object> Compile(string script)
         {
             List<MetadataReference> references = new List<MetadataReference>();
+            references.Add(MetadataReference.CreateFromFile(typeof(Random).Assembly.Location));
             references.Add(MetadataReference.CreateFromFile(typeof(CSharpArgumentInfo).Assembly.Location));
             references.Add(MetadataReference.CreateFromFile(typeof(Pastel.ConsoleExtensions).Assembly.Location));
             references.Add(MetadataReference.CreateFromFile(typeof(System.Drawing.Color).Assembly.Location));
