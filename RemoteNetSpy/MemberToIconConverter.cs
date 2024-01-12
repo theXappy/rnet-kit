@@ -11,10 +11,21 @@ public class ModuleToIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
-        RuntimeType str = (RuntimeType)value;
-        if(str == RuntimeType.Unmanaged)
-            return "/icons/CPPProjectNode.png";
-        return "/icons/ModulePublic.png";
+        AssemblyDesc assembly = (AssemblyDesc)value;
+        RuntimeType runtime = assembly.Runtime;
+        if (runtime == RuntimeType.Unmanaged)
+        {
+            if (assembly.AnyTypes)
+                return "/icons/CPPProjectNode.png";
+            return "/icons/CPPProjectNode_grayed.png";
+        }
+        else
+        {
+            if (assembly.AnyTypes)
+                return "/icons/ModulePublic.png";
+            return "/icons/ModulePublic_grayed.png";
+        }
+
     }
 
 

@@ -13,6 +13,7 @@
     <None Remove="icons\Class.png" />
     <None Remove="icons\ClearWindowContent.png" />
     <None Remove="icons\CPPProjectNode.png" />
+    <None Remove="icons\CPPProjectNode_grayed.png" />
     <None Remove="icons\Document.png" />
     <None Remove="icons\EditDocument.png" />
     <None Remove="icons\Event.png" />
@@ -23,6 +24,7 @@
     <None Remove="icons\MethodTable.png" />
     <None Remove="icons\MissingFile.png" />
     <None Remove="icons\ModulePublic.png" />
+    <None Remove="icons\ModulePublic_grayed.png" />
     <None Remove="icons\NewMethod.png" />
     <None Remove="icons\OpenFolder.png" />
     <None Remove="icons\Property.png" />
@@ -46,6 +48,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\CPPProjectNode.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\CPPProjectNode_grayed.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\Document.png">
@@ -76,6 +81,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\ModulePublic.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\ModulePublic_grayed.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="icons\NewMethod.png">
