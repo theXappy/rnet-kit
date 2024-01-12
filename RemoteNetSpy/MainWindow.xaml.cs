@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -193,7 +194,7 @@ namespace RemoteNetGui
                         continue;
                     string runtime = parts[0].Trim();
                     string assemblyName = parts[1].Trim();
-                    var assembly = new AssemblyDesc(assemblyName, runtime);
+                    var assembly = new AssemblyDesc(assemblyName, runtime, anyTypes: true);
                     string type = parts[2].Trim();
                     if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
                     {
@@ -204,8 +205,30 @@ namespace RemoteNetGui
                     types.Add(type);
                 }
 
+                // Also look for class-less assemblies
+                var commandTask = CliWrap.Cli.Wrap("rnet-dump.exe")
+                    .WithArguments($"domains -t {TargetPid} " + UnmanagedFlagIfNeeded())
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteBufferedAsync();
+                var domainsRes = commandTask.Task.Result;
+                var domainsStdout = domainsRes.StandardOutput.Split('\n')
+                    .Skip(2)
+                    .Select(str => str.Trim());
+                foreach (string line in domainsStdout)
+                {
+                    if (line.StartsWith("[module] "))
+                    {
+                        string moduleName = line.Substring("[module] ".Length);
+                        var assemblyDesc = new AssemblyDesc(moduleName, TargetRuntime, anyTypes: false);
+                        if (!_assembliesToTypes.ContainsKey(assemblyDesc))
+                        {
+                            _assembliesToTypes[assemblyDesc] = new List<string>();
+                        }
+                    }
+                }
+
                 var assemblies = _assembliesToTypes.Keys.ToList();
-                assemblies.Add(new AssemblyDesc("* All", RuntimeType.Unknown));
+                assemblies.Add(new AssemblyDesc("* All", RuntimeType.Unknown, anyTypes: true));
                 assemblies.Sort((desc, assemblyDesc) => desc.Name.CompareTo(assemblyDesc.Name));
 
                 Dispatcher.Invoke(() =>
@@ -220,38 +243,13 @@ namespace RemoteNetGui
                 });
         }
 
+        private RuntimeType TargetRuntime => _app is UnmanagedRemoteApp ? RuntimeType.Unmanaged : RuntimeType.Managed;
+
         private string UnmanagedFlagIfNeeded()
         {
-            if (_app is UnmanagedRemoteApp)
+            if (TargetRuntime == RuntimeType.Unmanaged)
                 return "-u";
             return string.Empty;
-        }
-
-        private class AssemblyDesc
-        {
-            public string Name { get; private set; }
-            public RuntimeType Runtime { get; private set; }
-
-            public AssemblyDesc(string name, RuntimeType runtime)
-            {
-                Name = name;
-                Runtime = runtime;
-            }
-
-            public AssemblyDesc(string name, string runtime) : this(name, Enum.Parse<RuntimeType>(runtime))
-            {
-            }
-
-            public override bool Equals(object? obj)
-            {
-                if (obj is not AssemblyDesc other) return false;
-                return Name.Equals(other?.Name) && Runtime.Equals(other?.Runtime);
-            }
-
-            public override int GetHashCode()
-            {
-                return Name.GetHashCode();
-            }
         }
 
         private Dictionary<AssemblyDesc, List<string>>
@@ -350,6 +348,40 @@ namespace RemoteNetGui
 
             // Same member type, sub-sort alphabetically (the member names).
             return member1.RawName.CompareTo(member2.RawName);
+        }
+
+
+        private async void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
+        {
+            if (_instancesList == null || _instancesList.Count == 0)
+            {
+                MessageBox.Show("Nothing to save in Heap Instances windows.", this.Title);
+                return;
+            }
+
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = ".csv|.csv";
+            if (sfd.ShowDialog() != true)
+            {
+                // User cancelled
+                return;
+            }
+
+            StringBuilder csv = new StringBuilder();
+            await Task.Run(() =>
+            {
+                csv.AppendLine("Address,Type,Frozen");
+                foreach (HeapObject heapObject in _instancesList)
+                {
+                    csv.AppendLine($"{heapObject.Address},{heapObject.FullTypeName},{heapObject.Frozen}");
+                }
+            });
+
+            Stream file = sfd.OpenFile();
+            using (StreamWriter sw = new StreamWriter(file))
+            {
+                await sw.WriteAsync(csv);
+            }
         }
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
@@ -864,7 +896,7 @@ dynamic dro = ro.Dynamify();
                         continue;
                     }
 
-                    if(element.IsPropertyBound("FontSize"))
+                    if (element.IsPropertyBound("FontSize"))
                         continue;
 
                     if (element.HasAncestorWithName("titlebar"))

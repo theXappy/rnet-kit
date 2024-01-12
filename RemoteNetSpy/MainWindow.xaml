@@ -103,7 +103,9 @@
         </DockPanel>
         <DockPanel Grid.Column="0"  Grid.Row="1" Margin="5,5,0,5">
             <DockPanel Dock="Top">
-                <Button x:Name="assembliesRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="5,2,0,2" Click="AssembliesRefreshButton_OnClick">
+                <Button x:Name="assembliesRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="5,2,0,2" Click="AssembliesRefreshButton_OnClick" 
+                        ToolTip="Refresh assemblies list"
+                        >
                     <Image Source="icons/Refresh.png" Stretch="None"/>
                 </Button>
                 <Label DockPanel.Dock="Left">Assemblies</Label>
@@ -120,8 +122,10 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel>
-                                    <Image Source="{Binding Path=Runtime, Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
-                                    <TextBlock Text="{Binding Path=Name}" />
+                                    <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
+                                    <TextBlock Text="{Binding Path=Name}" 
+                                               Foreground="{Binding Path=AnyTypes, Converter={StaticResource boolToForegroundColor}}" 
+                                    />
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -228,6 +232,15 @@
                                            />
                                 </StackPanel>
                                 <remoteNetSpy:Spinner x:Name="findHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
+                            </Grid>
+                        </Button>
+                        <Button Click="ExportHeapInstancesButtonClicked" Padding="5,0" Margin="2,2" MinHeight="21">
+                            <Grid>
+                                <StackPanel x:Name="exportHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Image Source="icons/Save.png" Height="16"/>
+                                    <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Export CSV</TextBlock>
+                                </StackPanel>
+                                <remoteNetSpy:Spinner x:Name="exportHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
                             </Grid>
                         </Button>
                     </StackPanel>
