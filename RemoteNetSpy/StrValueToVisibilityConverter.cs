@@ -4,10 +4,8 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
 using RemoteNET;
-using RemoteNET.Internal;
-using RemoteNetSpy;
 
-namespace RemoteNetGui;
+namespace RemoteNetSpy;
 
 public class StrValueToInvokeButtonVisibilityConverter : IValueConverter
 {

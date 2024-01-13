@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using RemoteNET;
 
-namespace RemoteNetGui;
+namespace RemoteNetSpy;
 
 public class HeapObject : INotifyPropertyChanged, IComparable
 {

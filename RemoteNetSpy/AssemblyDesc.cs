@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using RemoteNET;
 
-namespace RemoteNetGui;
+namespace RemoteNetSpy;
 
 [DebuggerDisplay("{Name} ({Runtime})")]
 public class AssemblyDesc
