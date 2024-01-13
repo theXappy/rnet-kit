@@ -5,7 +5,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using RemoteNET;
 
-namespace RemoteNetGui;
+namespace RemoteNetSpy;
 
 public class ModuleToIconConverter : IValueConverter
 {

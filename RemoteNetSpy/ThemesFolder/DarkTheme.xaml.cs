@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace REghZyFramework.Themes {
+namespace RemoteNetSpy.ThemesFolder {
     public partial class DarkTheme {
         private void CloseWindow_Event(object sender, RoutedEventArgs e) {
             if (e.Source != null)

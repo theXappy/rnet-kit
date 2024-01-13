@@ -1,4 +1,4 @@
-namespace RemoteNetGui;
+namespace RemoteNetSpy;
 
 public class DumpedType
 {

@@ -4,17 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RemoteNetSpy"
-        xmlns:remoteNetGui="clr-namespace:RemoteNetGui"
         mc:Ignorable="d"
         Title="Object Viewer" Height="560" Width="903"
         Style="{DynamicResource CustomWindowStyle}">
     <Window.Resources>
-        <remoteNetGui:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
-        <remoteNetGui:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
-        <remoteNetGui:MemberToIconConverter x:Key="memToIconConverter"/>
-        <remoteNetGui:StrValueToVisibilityConverter x:Key="strValueToVisabilityConverter"/>
-        <remoteNetGui:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
-        <remoteNetGui:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
+        <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
+        <local:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
+        <local:MemberToIconConverter x:Key="memToIconConverter"/>
+        <local:StrValueToVisibilityConverter x:Key="strValueToVisabilityConverter"/>
+        <local:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
+        <local:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
     </Window.Resources>
     <DockPanel Margin="7">
         <DockPanel DockPanel.Dock="Top">

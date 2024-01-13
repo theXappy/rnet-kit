@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 
-namespace REghZyFramework.Themes {
+namespace RemoteNetSpy.ThemesFolder {
     public static class ThemesController {
         public enum ThemeTypes {
             Light, ColourfulLight,

@@ -21,10 +21,8 @@ using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
-using RemoteNET.Internal;
-using RemoteNetSpy;
 
-namespace RemoteNetGui
+namespace RemoteNetSpy
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
