@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -16,7 +16,7 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="RemoteNET" Version="1.0.2.2" />
+		<PackageReference Include="RemoteNET" Version="1.0.2.15" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -33,6 +33,10 @@
 
 	<ItemGroup>
 	  <NativeLibs Remove="HeapDumper.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <NativeLibs Remove="DomainsDumper.cs" />
 	</ItemGroup>
 
 </Project>
