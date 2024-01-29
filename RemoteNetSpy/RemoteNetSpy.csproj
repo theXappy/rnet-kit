@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>puppet.ico</ApplicationIcon>
+    <FileVersion>1.0.2</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
