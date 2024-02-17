@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -7,6 +7,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>puppet.ico</ApplicationIcon>
     <FileVersion>1.0.2</FileVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,6 +37,7 @@
     <None Remove="icons\Search.png" />
     <None Remove="icons\Snowflake.png" />
     <None Remove="icons\StatusBarSearch1.png" />
+    <None Remove="icons\Watch.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -117,6 +119,9 @@
     <Content Include="icons\StatusBarSearch1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="icons\Watch.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="puppet.ico" />
   </ItemGroup>
 
@@ -134,4 +139,8 @@
     <ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+  <ItemGroup>
+    <NativeLibs Remove="app.manifest" />
+  </ItemGroup>
 </Project>

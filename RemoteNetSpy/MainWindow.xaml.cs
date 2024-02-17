@@ -21,6 +21,7 @@ using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
+using RemoteNetSpy;
 
 namespace RemoteNetSpy
 {
@@ -192,7 +193,7 @@ namespace RemoteNetSpy
                         continue;
                     string runtime = parts[0].Trim();
                     string assemblyName = parts[1].Trim();
-                    var assembly = new AssemblyDesc(assemblyName, runtime, anyTypes: true);
+                    var assembly = new AssemblyModel(new AssemblyDesc(assemblyName, runtime, anyTypes: true));
                     string type = parts[2].Trim();
                     if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
                     {
@@ -217,7 +218,7 @@ namespace RemoteNetSpy
                     if (line.StartsWith("[module] "))
                     {
                         string moduleName = line.Substring("[module] ".Length);
-                        var assemblyDesc = new AssemblyDesc(moduleName, TargetRuntime, anyTypes: false);
+                        var assemblyDesc = new AssemblyModel(new AssemblyDesc(moduleName, TargetRuntime, anyTypes: false));
                         if (!_assembliesToTypes.ContainsKey(assemblyDesc))
                         {
                             _assembliesToTypes[assemblyDesc] = new List<string>();
@@ -226,7 +227,7 @@ namespace RemoteNetSpy
                 }
 
                 var assemblies = _assembliesToTypes.Keys.ToList();
-                assemblies.Add(new AssemblyDesc("* All", RuntimeType.Unknown, anyTypes: true));
+                assemblies.Add(new AssemblyModel(new AssemblyDesc("* All", RuntimeType.Unknown, anyTypes: true)));
                 assemblies.Sort((desc, assemblyDesc) => desc.Name.CompareTo(assemblyDesc.Name));
 
                 Dispatcher.Invoke(() =>
@@ -250,8 +251,8 @@ namespace RemoteNetSpy
             return string.Empty;
         }
 
-        private Dictionary<AssemblyDesc, List<string>>
-            _assembliesToTypes = new Dictionary<AssemblyDesc, List<string>>();
+        private Dictionary<AssemblyModel, List<string>>
+            _assembliesToTypes = new Dictionary<AssemblyModel, List<string>>();
 
         private async void assembliesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -268,7 +269,7 @@ namespace RemoteNetSpy
 
         private async Task<List<string>?> GetTypesList()
         {
-            AssemblyDesc assembly = assembliesListBox.SelectedItem as AssemblyDesc;
+            AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
             List<string> types = null;
             if (assembly == null)
                 return new List<string>();
@@ -690,7 +691,7 @@ namespace RemoteNetSpy
             spinner1.Visibility = Visibility.Visible;
 
 
-            AssemblyDesc assembly = assembliesListBox.SelectedItem as AssemblyDesc;
+            AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
             string assemblyFilter = assembly.Name;
             if (assembly.Name == "* All")
                 assemblyFilter = "*"; // Wildcard
@@ -919,6 +920,23 @@ dynamic dro = ro.Dynamify();
                     }
                 }
             }
+        }
+
+        private void ModuleMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!(_app is UnmanagedRemoteApp unmanagedApp))
+            {
+                MessageBox.Show("Feature only enabled for Unmanaged targets.", $"{this.Title} Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            MenuItem mi = sender as MenuItem;
+            AssemblyModel model = mi.DataContext as AssemblyModel;
+            string assembly = model.Name;
+            unmanagedApp.Communicator.StartOffensiveGC(assembly);
+
+            model.IsMonitoringAllocation = true;
         }
     }
 

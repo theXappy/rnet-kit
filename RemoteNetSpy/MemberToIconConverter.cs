@@ -11,7 +11,7 @@ public class ModuleToIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
-        AssemblyDesc assembly = (AssemblyDesc)value;
+        AssemblyModel assembly = (AssemblyModel)value;
         RuntimeType runtime = assembly.Runtime;
         if (runtime == RuntimeType.Unmanaged)
         {
@@ -25,6 +25,24 @@ public class ModuleToIconConverter : IValueConverter
                 return "/icons/ModulePublic.png";
             return "/icons/ModulePublic_grayed.png";
         }
+
+    }
+
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class ModuleToWatchIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        AssemblyModel assembly = (AssemblyModel)value;
+        if (assembly.AnyTypes)
+            return "/icons/Watch.png";
+        return null;
 
     }
 
