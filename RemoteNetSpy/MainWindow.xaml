@@ -16,6 +16,7 @@
     <Window.Resources>
         <remoteNetSpy:MemberToIconConverter x:Key="memToIconConverter"/>
         <remoteNetSpy:ModuleToIconConverter x:Key="moduleToIconConverter"/>
+        <remoteNetSpy:ModuleToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
         <remoteNetSpy:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
         <remoteNetSpy:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
         <remoteNetSpy:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
@@ -124,7 +125,15 @@
                                     <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
                                     <TextBlock Text="{Binding Path=Name}" 
                                                Foreground="{Binding Path=AnyTypes, Converter={StaticResource boolToForegroundColor}}" 
-                                    />
+                                    >
+                                        <TextBlock.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Monitor allocations in this module" 
+                                                          Click="ModuleMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"/>
+                                            </ContextMenu>
+                                        </TextBlock.ContextMenu>
+                                    </TextBlock>
+                                    <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
