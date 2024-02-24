@@ -12,16 +12,18 @@
         Initialized="MainWindow_OnInitialized"
         d:Background="#1e1e1e"
         PreviewKeyDown="MainWindow_OnPreviewKeyDown"
+        UseLayoutRounding="True"
         >
     <Window.Resources>
         <remoteNetSpy:MemberToIconConverter x:Key="memToIconConverter"/>
         <remoteNetSpy:ModuleToIconConverter x:Key="moduleToIconConverter"/>
-        <remoteNetSpy:ModuleToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
+        <remoteNetSpy:BoolToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
         <remoteNetSpy:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
         <remoteNetSpy:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
         <remoteNetSpy:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
         <remoteNetSpy:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
         <remoteNetSpy:BoolToForegroundColor x:Key="boolToForegroundColor"/>
+        <remoteNetSpy:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
     </Window.Resources>
     <Grid>
@@ -57,57 +59,96 @@
                       ShowsPreview="true"
                       Height="5" Background="#00112233" 
         />
-
-        <DockPanel Grid.ColumnSpan="4" Margin="5,5">
-            <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0">Target Process:</TextBlock>
-            <DockPanel>
-                <Button x:Name="procsRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="5,0,0,0" Click="ProcsRefreshButton_OnClick">
-                    <Image Source="icons/Refresh.png" Stretch="None"/>
-                </Button>
-                <Grid>
-                    <Border x:Name="procsBoxBorder">
-                        <ComboBox x:Name="procsBox" SelectionChanged="procsBox_SelectionChanged" FontFamily="Consolas"
+        <DockPanel Grid.ColumnSpan="4" >
+            <DockPanel DockPanel.Dock="Top" Margin="5">
+                <TextBlock DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center">Target:</TextBlock>
+                <DockPanel>
+                    <Button x:Name="procsRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="4,0,0,0" Click="ProcsRefreshButton_OnClick">
+                        <Image Source="icons/Refresh.png" Stretch="None"/>
+                    </Button>
+                    <Grid>
+                        <Border x:Name="procsBoxBorder">
+                            <ComboBox x:Name="procsBox" SelectionChanged="procsBox_SelectionChanged" FontFamily="Consolas"
                                   IsTextSearchEnabled="True" TextSearch.TextPath="Name"
+                                  Margin="4,0"
                                   >
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type remoteNetSpy:InjectableProcess}">
-                                    <DockPanel>
-                                        <!--<Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>-->
-                                        <TextBlock Text="{Binding Path=Name}" MinWidth="320"/>
-                                        <StackPanel MinWidth="100" Orientation="Horizontal">
-                                            <TextBlock Text="(PID: " />
-                                            <TextBlock Text="{Binding Path=Pid}" />
-                                            <TextBlock Text=")" />
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding Path=DotNetVersion}" MinWidth="130"/>
-                                        <TextBlock Text="{Binding Path=DiverState}" />
-                                    </DockPanel>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                            <ComboBox.ItemContainerStyle>
-                                <Style TargetType="{x:Type ComboBoxItem}">
-                                    <Setter Property="TextSearch.Text" Value="{Binding Name}" />
-                                </Style>
-                            </ComboBox.ItemContainerStyle>
-                        </ComboBox>
-                    </Border>
-                    <TextBlock x:Name="procsBoxLoadingOverlay"
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type remoteNetSpy:InjectableProcess}">
+                                        <DockPanel>
+                                            <!--<Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>-->
+                                            <TextBlock Text="{Binding Path=Name}" Margin="0,0,10,0" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,10,0" >
+                                                <TextBlock Text="(" />
+                                                <TextBlock Text="{Binding Path=Pid}" />
+                                                <TextBlock Text=")" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Path=DotNetVersion}" Margin="0,0,10,0" Foreground="{Binding Path=DotNetVersion, Converter={StaticResource dotnetVersionToForegroundColor}}"/>
+                                            <TextBlock Text="{Binding Path=DiverState}" Foreground="Aquamarine" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ComboBoxItem}">
+                                        <Setter Property="TextSearch.Text" Value="{Binding Name}" />
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </Border>
+                        <TextBlock x:Name="procsBoxLoadingOverlay"
                                HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
                                Visibility="Collapsed"
                                d:Visibility="Visible"
-                               DockPanel.Dock="Left">
-                        <TextBlock.Text>Loading...</TextBlock.Text>
-                    </TextBlock>
-                </Grid>
+                               DockPanel.Dock="Left"
+                               Padding="4,0"
+                               >
+                            <TextBlock.Text>Loading...</TextBlock.Text>
+                        </TextBlock>
+                    </Grid>
+                </DockPanel>
             </DockPanel>
+            <ToolBarTray DockPanel.Dock="Top">
+                <ToolBar >
+                    <DockPanel>
+                        <Button x:Name="assembliesRefreshButton" MinWidth="25" Margin="1,0"  Click="AssembliesRefreshButton_OnClick" 
+                        ToolTip="Refresh assemblies list">
+                            <StackPanel Orientation="Horizontal">
+                                <Image x:Name="modulesRefreshImage" Source="icons/Modules_Refresh.png" Stretch="None"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="injectDllButton" MinWidth="25" Margin="1,0"
+                                ToolTip="Inject a .dll" Click="injectDllButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="icons/AddModule.png" Stretch="None"/>
+                            </StackPanel>
+                        </Button>
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF434343" />
+                        <Button x:Name="watchAllocationToolbarButton" MinWidth="25" Margin="1,0"  
+                                ToolTip="Monitor allocations in the selected module" Click="watchAllocationToolbarButton_Clicked">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="icons/Watch.png" Stretch="None"/>
+                            </StackPanel>
+                        </Button>
+                    </DockPanel>
+                </ToolBar>
+                <ToolBar>
+                    <DockPanel>
+                        <Button x:Name="countButton" MinHeight="22" Padding="10,0" DockPanel.Dock="Right" Margin="2,0" Click="CountButton_Click">
+                            <Button.Content>
+                                <Grid>
+                                    <TextBlock x:Name="countLabel">Count Instances</TextBlock>
+                                    <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
+                                </Grid>
+                            </Button.Content>
+                        </Button>
+                    </DockPanel>
+                </ToolBar>
+            </ToolBarTray>
+
         </DockPanel>
         <DockPanel Grid.Column="0"  Grid.Row="1" Margin="5,5,0,5">
             <DockPanel Dock="Top">
-                <Button x:Name="assembliesRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="5,2,0,2" Click="AssembliesRefreshButton_OnClick" 
-                        ToolTip="Refresh assemblies list"
-                        >
-                    <Image Source="icons/Refresh.png" Stretch="None"/>
-                </Button>
+
                 <Label DockPanel.Dock="Left">Assemblies</Label>
             </DockPanel>
             <DockPanel>
@@ -129,11 +170,13 @@
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Monitor allocations in this module" 
-                                                          Click="ModuleMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"/>
+                                                          Click="ModuleWatchMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"
+                                                          Icon="icons/Watch.png"/>
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
-                                    <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
+                                    <!-- Optional 'Watch' icon, for allocation-monitored modules -->
+                                    <Image Source="{Binding Path=IsMonitoringAllocation, Converter={StaticResource moduleToWatchIconConverter}}" Margin="5,0,3,0"/>
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -144,14 +187,7 @@
         </DockPanel>
         <DockPanel Grid.Column="1"  Grid.Row="1" Margin="5,5,0,5">
             <DockPanel DockPanel.Dock="Top">
-                <Button x:Name="countButton" Padding="10,0" DockPanel.Dock="Right" Margin="2,2,0,2" Click="CountButton_Click">
-                    <Button.Content>
-                        <Grid>
-                            <TextBlock x:Name="countLabel">Count</TextBlock>
-                            <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
-                        </Grid>
-                    </Button.Content>
-                </Button>
+
                 <Label DockPanel.Dock="Left">Types</Label>
             </DockPanel>
             <DockPanel x:Name="typesContentPanel">
