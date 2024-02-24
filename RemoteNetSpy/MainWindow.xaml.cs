@@ -972,6 +972,18 @@ dynamic dro = ro.Dynamify();
 
             string file = ofd.FileName;
         }
+
+        private void LaunchBrowserClick(object sender, RoutedEventArgs e)
+        {
+            if(_app == null)
+                return;
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = $"http://127.0.0.1:{_app.Communicator.DiverPort}/ping",
+                UseShellExecute = true
+            });
+        }
     }
 
     public static class VisualTreeHelperExtensions
