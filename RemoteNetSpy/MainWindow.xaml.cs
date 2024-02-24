@@ -980,7 +980,7 @@ dynamic dro = ro.Dynamify();
 
             Process.Start(new ProcessStartInfo
             {
-                FileName = $"http://127.0.0.1:{_app.Communicator.DiverPort}/ping",
+                FileName = $"http://127.0.0.1:{_app.Communicator.DiverPort}/help",
                 UseShellExecute = true
             });
         }
