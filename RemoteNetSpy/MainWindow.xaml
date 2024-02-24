@@ -131,20 +131,32 @@
                         </Button>
                     </DockPanel>
                 </ToolBar>
-                <ToolBar>
+                <ToolBar >
                     <DockPanel>
-                        <Button x:Name="countButton" MinHeight="22" Padding="10,0" DockPanel.Dock="Right" Margin="2,0" Click="CountButton_Click">
+                        <Button x:Name="countButton" MinHeight="22" Padding="4,0" DockPanel.Dock="Right" Margin="2,0" Click="CountButton_Click">
                             <Button.Content>
                                 <Grid>
-                                    <TextBlock x:Name="countLabel">Count Instances</TextBlock>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Image Source="icons/SearchClass.png" Height="16"/>
+                                        <TextBlock x:Name="countLabel" Margin="4,0">Count Instances</TextBlock>
+                                    </StackPanel>
                                     <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
                                 </Grid>
                             </Button.Content>
                         </Button>
                     </DockPanel>
                 </ToolBar>
+                <ToolBar BandIndex="3">
+                    <DockPanel>
+                        <Button x:Name="browserButton" MinHeight="22" Padding="4,0" DockPanel.Dock="Right" Margin="2,0" Click="LaunchBrowserClick">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Image Source="icons/Web.png" Height="16"/>
+                                <TextBlock  Margin="4,0" VerticalAlignment="Center" HorizontalAlignment="Center">Launch Browser</TextBlock>
+                            </StackPanel>
+                        </Button>
+                    </DockPanel>
+                </ToolBar>
             </ToolBarTray>
-
         </DockPanel>
         <DockPanel Grid.Column="0"  Grid.Row="1" Margin="5,5,0,5">
             <DockPanel Dock="Top">
