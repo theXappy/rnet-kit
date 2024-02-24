@@ -15,6 +15,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
@@ -132,11 +133,13 @@ namespace RemoteNetSpy
             {
                 _app = await Task.Run(() =>
                 {
-                    if (_procBoxCurrItem.DotNetVersion.StartsWith("net"))
+                    if (_procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]") ||
+                        !_procBoxCurrItem.DotNetVersion.StartsWith("net"))
                     {
-                        return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
+                        return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
                     }
-                    return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
+
+                    return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
                 });
             }
             catch (Exception ex)
@@ -193,7 +196,7 @@ namespace RemoteNetSpy
                         continue;
                     string runtime = parts[0].Trim();
                     string assemblyName = parts[1].Trim();
-                    var assembly = new AssemblyModel(new AssemblyDesc(assemblyName, runtime, anyTypes: true));
+                    var assembly = new AssemblyModel(assemblyName, runtime, anyTypes: true);
                     string type = parts[2].Trim();
                     if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
                     {
@@ -218,17 +221,17 @@ namespace RemoteNetSpy
                     if (line.StartsWith("[module] "))
                     {
                         string moduleName = line.Substring("[module] ".Length);
-                        var assemblyDesc = new AssemblyModel(new AssemblyDesc(moduleName, TargetRuntime, anyTypes: false));
-                        if (!_assembliesToTypes.ContainsKey(assemblyDesc))
+                        var assemblyModel = new AssemblyModel(moduleName, TargetRuntime, anyTypes: false);
+                        if (!_assembliesToTypes.ContainsKey(assemblyModel))
                         {
-                            _assembliesToTypes[assemblyDesc] = new List<string>();
+                            _assembliesToTypes[assemblyModel] = new List<string>();
                         }
                     }
                 }
 
                 var assemblies = _assembliesToTypes.Keys.ToList();
-                assemblies.Add(new AssemblyModel(new AssemblyDesc("* All", RuntimeType.Unknown, anyTypes: true)));
-                assemblies.Sort((desc, assemblyDesc) => desc.Name.CompareTo(assemblyDesc.Name));
+                assemblies.Add(new AssemblyModel("* All", RuntimeType.Unknown, anyTypes: true));
+                assemblies.Sort((desc, assemblyModel) => desc.Name.CompareTo(assemblyModel.Name));
 
                 Dispatcher.Invoke(() =>
                 {
@@ -476,7 +479,7 @@ namespace RemoteNetSpy
                         return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)
                             ?.Contains(filter, comp) == true;
                     if (sender == assembliesFilterBox)
-                        return (o as AssemblyDesc)?.Name?.Contains(filter, comp) == true;
+                        return (o as AssemblyModel)?.Name?.Contains(filter, comp) == true;
                     return (o as string)?.Contains(filter) == true;
                 };
             }
@@ -922,21 +925,52 @@ dynamic dro = ro.Dynamify();
             }
         }
 
-        private void ModuleMenuItem_OnClick(object sender, RoutedEventArgs e)
+        private void ModuleWatchMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            AssemblyModel module = mi?.DataContext as AssemblyModel;
+            WatchModuleAllocations(module);
+        }
+
+        private void watchAllocationToolbarButton_Clicked(object sender, RoutedEventArgs e)
+        {
+            AssemblyModel module = assembliesListBox.SelectedItem as AssemblyModel;
+            WatchModuleAllocations(module);
+        }
+
+        private void WatchModuleAllocations(AssemblyModel module)
         {
             if (!(_app is UnmanagedRemoteApp unmanagedApp))
             {
-                MessageBox.Show("Feature only enabled for Unmanaged targets.", $"{this.Title} Error",
+                MessageBox.Show("This feature is only available for Unmanaged targets.", $"{Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            MenuItem mi = sender as MenuItem;
-            AssemblyModel model = mi.DataContext as AssemblyModel;
-            string assembly = model.Name;
+            if (module == null)
+            {
+                MessageBox.Show("No module selected.", $"{Title} Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            if (module.IsMonitoringAllocation)
+            {
+                // This module is already monitored...
+                return;
+            }
+            string assembly = module.Name;
             unmanagedApp.Communicator.StartOffensiveGC(assembly);
+            module.IsMonitoringAllocation = true;
+        }
 
-            model.IsMonitoringAllocation = true;
+        private void injectDllButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Multiselect = false;
+            if(ofd.ShowDialog() != true)
+                return;
+
+            string file = ofd.FileName;
         }
     }
 
