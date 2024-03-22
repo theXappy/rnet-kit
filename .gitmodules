@@ -1,3 +1,6 @@
 [submodule "rnet-repl/RemoteNetRepl"]
 	path = rnet-repl/RemoteNetRepl
 	url = https://github.com/theXappy/RemoteNetRepl.git
+[submodule "RemoteNET"]
+	path = RemoteNET
+	url = https://github.com/theXappy/RemoteNET
