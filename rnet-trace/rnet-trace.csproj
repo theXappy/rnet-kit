@@ -13,10 +13,10 @@
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.3.1" />
     <PackageReference Include="Pastel" Version="3.0.1" />
-    <PackageReference Include="RemoteNET" Version="1.0.2.15" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
     <ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
   </ItemGroup>
 

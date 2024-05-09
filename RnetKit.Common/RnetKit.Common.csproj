@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RemoteNET" Version="1.0.2.15" />
+    <ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
   </ItemGroup>
 
 </Project>
