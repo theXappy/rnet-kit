@@ -17,10 +17,10 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="RemoteNET" Version="1.0.2.15" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
 		<ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
 	</ItemGroup>
 
