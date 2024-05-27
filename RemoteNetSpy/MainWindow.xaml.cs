@@ -23,6 +23,7 @@ using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNetSpy;
+using RnetKit.Common;
 
 namespace RemoteNetSpy
 {
@@ -596,12 +597,10 @@ namespace RemoteNetSpy
                 }
 
                 _traceList.Clear();
-                using FileStream f = File.Open(path, FileMode.OpenOrCreate);
-                using StreamReader sr = new StreamReader(f);
-                while (!sr.EndOfStream)
+                string[] functions = File.ReadAllText(path).Split("\n", StringSplitOptions.TrimEntries);
+                foreach (var func in functions)
                 {
-                    string traceFunc = sr.ReadLine().TrimEnd();
-                    _traceList.Add(traceFunc);
+                    _traceList.Add(func);
                 }
             }
         }
