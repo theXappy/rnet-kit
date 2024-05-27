@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,6 +12,7 @@ using Pastel;
 using RemoteNET.Common;
 using RnetKit.Common;
 using System.Drawing;
+using System.IO;
 
 namespace QuickStart
 {
@@ -22,11 +23,14 @@ namespace QuickStart
             [Option('t', "target", Required = true, HelpText = "Target process name. Partial names area allowed but a single match is expected. " +
                 "e.g. \"notep\" for notepad")]
             public string? TargetProcess { get; set; }
-            [Option('i', "include", Required = true, HelpText = "Included Method: Query for a full type identifier of class + method name to include in trace. " +
+            [Option('i', "include", Required = false, HelpText = "Included Method: Query for a full type identifier of class + method name to include in trace. " +
                 "e.g. \"System.Text.StringBuilder.Append\", " +
                 "     \"System.Text.StringBuilder.Append(String)\". " +
                 "Method substring can contain '*'s as wildcardss")]
             public IEnumerable<string> IncludedMethods { get; set; }
+            [Option('l', "include", Required = false, HelpText = "Included Methods File: A path to a file of function queries. " +
+                                                                 "See -i for information about queries.")]
+            public string IncludedFlistFilePath { get; set; }
             [Option('x', "exclude", Required = false, HelpText = "Excluded Method: Query for a full type identifier of class + method name to exclude from trace. " +
                 "e.g. \"System.Text.StringBuilder.Append\", " +
                 "     \"System.Text.StringBuilder.Append(String)\". " +
@@ -84,7 +88,21 @@ namespace QuickStart
 
             List<MethodBase> methodsToHook = new();
             // Collect all methods answering "include" queries
-            foreach (var method in opts.IncludedMethods)
+            List<string> files = opts.IncludedMethods.ToList();
+            if (File.Exists(opts.IncludedFlistFilePath))
+            {
+                string[] functionsFromFlist = File.ReadAllText(opts.IncludedFlistFilePath).Split("\n", 
+                    StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                files = files.Concat(functionsFromFlist).ToList();
+            }
+
+            if (!files.Any())
+            {
+                Console.WriteLine($"Error: No methods included to be traced. Use either -i or -l. Make sure the path give to -l exists.");
+                return;
+            }
+
+            foreach (var method in files)
             {
                 string fullTypeNameQuery, methodNameQuery, encodedParametersQuery;
                 ParseMethodIdentifier(method, out fullTypeNameQuery, out methodNameQuery, out encodedParametersQuery);
