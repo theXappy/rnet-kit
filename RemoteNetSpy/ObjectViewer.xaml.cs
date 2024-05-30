@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -41,8 +42,7 @@ namespace RemoteNetSpy
 
             DynamicRemoteObject dro = _ro.Dynamify() as DynamicRemoteObject;
 
-            _items = new ObservableCollection<MembersGridItem>();
-
+            List<MembersGridItem> tempItems = new List<MembersGridItem>();
             foreach (MemberInfo member in _type.GetMembers((BindingFlags)0xffff).OrderBy(m => m.Name))
             {
                 MembersGridItem mgi = new MembersGridItem(member)
@@ -82,9 +82,13 @@ namespace RemoteNetSpy
                 {
                     mgi.Value = $"ERROR: Couldn't read value (Exception thrown: {ex.Message})";
                 }
-
-                _items.Add(mgi);
+                tempItems.Add(mgi);
             }
+
+            tempItems.Sort((member1, member2) => member1.Name.CompareTo(member2.Name));
+
+            _items = new ObservableCollection<MembersGridItem>(tempItems);
+
 
             // Try to spot IEnumerables
             IEnumerable<MemberInfo> methods = _type.GetMethods((BindingFlags)0xffff);
@@ -167,6 +171,7 @@ namespace RemoteNetSpy
             }
         }
 
+        [DebuggerDisplay("MemberGridItem: {MemberType} {Name}")]
         public class MembersGridItem : INotifyPropertyChanged
         {
             private object _rawValue;

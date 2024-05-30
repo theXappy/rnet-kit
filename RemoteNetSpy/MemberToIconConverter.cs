@@ -63,13 +63,13 @@ public class MemberToIconConverter : IValueConverter
         string str = value as string;
         if (str == null)
             return null;
-        if (str.StartsWith("[Event]"))
+        if (str.StartsWith("Event"))
             return "/icons/Event.png";
-        if (str.StartsWith("[Method]") || str.StartsWith("[Constructor]"))
+        if (str.StartsWith("Method") || str.StartsWith("Constructor"))
             return "/icons/Method.png";
-        if (str.StartsWith("[Property]"))
+        if (str.StartsWith("Property"))
             return "/icons/Property.png";
-        if (str.StartsWith("[MethodTable]"))
+        if (str.StartsWith("MethodTable"))
             return "/icons/MethodTable.png";
         return "/icons/Field.png";
     }

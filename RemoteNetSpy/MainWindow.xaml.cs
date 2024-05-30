@@ -342,9 +342,9 @@ namespace RemoteNetSpy
             {
                 // Member types mismatched.
                 // Order is mostly alphabetic except Method Tables, which go first.
-                if (member1.MemberType == "[MethodTable]")
+                if (member1.MemberType == "MethodTable")
                     return -1;
-                if (member2.MemberType == "[MethodTable]")
+                if (member2.MemberType == "MethodTable")
                     return 1;
                 return res;
             }
@@ -597,7 +597,7 @@ namespace RemoteNetSpy
                 }
 
                 _traceList.Clear();
-                string[] functions = File.ReadAllText(path).Split("\n", StringSplitOptions.TrimEntries);
+                string[] functions = File.ReadAllText(path).Split("\n", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 foreach (var func in functions)
                 {
                     _traceList.Add(func);
@@ -694,6 +694,13 @@ namespace RemoteNetSpy
 
 
             AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
+            if (assembly == null)
+            {
+                MessageBox.Show("You must select an assembly first.", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
             string assemblyFilter = assembly.Name;
             if (assembly.Name == "* All")
                 assemblyFilter = "*"; // Wildcard
