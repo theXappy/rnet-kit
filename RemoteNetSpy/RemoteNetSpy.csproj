@@ -11,6 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Remove="icons\AddEventTracepoint.png" />
 		<None Remove="icons\AddModule.png" />
 		<None Remove="icons\Cancelled_Snowflake.png" />
 		<None Remove="icons\Class.png" />
@@ -41,12 +42,18 @@
 		<None Remove="icons\SearchClass.png" />
 		<None Remove="icons\Snowflake.png" />
 		<None Remove="icons\StatusBarSearch1.png" />
+		<None Remove="icons\TraceClass.png" />
+		<None Remove="icons\TraceMethod.png" />
+		<None Remove="icons\TracepointEnabled.png" />
 		<None Remove="icons\Watch.png" />
 		<None Remove="icons\Watch_on.png" />
 		<None Remove="icons\Web.png" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<Content Include="icons\AddEventTracepoint.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="icons\AddModule.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
@@ -137,6 +144,15 @@
 		<Content Include="icons\StatusBarSearch1.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<Content Include="icons\TraceClass.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\TraceMethod.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\TracepointEnabled.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="icons\Watch.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
@@ -169,6 +185,10 @@
 
 	<ItemGroup>
 		<NativeLibs Remove="app.manifest" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Controls\" />
 	</ItemGroup>
 
 </Project>
