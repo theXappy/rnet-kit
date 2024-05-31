@@ -25,6 +25,28 @@
         <remoteNetSpy:BoolToForegroundColor x:Key="boolToForegroundColor"/>
         <remoteNetSpy:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+        <Style TargetType="ToolBar">
+            <!-- Not Dropdown Button -->
+            <Setter Property="ToolBarTray.IsLocked" Value="True"/>
+            <!-- Not Overflow Button -->
+            <Setter Property="OverflowMode" Value="Never"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <ToolBarPanel IsItemsHost="True" Background="{x:Null}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Style for ToolBarTrays -->
+        <Style TargetType="ToolBarTray">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+        <!-- Style for Buttons -->
+        <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}">
+            <Setter Property="Background" Value="{x:Null}"/>
+            <Setter Property="BorderBrush" Value="{x:Null}"/>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -63,7 +85,7 @@
             <DockPanel DockPanel.Dock="Top" Margin="5">
                 <TextBlock DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center">Target:</TextBlock>
                 <DockPanel>
-                    <Button x:Name="procsRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="4,0,0,0" Click="ProcsRefreshButton_OnClick">
+                    <Button x:Name="procsRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="4,0,0,0" Click="ProcsRefreshButton_OnClick" BorderBrush="#FF3C3C3C">
                         <Image Source="icons/Refresh.png" Stretch="None"/>
                     </Button>
                     <Grid>
@@ -107,83 +129,106 @@
                     </Grid>
                 </DockPanel>
             </DockPanel>
-            <ToolBarTray DockPanel.Dock="Top">
-                <ToolBar >
+            <ToolBarTray DockPanel.Dock="Top" Background="#22000000" Margin="2,0" Height="30">
+                <ToolBar BandIndex="3" Height="28" Margin="1,1">
                     <DockPanel>
-                        <Button x:Name="assembliesRefreshButton" MinWidth="25" Margin="1,0"  Click="AssembliesRefreshButton_OnClick" 
-                        ToolTip="Refresh assemblies list">
-                            <StackPanel Orientation="Horizontal">
-                                <Image x:Name="modulesRefreshImage" Source="icons/Modules_Refresh.png" Stretch="None"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="injectDllButton" MinWidth="25" Margin="1,0"
-                                ToolTip="Inject a .dll" Click="injectDllButton_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <Image Source="icons/AddModule.png" Stretch="None"/>
-                            </StackPanel>
-                        </Button>
-                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF434343" />
-                        <Button x:Name="watchAllocationToolbarButton" MinWidth="25" Margin="1,0"  
-                                ToolTip="Monitor allocations in the selected module" Click="watchAllocationToolbarButton_Clicked">
-                            <StackPanel Orientation="Horizontal">
-                                <Image Source="icons/Watch.png" Stretch="None"/>
-                            </StackPanel>
-                        </Button>
-                    </DockPanel>
-                </ToolBar>
-                <ToolBar >
-                    <DockPanel>
-                        <Button x:Name="countButton" MinHeight="22" Padding="4,0" DockPanel.Dock="Right" Margin="2,0" Click="CountButton_Click">
-                            <Button.Content>
-                                <Grid>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Image Source="icons/SearchClass.png" Height="16"/>
-                                        <TextBlock x:Name="countLabel" Margin="4,0">Count Instances</TextBlock>
-                                    </StackPanel>
-                                    <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
-                                </Grid>
-                            </Button.Content>
-                        </Button>
-                    </DockPanel>
-                </ToolBar>
-                <ToolBar BandIndex="3">
-                    <DockPanel>
-                        <Button x:Name="browserButton" MinHeight="22" Padding="4,0" DockPanel.Dock="Right" Margin="2,0" Click="LaunchBrowserClick">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Image Source="icons/Web.png" Height="16"/>
-                                <TextBlock  Margin="4,0" VerticalAlignment="Center" HorizontalAlignment="Center">Launch Browser</TextBlock>
-                            </StackPanel>
+                        <Button x:Name="browserButton" DockPanel.Dock="Right" Margin="1,1" Padding="0" Click="LaunchBrowserClick">
+                            <Grid Height="26">
+                                <TextBlock/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0">
+                                    <Image Source="icons/Web.png" Height="16"/>
+                                    <TextBlock  Margin="4,0" VerticalAlignment="Center" HorizontalAlignment="Center">Browse API</TextBlock>
+                                </StackPanel>
+                            </Grid>
                         </Button>
                     </DockPanel>
                 </ToolBar>
             </ToolBarTray>
         </DockPanel>
-        <DockPanel Grid.Column="0"  Grid.Row="1" Margin="5,5,0,5">
-            <DockPanel Dock="Top">
-
-                <Label DockPanel.Dock="Left">Assemblies</Label>
-            </DockPanel>
-            <DockPanel>
-                <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
-                    <TextBox x:Name="assembliesFilterBox" TextChanged="filterBox_TextChanged"/>
-                    <Button x:Name="clearAssembliesFilterButton" 
-                            DockPanel.Dock="Right" 
-                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
-                </Grid>
-                <Grid>
+        <Grid x:Name="CenterAreaGrid" Grid.Row="1" Grid.ColumnSpan="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="0"/>
+                <RowDefinition Height="3*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="5*"/>
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="9*"/>
+            </Grid.ColumnDefinitions>
+            <GridSplitter Grid.Column="1" 
+                          Grid.Row="1"
+                          HorizontalAlignment="Left" 
+                          VerticalAlignment="Stretch"
+                          ShowsPreview="true"
+                          Width="5" Background="#00112233" 
+            />
+            <GridSplitter Grid.Column="2" 
+                          Grid.Row="1"
+                          HorizontalAlignment="Left" 
+                          VerticalAlignment="Stretch"
+                          ShowsPreview="true"
+                          Width="5" Background="#00112233" 
+            />
+            <DockPanel x:Name="AssembliesLeftArea" Grid.Column="0" Grid.Row="1" Margin="5,5,0,5">
+                <DockPanel x:Name="AssembliesAreaHeader" Dock="Top" Background="#07ffffff">
+                    <Label DockPanel.Dock="Top">Assemblies</Label>
+                    <ToolBarTray DockPanel.Dock="Top" IsLocked="True" ClipToBounds="True" Height="26">
+                        <ToolBar ToolBarTray.IsLocked="True">
+                            <DockPanel>
+                                <Button x:Name="assembliesRefreshButton" Click="AssembliesRefreshButton_OnClick" 
+                            ToolTip="Refresh assemblies list" Padding="0">
+                                    <Grid Width="24" Height="24">
+                                        <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                        <TextBlock/>
+                                        <Image x:Name="modulesRefreshImage" Source="icons/Modules_Refresh.png" Stretch="None"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="injectDllButton"
+                            ToolTip="Inject a .dll" Click="injectDllButton_Click" Padding="0">
+                                    <Grid Width="24" Height="24">
+                                        <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                        <TextBlock/>
+                                        <Image Source="icons/AddModule.png" Stretch="None"/>
+                                    </Grid>
+                                </Button>
+                                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
+                                <Button x:Name="watchAllocationToolbarButton"
+                                ToolTip="Monitor allocations in the selected module" Click="watchAllocationToolbarButton_Clicked" Padding="0">
+                                    <Grid Width="24" Height="24">
+                                        <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                        <TextBlock/>
+                                        <Image Source="icons/Watch.png" Stretch="None"/>
+                                    </Grid>
+                                </Button>
+                            </DockPanel>
+                        </ToolBar>
+                    </ToolBarTray>
+                    <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
+                        <TextBox x:Name="assembliesFilterBox" TextChanged="filterBox_TextChanged"
+                                 Height="26"
+                                 VerticalContentAlignment="Center" 
+                                 Background="#07ffffff"/>
+                        <Button x:Name="clearAssembliesFilterButton" 
+                                DockPanel.Dock="Right" 
+                                Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">
+                            <Button.Content>X</Button.Content>
+                        </Button>
+                    </Grid>
+                </DockPanel>
+                <Grid x:Name="AssembliesValuesArea">
                     <ListBox DockPanel.Dock="Top" x:Name="assembliesListBox" SelectionChanged="assembliesListBox_SelectionChanged">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel>
                                     <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
                                     <TextBlock Text="{Binding Path=Name}" 
-                                               Foreground="{Binding Path=AnyTypes, Converter={StaticResource boolToForegroundColor}}" 
-                                    >
+                                           Foreground="{Binding Path=AnyTypes, Converter={StaticResource boolToForegroundColor}}" 
+                                >
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Monitor allocations in this module" 
-                                                          Click="ModuleWatchMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"
-                                                          Icon="icons/Watch.png"/>
+                                                      Click="ModuleWatchMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"
+                                                      Icon="icons/Watch.png"/>
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
@@ -196,46 +241,129 @@
                     <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
                 </Grid>
             </DockPanel>
-        </DockPanel>
-        <DockPanel Grid.Column="1"  Grid.Row="1" Margin="5,5,0,5">
-            <DockPanel DockPanel.Dock="Top">
-
-                <Label DockPanel.Dock="Left">Types</Label>
-            </DockPanel>
-            <DockPanel x:Name="typesContentPanel">
-                <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
-                    <TextBox x:Name="typesFilterBox" TextChanged="filterBox_TextChanged"/>
-                    <DockPanel>
-                        <Button x:Name="clearTypesFilterButton" 
+            <DockPanel x:Name="TypesCenterArea" Grid.Column="1"  Grid.Row="1" Margin="5,5,0,5">
+                <DockPanel x:Name="TypesAreaHeader" Dock="Top" Background="#07ffffff">
+                    <Label DockPanel.Dock="Top">Types</Label>
+                    <ToolBarTray DockPanel.Dock="Top"  Height="26">
+                        <ToolBar ToolBarTray.IsLocked="True">
+                            <DockPanel>
+                                <Button x:Name="countButton" MinHeight="22" Margin="2,0" Click="CountButton_Click">
+                                    <Button.Content>
+                                        <Grid>
+                                            <TextBlock/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Image Source="icons/SearchClass.png" Height="16" Margin="2,0,0,0"/>
+                                                <TextBlock x:Name="countLabel" Margin="4,0">Count Instances</TextBlock>
+                                            </StackPanel>
+                                            <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
+                                        </Grid>
+                                    </Button.Content>
+                                </Button>
+                                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
+                                <Button x:Name="traceClassButton" MinHeight="22" DockPanel.Dock="Right" Margin="2,0" Click="TraceClassButton_OnClick" Padding="0">
+                                    <Button.Content>
+                                        <Grid Width="24" Height="24">
+                                            <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                            <TextBlock/>
+                                            <Image Source="icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
+                                        </Grid>
+                                    </Button.Content>
+                                </Button>
+                            </DockPanel>
+                        </ToolBar>
+                    </ToolBarTray>
+                    <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
+                        <TextBox x:Name="typesFilterBox" TextChanged="filterBox_TextChanged" Height="26" VerticalContentAlignment="Center" Background="#07ffffff"/>
+                        <!-- Border + TextBlock tick for a modifable border over the textbox. -->
+                        <!-- Otherwise, setting BorderBrush on the TextBox itself only changes it's out-of-focus color, and not in-focus/hover -->
+                        <Border x:Name="typesFilterBoxBorder" BorderBrush="{x:Null}" BorderThickness="1">
+                            <TextBlock IsHitTestVisible="False"/>
+                        </Border>
+                        <DockPanel>
+                            <Button x:Name="clearTypesFilterButton" 
                             DockPanel.Dock="Right" 
                             Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
-                        <Button x:Name="typesMatchCaseButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                            <Button x:Name="typesRegexButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                                ToolTip="Match Case"
+                                Background="{x:Null}"
+                                BorderBrush="{x:Null}"
+                                Click="TypesRegexButton_OnClick"
+                        >
+                                <Button.Content>.*</Button.Content>
+                            </Button>
+                            <Button x:Name="typesMatchCaseButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
                                       ToolTip="Match Case"
                                       Background="{x:Null}"
                                       BorderBrush="{x:Null}"
                                       Click="TypesMatchCaseButton_OnClick"
                                       >
-                            <Button.Content>Aa</Button.Content>
-                        </Button>
-                    </DockPanel>
-                </Grid>
-                <ListBox DockPanel.Dock="Top" x:Name="typesListBox" SelectionChanged="typesListBox_SelectionChanged" 
+                                <Button.Content>Aa</Button.Content>
+                            </Button>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+                <Grid x:Name="TypesValuesArea">
+                    <ListBox x:Name="typesListBox" SelectionChanged="typesListBox_SelectionChanged" 
                              VirtualizingStackPanel.VirtualizationMode="Recycling"
                              ScrollViewer.CanContentScroll="True" 
                              VirtualizingStackPanel.IsVirtualizing="True"
                              >
-                    <ListBox.ItemTemplate>
-                        <DataTemplate DataType="{x:Type remoteNetSpy:DumpedType}">
-                            <DockPanel>
-                                <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
-                                <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type remoteNetSpy:DumpedType}">
+                                <DockPanel>
+                                    <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
+                                    <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 
                                            Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" 
                                            FontSize="{Binding Path=FontSize, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"
                                 >
+                                        <TextBlock.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Copy Type Name" 
+                                                      Click="TypeMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"/>
+                                            </ContextMenu>
+                                        </TextBlock.ContextMenu>
+                                    </TextBlock>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </DockPanel>
+            <DockPanel Grid.Column="2" Grid.Row="1"  Margin="5,5,5,5">
+                <DockPanel x:Name="MembersLeftArea" Dock="Top" Background="#07ffffff">
+                    <Label DockPanel.Dock="Top">Members</Label>
+                    <ToolBarTray DockPanel.Dock="Top" Height="26">
+                        <ToolBar ToolBarTray.IsLocked="True">
+                            <DockPanel>
+                                <Button x:Name="traceMethodButton" MinHeight="22" Padding="0" DockPanel.Dock="Right" Margin="2,0" Click="traceMethodButton_Click" >
+                                    <Button.Content>
+                                        <Grid Width="24" Height="24">
+                                            <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                            <TextBlock/>
+                                            <Image Source="icons/TraceMethod.png" Height="16" ToolTip="Trace Selected Method"/>
+                                        </Grid>
+                                    </Button.Content>
+                                </Button>
+                            </DockPanel>
+                        </ToolBar>
+                    </ToolBarTray>
+                    <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
+                        <TextBox x:Name="membersFilterBox" TextChanged="filterBox_TextChanged" Height="26" VerticalContentAlignment="Center" Background="#07ffffff"/>
+                        <Button x:Name="clearMembersFilterButton" 
+                            DockPanel.Dock="Right" 
+                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+                    </Grid>
+                </DockPanel>
+                <ListBox x:Name="membersListBox" DockPanel.Dock="Top">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type remoteNetSpy:DumpedMember}">
+                            <DockPanel>
+                                <Image Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16" Width="17"/>
+                                <TextBlock Text="{Binding Path=NormalizedName}" MouseDown="MemberListItemMouseDown">
                                     <TextBlock.ContextMenu>
                                         <ContextMenu>
-                                            <MenuItem Header="Copy Type Name" 
-                                                      Click="TypeMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"/>
+                                            <MenuItem Header="Copy Member" DataContext="{Binding Mode=OneWay}"
+                                                  Click="MemberMenuItem_OnClick"/>
                                         </ContextMenu>
                                     </TextBlock.ContextMenu>
                                 </TextBlock>
@@ -244,37 +372,12 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
-        </DockPanel>
-        <DockPanel Grid.Column="2" Grid.Row="1"  Margin="5,5,5,5">
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                <Label>Members</Label>
-            </StackPanel>
-            <Grid DockPanel.Dock="Top" Margin="0,0,0,2" MinHeight="20">
-                <TextBox x:Name="membersFilterBox" TextChanged="filterBox_TextChanged"/>
-                <Button x:Name="clearMembersFilterButton" 
-                            DockPanel.Dock="Right" 
-                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
-            </Grid>
-            <ListBox x:Name="membersListBox" DockPanel.Dock="Top">
-                <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type remoteNetSpy:DumpedMember}">
-                        <DockPanel>
-                            <Image Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16" Width="17"/>
-                            <TextBlock Text="{Binding Path=NormalizedName}" MouseDown="MemberListItemMouseDown">
-                                <TextBlock.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Copy Member" DataContext="{Binding Mode=OneWay}"
-                                                  Click="MemberMenuItem_OnClick"/>
-                                    </ContextMenu>
-                                </TextBlock.ContextMenu>
-                            </TextBlock>
-                        </DockPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
-        <TabControl x:Name="tabControl" Grid.ColumnSpan="3" Grid.Row="2"  Margin="5"
+        </Grid>
+        <TabControl x:Name="tabControl" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="2" Margin="5"
                     SelectedIndex="0">
+            <TabControl.Resources>
+                <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}"/>
+            </TabControl.Resources>
             <TabItem Header="Heap Instances">
                 <DockPanel >
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">

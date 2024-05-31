@@ -1,5 +1,8 @@
+using System.Diagnostics;
+
 namespace RemoteNetSpy;
 
+[DebuggerDisplay("DumpedMember: {RawName}")]
 public class DumpedMember
 {
     public string MemberType => RawName.Substring(1, RawName.IndexOf(']') - 1);

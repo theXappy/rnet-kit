@@ -15,15 +15,12 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
-using System.Windows.Media.Imaging;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
-using RemoteNetSpy;
-using RnetKit.Common;
 
 namespace RemoteNetSpy
 {
@@ -32,6 +29,16 @@ namespace RemoteNetSpy
     /// </summary>
     public partial class MainWindow : Window
     {
+        public bool ErrorInTextBox
+        {
+            get { return (bool)GetValue(ErrorInTextBoxProperty); }
+            set { SetValue(ErrorInTextBoxProperty, value); }
+        }
+
+        public static readonly DependencyProperty ErrorInTextBoxProperty =
+            DependencyProperty.Register("ErrorInTextBox", typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
+
+
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
 
@@ -391,7 +398,7 @@ namespace RemoteNetSpy
         {
             if (typesListBox.SelectedItem == null)
             {
-                MessageBox.Show("You must select a type from the \"Types\" listbox first.", $"{this.Title} Error",
+                MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -440,11 +447,32 @@ namespace RemoteNetSpy
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             bool matchCase = true;
+            bool useRegex = false;
+            Regex r = null;
+
             ListBox associatedBox = null;
             if (sender == typesFilterBox)
             {
                 associatedBox = typesListBox;
                 matchCase = _matchCaseTypes;
+                useRegex = _regexTypes;
+
+                if (useRegex)
+                {
+                    try
+                    {
+                        string tempFilter = (sender as TextBox)?.Text;
+                        r = new Regex(tempFilter);
+                    }
+                    catch
+                    {
+                        typesFilterBoxBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 153, 164));
+                        return;
+                    }
+                }
+
+                // No errors in the types filter, reset border
+                typesFilterBoxBorder.BorderBrush = null;
             }
 
             if (sender == assembliesFilterBox)
@@ -475,12 +503,23 @@ namespace RemoteNetSpy
                 view.Filter = (o) =>
                 {
                     if (sender == membersFilterBox)
+                    {
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
+                    }
+
                     if (sender == typesFilterBox)
-                        return (_dumpedTypeToDescription.Convert(o, null, null, null) as string)
-                            ?.Contains(filter, comp) == true;
+                    {
+                        string input= _dumpedTypeToDescription.Convert(o, null, null, null) as string;
+                        if (!useRegex)
+                            return input?.Contains(filter, comp) == true;
+                        return r.IsMatch(input);
+                    }
+
                     if (sender == assembliesFilterBox)
+                    {
                         return (o as AssemblyModel)?.Name?.Contains(filter, comp) == true;
+                    }
+
                     return (o as string)?.Contains(filter) == true;
                 };
             }
@@ -545,36 +584,47 @@ namespace RemoteNetSpy
         {
             if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2)
             {
-                string member = (sender as TextBlock)?.Text;
-                if (!member.StartsWith("[Method]") && !member.StartsWith("[Constructor]"))
-                {
-                    return;
-                }
-
-                // Removing "[Method]" prefix
-                string justSignature = member[(member.IndexOf(']') + 1)..].TrimStart();
-
-                // Splitting return type + name / parameters
-                string parametrs = justSignature[(justSignature.IndexOf('('))..];
-                string retTypeAndName = justSignature[..(justSignature.IndexOf('('))];
-
-                // Splitting return type and name
-                string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
-                string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
-
-                // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
-                parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
-                parametrs = parametrs.Replace("*", "\\*");
-
-                string sigWithoutReturnType = methodName + parametrs;
-                string targetClass = ClassName;
-
-                string newItem = $"{targetClass}.{sigWithoutReturnType}";
-                if (!_traceList.Contains(newItem))
-                    _traceList.Add(newItem);
-
-                tabControl.SelectedItem = tracingTabItem;
+                var memberTextBlock = sender as TextBlock;
+                TraceMember(memberTextBlock.DataContext as DumpedMember);
             }
+        }
+
+        private void TraceMember(DumpedMember? sender)
+        {
+            string member = sender?.RawName;
+            if (member == null)
+            {
+                return;
+            }
+
+            if (sender.MemberType != "Method" && sender.MemberType != "Constructor")
+            {
+                return;
+            }
+
+            // Removing "[Method]" prefix
+            string justSignature = member[(member.IndexOf(']') + 1)..].TrimStart();
+
+            // Splitting return type + name / parameters
+            string parametrs = justSignature[(justSignature.IndexOf('('))..];
+            string retTypeAndName = justSignature[..(justSignature.IndexOf('('))];
+
+            // Splitting return type and name
+            string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
+            string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
+
+            // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
+            parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
+            parametrs = parametrs.Replace("*", "\\*");
+
+            string sigWithoutReturnType = methodName + parametrs;
+            string targetClass = ClassName;
+
+            string newItem = $"{targetClass}.{sigWithoutReturnType}";
+            if (!_traceList.Contains(newItem))
+                _traceList.Add(newItem);
+
+            tabControl.SelectedItem = tracingTabItem;
         }
 
         private void ClearTraceListButtonClicked(object sender, RoutedEventArgs e)
@@ -812,6 +862,7 @@ namespace RemoteNetSpy
         }
 
         private bool _matchCaseTypes = false;
+        private bool _regexTypes = false;
 
         private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
         {
@@ -819,6 +870,15 @@ namespace RemoteNetSpy
             Button b = (sender as Button);
             Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
             b.Background = _matchCaseTypes ? brush : null;
+            filterBox_TextChanged(typesFilterBox, null);
+        }
+
+        private void TypesRegexButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            _regexTypes = !_regexTypes;
+            Button b = (sender as Button);
+            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
+            b.Background = _regexTypes ? brush : null;
             filterBox_TextChanged(typesFilterBox, null);
         }
 
@@ -989,6 +1049,27 @@ dynamic dro = ro.Dynamify();
                 FileName = $"http://127.0.0.1:{_app.Communicator.DiverPort}/help",
                 UseShellExecute = true
             });
+        }
+
+        private void traceMethodButton_Click(object sender, RoutedEventArgs e)
+        {
+            TraceMember(membersListBox?.SelectedItem as DumpedMember);
+        }
+
+        private void TraceClassButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (typesListBox.SelectedItem == null)
+            {
+                MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // The type is selected, so all of its members should be dumped on the members list
+            foreach (object member in membersListBox.Items)
+            {
+                TraceMember(member as DumpedMember);
+            }
         }
     }
 

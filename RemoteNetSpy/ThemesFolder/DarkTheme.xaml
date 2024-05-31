@@ -77,7 +77,7 @@
     <!-- Controls all in Order in toolbox -->
 
     <!-- Button -->
-    <Style TargetType="{x:Type Button}">
+    <Style x:Key="darkThemeButtonStyleKey" TargetType="{x:Type Button}">
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
         <Setter Property="Background" Value="{StaticResource ControlDefaultBackground}" />
         <Setter Property="BorderBrush" Value="{StaticResource ControlDefaultBorderBrush}" />
