@@ -29,16 +29,6 @@ namespace RemoteNetSpy
     /// </summary>
     public partial class MainWindow : Window
     {
-        public bool ErrorInTextBox
-        {
-            get { return (bool)GetValue(ErrorInTextBoxProperty); }
-            set { SetValue(ErrorInTextBoxProperty, value); }
-        }
-
-        public static readonly DependencyProperty ErrorInTextBoxProperty =
-            DependencyProperty.Register("ErrorInTextBox", typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
-
-
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
 
@@ -1055,8 +1045,8 @@ dynamic dro = ro.Dynamify();
         {
             TraceMember(membersListBox?.SelectedItem as DumpedMember);
         }
-
-        private void TraceClassButton_OnClick(object sender, RoutedEventArgs e)
+        
+        private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
         {
             if (typesListBox.SelectedItem == null)
             {
@@ -1070,6 +1060,68 @@ dynamic dro = ro.Dynamify();
             {
                 TraceMember(member as DumpedMember);
             }
+        }
+        private void TraceTypeOptimal_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (typesListBox.SelectedItem == null)
+            {
+                MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string[] forbidden =
+            {
+                "System.Boolean Equals(",
+                "bool Equals(",
+                "void Finalize(",
+                "System.Void Finalize(",
+                "object MemberwiseClone(",
+                "System.Object MemberwiseClone()",
+                "System.Type GetType()",
+                "Type GetType()",
+                " GetHashCode(",
+                " ToString("
+            };
+            // The type is selected, so all of its members should be dumped on the members list
+            foreach (object member in membersListBox.Items)
+            {
+                DumpedMember dumpedMember = member as DumpedMember;
+                if (dumpedMember.MemberType == "Method")
+                {
+                    bool isForbidden = false;
+                    foreach (string forbiddenMember in forbidden)
+                    {
+                        if (dumpedMember.RawName.Contains(forbiddenMember))
+                        {
+                            isForbidden = true;
+                            break;
+                        }
+                    }
+                    if (isForbidden)
+                        continue;
+                }   
+                
+                TraceMember(dumpedMember);
+            }
+        }
+        
+        private void ShowTraceTypeContextMenu(object sender, RoutedEventArgs e)
+        {
+            var extraButton = (sender as Button);
+            var contextMenu = extraButton.ContextMenu;
+            contextMenu.HorizontalOffset = extraButton.ActualWidth;
+            contextMenu.VerticalOffset = extraButton.ActualHeight / 2;
+
+
+            contextMenu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        private void TraceTypeExtraButton_OnMouseEnter(object sender, MouseEventArgs e)
+        {
+            traceTypeExtraButtonHoverHack.Visibility = (sender as Button).IsMouseOver ? Visibility.Visible : Visibility.Hidden;
+            Debug.WriteLine($"traceTypeExtraButtonHoverHack.Visibility changed to {traceTypeExtraButtonHoverHack.Visibility}");
         }
     }
 

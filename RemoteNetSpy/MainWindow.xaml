@@ -260,15 +260,45 @@
                                     </Button.Content>
                                 </Button>
                                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
-                                <Button x:Name="traceClassButton" MinHeight="22" DockPanel.Dock="Right" Margin="2,0" Click="TraceClassButton_OnClick" Padding="0">
-                                    <Button.Content>
-                                        <Grid Width="24" Height="24">
-                                            <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
-                                            <TextBlock/>
-                                            <Image Source="icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
-                                        </Grid>
-                                    </Button.Content>
-                                </Button>
+                                <DockPanel>
+                                    <Button x:Name="traceClassButton" MinHeight="22" DockPanel.Dock="Left" Margin="2,0" Click="TraceTypeOptimal_OnClick" Padding="0">
+                                        <Button.Content>
+                                            <Grid Height="24">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                                <TextBlock Grid.ColumnSpan="2"/>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Image Source="icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
+                                                    <TextBlock Margin="4,0">Trace Type (Optimal)</TextBlock>
+                                                </StackPanel>
+                                                <Grid Grid.Column="1">
+                                                    <Button x:Name="traceTypeExtraButton" Grid.Column="1" FontFamily="Marlett" Content="6" Click="ShowTraceTypeContextMenu">
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem
+                                                                    Header="Trace Type (Full)"
+                                                                    ToolTip="Traces all methods of the type, including ones that might be problematic like Equals, Finalize, ..."
+                                                                    Click="TraceTypeFull_OnClick" 
+                                                                    >
+                                                                    <MenuItem.Icon>
+                                                                        <Image Source="icons/TraceClass.png"/>
+                                                                    </MenuItem.Icon>
+                                                                </MenuItem>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
+                                                    <TextBlock x:Name="traceTypeExtraButtonHoverHack" Background="#11ffffff" IsHitTestVisible="False"
+                                                               Visibility="{Binding IsMouseOver, ElementName=traceTypeExtraButton, Converter={StaticResource boolToVisabilityConverter}, FallbackValue=Hidden}"
+                                                               />
+                                                </Grid>
+                                            </Grid>
+                                        </Button.Content>
+                                    </Button>
+
+                                </DockPanel>
                             </DockPanel>
                         </ToolBar>
                     </ToolBarTray>
@@ -284,7 +314,7 @@
                             DockPanel.Dock="Right" 
                             Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
                             <Button x:Name="typesRegexButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
-                                ToolTip="Match Case"
+                                ToolTip="Regexs"
                                 Background="{x:Null}"
                                 BorderBrush="{x:Null}"
                                 Click="TypesRegexButton_OnClick"
