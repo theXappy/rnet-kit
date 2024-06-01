@@ -88,24 +88,26 @@ namespace QuickStart
 
             List<MethodBase> methodsToHook = new();
             // Collect all methods answering "include" queries
-            List<string> files = opts.IncludedMethods.ToList();
+            List<string> methodQueries = opts.IncludedMethods.ToList();
             if (File.Exists(opts.IncludedFlistFilePath))
             {
                 string[] functionsFromFlist = File.ReadAllText(opts.IncludedFlistFilePath).Split("\n", 
                     StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                files = files.Concat(functionsFromFlist).ToList();
+                methodQueries = methodQueries.Concat(functionsFromFlist).ToList();
             }
 
-            if (!files.Any())
+            if (!methodQueries.Any())
             {
                 Console.WriteLine($"Error: No methods included to be traced. Use either -i or -l. Make sure the path give to -l exists.");
                 return;
             }
 
-            foreach (var method in files)
+
+            foreach (var methodQuery in methodQueries)
             {
+                bool anyFound = false;
                 string fullTypeNameQuery, methodNameQuery, encodedParametersQuery;
-                ParseMethodIdentifier(method, out fullTypeNameQuery, out methodNameQuery, out encodedParametersQuery);
+                ParseMethodIdentifier(methodQuery, out fullTypeNameQuery, out methodNameQuery, out encodedParametersQuery);
 
                 // Get all matching types
                 List<Type> remoteTypes = new List<Type>();
@@ -113,7 +115,7 @@ namespace QuickStart
                 if (candidates.Count == 0)
                 {
                     Console.WriteLine(
-                        $"No types matched query '{fullTypeNameQuery}'");
+                        $"WARNING:No types matched query '{fullTypeNameQuery}'");
                     return;
                 }
                 foreach (var candidate in candidates)
@@ -131,10 +133,20 @@ namespace QuickStart
                 // Get all matching methods of all types
                 foreach (Type? remoteType in remoteTypes)
                 {
+                    // Search Methods
                     var allMethods = remoteType.GetMethods();
-                    methodsToHook.AddRange(FindMethods(allMethods, remoteType.FullName, methodNameQuery, encodedParametersQuery));
+                    var matchingMethods = FindMethods(allMethods, remoteType.FullName, methodNameQuery, encodedParametersQuery);
+                    methodsToHook.AddRange(matchingMethods);
+                    // Search Ctors
                     var allCtors = remoteType.GetConstructors();
-                    methodsToHook.AddRange(FindMethods(allCtors, remoteType.FullName, methodNameQuery, encodedParametersQuery));
+                    var matchingCtors = FindMethods(allCtors, remoteType.FullName, methodNameQuery, encodedParametersQuery);
+                    methodsToHook.AddRange(matchingCtors);
+
+                    if (!methodsToHook.Any())
+                    {
+                    Console.WriteLine(
+                        $"WARNING: Type found, but no methods matched query '{methodQuery}'");
+                    }
                 }
             }
 
@@ -456,6 +468,7 @@ namespace QuickStart
                 .ToArray();
 
             // No we will filter only the overloads matching the parameters query
+            encodedParametersQuery = encodedParametersQuery?.TrimStart('(').TrimEnd(')');
             List<MethodBase>? output = new List<MethodBase>();
             if (string.IsNullOrEmpty(encodedParametersQuery))
             {
@@ -469,13 +482,21 @@ namespace QuickStart
                 //
                 // Using 'Split(' ').First()' to get the TYPE part in case the user has given us also the parameter name:
                 // "(object myObj)" ==> "object"
-                encodedParametersQuery = encodedParametersQuery.TrimStart('(').TrimEnd(')');
-                string[] splitted = encodedParametersQuery.Split(',', StringSplitOptions.TrimEntries);
-                string[] paramFilters = new string[splitted.Length];
-                for (int i = 0; i < splitted.Length; i++)
+                List<string> splitted = ParseParametersQuery(encodedParametersQuery);
+                string[] paramFilters = new string[splitted.Count];
+                for (int i = 0; i < splitted.Count; i++)
                 {
-                    //.Select(paramType => paramType.Trim().Split(' ').First()).ToArray();
-                    paramFilters[i] = splitted[i].Substring(0, splitted[i].LastIndexOf(' '));
+                    // We don't know if we were given "arg_type arg_name" or just "arg_name".
+                    // So checking here to get only "arg_name"
+                    paramFilters[i] = splitted[i];
+                    if (Regex.IsMatch(splitted[i], "^.* [a-zA-Z0-9_]+$"))
+                        paramFilters[i] = splitted[i].Substring(0, splitted[i].LastIndexOf(' '));
+                }
+
+                // Normalize the types
+                for (int i = 0; i < paramFilters.Length; i++)
+                {
+                    paramFilters[i] = TypeNameUtils.Normalize(paramFilters[i]);
                 }
 
                 foreach (MethodBase methodInfo in matchingMethods)
@@ -488,6 +509,43 @@ namespace QuickStart
             }
 
             return output;
+        }
+
+        private static List<string> ParseParametersQuery(string input)
+        {
+            List<string> result = new List<string>();
+            StringBuilder current = new StringBuilder();
+            int bracketDepth = 0;
+
+            foreach (char c in input)
+            {
+                if (c == ',' && bracketDepth == 0)
+                {
+                    result.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                    if (c == '[')
+                    {
+                        bracketDepth++;
+                    }
+                    else if (c == ']')
+                    {
+                        bracketDepth--;
+                    }
+                }
+            }
+
+            if (current.Length > 0)
+            {
+                result.Add(current.ToString().Trim());
+            }
+
+            // result = result.Select(encodedParam => TypeNameUtils.Normalize(encodedParam)).ToList();
+
+            return result;
         }
 
         private static bool CheckParameters(MethodBase methodInfo, string[] parameterFilters)
