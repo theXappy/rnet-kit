@@ -12,7 +12,6 @@ using Pastel;
 using RemoteNET.Common;
 using RnetKit.Common;
 using System.Drawing;
-using System.IO;
 
 namespace QuickStart
 {
@@ -168,6 +167,15 @@ namespace QuickStart
                 return;
             }
 
+            // Remove bad methods which we couldn't parse right in either the ScubaDiver/Locally
+            foreach (var method in methodsToHook.ToList())
+            {
+                if (method is MethodInfo mi && mi.ReturnType == null)
+                {
+                    Console.WriteLine($"WARNING: Method {method} had a null instead of a return type. It'll not be hooked.");
+                    methodsToHook.Remove(method);
+                }
+            }
 
             // Display all overloads to the user
             foreach (MethodBase methodToHook in methodsToHook)
