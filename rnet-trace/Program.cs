@@ -342,7 +342,7 @@ namespace QuickStart
 
 
                 string uniqueId = $"{className}.{methodName}`{paramTypes.Length}";
-                HookAction preHook = (context, instance, args) =>
+                HookAction preHook = (context, instance, args, retValue) =>
                 {
                     var semiCallstack = GetSemiCallstack(context.ThreadId);
                     semiCallstack.Push(uniqueId);
@@ -389,13 +389,20 @@ namespace QuickStart
                     }
                 };
 
-                HookAction postHook = (context, instance, args) =>
+                HookAction postHook = (context, instance, args, retValue) =>
                 {
+                    var color = GetModuloColor(context.ThreadId);
                     var semiCallstack = GetSemiCallstack(context.ThreadId);
                     string lastPrefix = new string('│', semiCallstack.Count - 1) + "└─ END";
 
+                    // Prepare RetValue print
+                    string retValueLine = null;
+                    if (retValue != null)
+                    {
+                        retValueLine = (new string('│', semiCallstack.Count)).Pastel(color) + "\tReturn Value: " + retValue;
+                    }
+
                     // Color prefix
-                    var color = GetModuloColor(context.ThreadId);
                     lastPrefix = lastPrefix.Pastel(color);
 
                     if (semiCallstack.TryPop(out string lastUniqueId))
@@ -413,6 +420,10 @@ namespace QuickStart
                                 _lastPrintingThreadId = context.ThreadId;
                                 Console.WriteLine($"[TID=0x{context.ThreadId:X}]".Pastel(color));
                             }
+
+                            if (retValueLine != null)
+                                Console.WriteLine(retValueLine);
+
                             Console.WriteLine(lastPrefix);
                         }
                     }
