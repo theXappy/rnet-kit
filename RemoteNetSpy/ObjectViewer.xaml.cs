@@ -43,7 +43,7 @@ namespace RemoteNetSpy
             DynamicRemoteObject dro = _ro.Dynamify() as DynamicRemoteObject;
 
             List<MembersGridItem> tempItems = new List<MembersGridItem>();
-            foreach (MemberInfo member in _type.GetMembers((BindingFlags)0xffff).OrderBy(m => m.Name))
+            foreach (MemberInfo member in _type.GetMembers(~(BindingFlags.DeclaredOnly)).OrderBy(m => m.Name))
             {
                 MembersGridItem mgi = new MembersGridItem(member)
                 {
@@ -91,7 +91,7 @@ namespace RemoteNetSpy
 
 
             // Try to spot IEnumerables
-            IEnumerable<MemberInfo> methods = _type.GetMethods((BindingFlags)0xffff);
+            IEnumerable<MemberInfo> methods = _type.GetMethods(~(BindingFlags.DeclaredOnly));
             if (methods.Any(mi => mi.Name == "GetEnumerator"))
             {
                 MembersGridItem iEnumerableMgi = new MembersGridItem(null)
