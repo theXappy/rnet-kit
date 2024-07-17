@@ -131,8 +131,12 @@ namespace RemoteNetSpy
             {
                 _app = await Task.Run(() =>
                 {
-                    if (_procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]") ||
-                        !_procBoxCurrItem.DotNetVersion.StartsWith("net"))
+                    bool hasUnmanagedDiver = _procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]");
+                    bool hasManagedDiver = _procBoxCurrItem.DiverState.Contains("[Diver Injected]");
+                    bool noDiver = !hasUnmanagedDiver && !hasManagedDiver;
+                    bool isNativeApp = !_procBoxCurrItem.DotNetVersion.StartsWith("net");
+                    if ((noDiver && isNativeApp) ||
+                        (hasUnmanagedDiver && !hasManagedDiver))
                     {
                         return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
                     }
