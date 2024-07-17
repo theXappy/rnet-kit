@@ -11,10 +11,10 @@ TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpCon
 HashSet<int> usedPorts = tcpConnInfoArray.Select(conInfo => conInfo.LocalEndPoint.Port).ToHashSet();
 
 Queue<Task<string>> _tasks = new Queue<Task<string>>();
-foreach (var proc in allProcs.OrderBy(proc=>proc.ProcessName))
+foreach (var proc in allProcs.OrderBy(proc => proc.ProcessName))
 {
     // Skip our own process and the 'Idle' process (ID = 0)
-    if(proc.Id == 0 || proc.Id == ourPid)
+    if (proc.Id == 0 || proc.Id == ourPid)
     {
         continue;
     }
@@ -27,29 +27,25 @@ foreach (var proc in allProcs.OrderBy(proc=>proc.ProcessName))
     {
         _tasks.Enqueue(Task.Factory.StartNew(() =>
         {
-
             DiverDiscovery.QueryStatus(proc, out DiverState managedState, out DiverState unmanagedDiverState);
             string diverStatusString = "";
             if (unmanagedDiverState == DiverState.Alive)
             {
-                diverStatusString = "[Unmanaged Diver Injected]";
+                diverStatusString += "[Unmanaged Diver Injected]";
             }
-            else
+            switch (managedState)
             {
-                switch (managedState)
-                {
-                    case DiverState.NoDiver:
-                        break;
-                    case DiverState.Alive:
-                        diverStatusString = "[Diver Injected]";
-                        break;
-                    case DiverState.Corpse:
-                        diverStatusString = "[Dead Diver! Restart this process before targeting]";
-                        break;
-                    case DiverState.HollowSnapshot:
-                        diverStatusString = "[Hollow Snapshot. Select parent with Diver instead]";
-                        break;
-                }
+                case DiverState.NoDiver:
+                    break;
+                case DiverState.Alive:
+                    diverStatusString += "[Diver Injected]";
+                    break;
+                case DiverState.Corpse:
+                    diverStatusString += "[Dead Diver! Restart this process before targeting]";
+                    break;
+                case DiverState.HollowSnapshot:
+                    diverStatusString += "[Hollow Snapshot. Select parent with Diver instead]";
+                    break;
             }
 
             return $"{proc.Id,6}\t{proc.ProcessName,-40}\t{dotNetVer,-10}\t{diverStatusString}";
