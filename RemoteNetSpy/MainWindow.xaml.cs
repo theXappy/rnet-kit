@@ -564,20 +564,27 @@ namespace RemoteNetSpy
                 return;
             }
 
-            List<string> args = new List<string>() { "-t", TargetPid.ToString(), UnmanagedFlagIfNeeded() };
-            foreach (string funcToTrace in _traceList)
-            {
-                args.Add("-i");
-                string reducedSignaturee = funcToTrace; //.Substring(0, funcToTrace.IndexOf('('));
-                args.Add($"\"{reducedSignaturee}\"");
-            }
+            string tempFlistPath = Path.ChangeExtension(Path.GetTempFileName(), "flist");
+            SaveTraceFunctionsList(tempFlistPath);
 
-            string argsLine = string.Join(' ', args);
-            ProcessStartInfo psi = new ProcessStartInfo("rnet-trace.exe", argsLine)
+            try
             {
-                UseShellExecute = true
-            };
-            Process.Start(psi);
+                List<string> args = new List<string>() { "-t", TargetPid.ToString(), UnmanagedFlagIfNeeded() };
+                args.Add("-l");
+                args.Add($"\"{tempFlistPath}\"");
+
+                string argsLine = string.Join(' ', args);
+                ProcessStartInfo psi = new ProcessStartInfo("rnet-trace.exe", argsLine)
+                {
+                    UseShellExecute = true
+                };
+
+                Process.Start(psi);
+            }
+            catch
+            {
+                try { File.Delete(tempFlistPath); } catch { };
+            }
         }
 
         private ObservableCollection<string> _traceList = new ObservableCollection<string>();
