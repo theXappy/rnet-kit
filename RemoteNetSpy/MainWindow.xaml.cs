@@ -1056,7 +1056,7 @@ dynamic dro = ro.Dynamify();
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Multiselect = false;
-            if(ofd.ShowDialog() != true)
+            if (ofd.ShowDialog() != true)
                 return;
 
             string file = ofd.FileName;
@@ -1064,7 +1064,7 @@ dynamic dro = ro.Dynamify();
 
         private void LaunchBrowserClick(object sender, RoutedEventArgs e)
         {
-            if(_app == null)
+            if (_app == null)
                 return;
 
             Process.Start(new ProcessStartInfo
@@ -1078,7 +1078,7 @@ dynamic dro = ro.Dynamify();
         {
             TraceMember(membersListBox?.SelectedItem as DumpedMember);
         }
-        
+
         private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
         {
             if (typesListBox.SelectedItem == null)
@@ -1133,12 +1133,12 @@ dynamic dro = ro.Dynamify();
                     }
                     if (isForbidden)
                         continue;
-                }   
-                
+                }
+
                 TraceMember(dumpedMember);
             }
         }
-        
+
         private void ShowTraceTypeContextMenu(object sender, RoutedEventArgs e)
         {
             var extraButton = (sender as Button);
