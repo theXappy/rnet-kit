@@ -1,4 +1,4 @@
-﻿<Window x:Class="RemoteNetSpy.MainWindow"
+<Window x:Class="RemoteNetSpy.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -226,9 +226,7 @@
                                 >
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Monitor allocations in this module" 
-                                                      Click="ModuleWatchMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"
-                                                      Icon="icons/Watch.png"/>
+                                                <MenuItem Header="Copy Assembly Name" Click="AssemblyMenuItem_OnClick"/>
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
