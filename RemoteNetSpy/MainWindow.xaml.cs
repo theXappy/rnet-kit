@@ -205,11 +205,18 @@ namespace RemoteNetSpy
                         types = new List<string>();
                         _assembliesToTypes[assembly] = types;
                     }
+                    else if (!types.Any())
+                    {
+                        // This assembly was previously added as a types-less assembly. Now we found a type inside so we need to indicate that.
+                        // Note the `assembly` we have in hand might not be the one used as the KEY in the dictionary.
+                        AssemblyModel assemblyKey = _assembliesToTypes.Keys.Single(key => key.Name == assembly.Name);
+                        assemblyKey.AnyTypes = true;
+                    }
 
                     types.Add(type);
                 }
 
-                // Also look for class-less assemblies
+                // Also look for types-less assemblies
                 var commandTask = CliWrap.Cli.Wrap("rnet-dump.exe")
                     .WithArguments($"domains -t {TargetPid} " + UnmanagedFlagIfNeeded())
                     .WithValidation(CommandResultValidation.None)
@@ -231,7 +238,7 @@ namespace RemoteNetSpy
                     }
                 }
 
-                var assemblies = _assembliesToTypes.Keys.ToList();
+                List<AssemblyModel> assemblies = _assembliesToTypes.Keys.ToList();
                 assemblies.Add(new AssemblyModel("* All", RuntimeType.Unknown, anyTypes: true));
                 assemblies.Sort((desc, assemblyModel) => desc.Name.CompareTo(assemblyModel.Name));
 
@@ -263,39 +270,51 @@ namespace RemoteNetSpy
         {
             membersListBox.ItemsSource = null;
 
-            List<string> types = await GetTypesList();
-
-            List<DumpedType> dumpedTypes = types.Select(str => new DumpedType(str, null)).ToList();
+            List<DumpedType> dumpedTypes = await GetTypesList();
+            // In the rare case where we switch between the "All" pseudo assembly
+            // and a specific one, this will allow us to re-focus on the currently selected type.
+            DumpedType currentType = typesListBox.SelectedItem as DumpedType;
             typesListBox.ItemsSource = dumpedTypes;
+            if (currentType != null)
+            {
+                var matchingItem = dumpedTypes.FirstOrDefault(t => t == currentType);
+                if (matchingItem != null)
+                {
+                    typesListBox.SelectedItem = matchingItem;
+                    typesListBox.ScrollIntoView(matchingItem);
+                }
+            }
+
+
 
             // Reapply filter for types
             filterBox_TextChanged(typesFilterBox, null);
         }
 
-        private async Task<List<string>?> GetTypesList()
+        private async Task<List<DumpedType>> GetTypesList()
         {
             AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
-            List<string> types = null;
+            IEnumerable<DumpedType> types = null;
             if (assembly == null)
-                return new List<string>();
+                return new List<DumpedType>();
             if (assembly.Name == "* All")
             {
                 await Task.Run(() =>
                 {
-                    types = _assembliesToTypes.Values.SelectMany(list => list).ToList();
-                    types.Sort();
+                    types = _assembliesToTypes.SelectMany(kvp => kvp.Value.Select(type => new DumpedType(kvp.Key.Name, type, null)));
                 });
             }
             else
             {
                 await Task.Run(() =>
                 {
-                    types = _assembliesToTypes[assembly];
-                    types.Sort();
+                    types = _assembliesToTypes[assembly].Select(str => new DumpedType(assembly.Name, str, null));
                 });
             }
 
-            return types.ToHashSet().ToList();
+            var tempList = types.ToHashSet().ToList();
+            tempList.Sort((dt1, dt2) => dt1.FullTypeName.CompareTo(dt2.FullTypeName));
+            return tempList;
         }
 
         private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -664,7 +683,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private void SaveTraceListClicked(object sender, RoutedEventArgs e)
+        private void SaveTraceFunctionsListClicked(object sender, RoutedEventArgs e)
         {
             var sfd = new SaveFileDialog();
             sfd.Filter = "Functions List File (*.flist)|*.flist";
@@ -673,21 +692,28 @@ namespace RemoteNetSpy
             if (success == true)
             {
                 string path = sfd.FileName;
-                if (path == null)
-                {
-                    MessageBox.Show("Invalid file name.");
-                    return;
-                }
-
-                using FileStream f = File.Open(path, FileMode.OpenOrCreate);
-                using StreamWriter sw = new StreamWriter(f);
-                foreach (string traceFunction in _traceList)
-                {
-                    sw.WriteLine(traceFunction);
-                }
-
-                sw.Flush();
+                SaveTraceFunctionsList(path);
             }
+        }
+
+        private void SaveTraceFunctionsList(string path)
+        {
+            FileStream f;
+            StreamWriter sw;
+            if (path == null)
+            {
+                MessageBox.Show("Invalid file name.");
+                return;
+            }
+            f = File.Open(path, FileMode.OpenOrCreate);
+            sw = new StreamWriter(f);
+            foreach (string traceFunction in _traceList)
+            {
+                sw.WriteLine(traceFunction);
+            }
+
+            sw.Flush();
+            f.Close();
         }
 
         private async void FreezeUnfreezeHeapObject(object sender, RoutedEventArgs e)
@@ -773,30 +799,33 @@ namespace RemoteNetSpy
                 .WithArguments($"heap -t {TargetPid} -q {assemblyFilter} " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
-            var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            BufferedCommandResult res = await x.Task;
+            IEnumerable<string> rnetDumpStdOutLines = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .SkipWhile(line => !line.Contains("Found "))
                 .Skip(1)
                 .Select(str => str.Trim())
                 .Select(str => str.Split(' ')[1]);
 
-            List<string> types = await GetTypesList();
-            Dictionary<string, int> typesAndIInstancesCount = types.ToDictionary(t => t, t => 0);
-            foreach (string heapObjectType in xx)
+            List<DumpedType> types = await GetTypesList();
+            // Like `Distinct` without an IEqualityComparer
+            var uniqueTypes = types.GroupBy(x => x.FullTypeName).Select(grp => grp.First());
+            Dictionary<string, DumpedType> typeNamesToTypes = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName);
+            Dictionary<string, int> typesAndInstancesCount = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName, _ => 0);
+            foreach (string heapObjectType in rnetDumpStdOutLines)
             {
-                if (typesAndIInstancesCount.ContainsKey(heapObjectType))
-                    typesAndIInstancesCount[heapObjectType]++;
+                if (typesAndInstancesCount.ContainsKey(heapObjectType))
+                    typesAndInstancesCount[heapObjectType]++;
             }
 
             string lastSelected = (typesListBox?.SelectedItem as DumpedType)?.FullTypeName;
             DumpedType typeToReselect = null;
 
             List<DumpedType> dumpedTypes = new List<DumpedType>();
-            foreach (KeyValuePair<string, int> kvp in typesAndIInstancesCount)
+            foreach (KeyValuePair<string, int> kvp in typesAndInstancesCount)
             {
-
                 int? numInstances = kvp.Value != 0 ? kvp.Value : null;
-                DumpedType dt = new DumpedType(kvp.Key, numInstances);
+                DumpedType dt = typeNamesToTypes[kvp.Key];
+                dt.NumInstances = numInstances;
                 dumpedTypes.Add(dt);
 
                 // Check if this was the last selected type  in the listbox
@@ -893,6 +922,7 @@ namespace RemoteNetSpy
 
         private bool _matchCaseTypes = false;
         private bool _regexTypes = false;
+        private bool _onlyTypesInHeap = false;
 
         private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
         {
@@ -909,6 +939,15 @@ namespace RemoteNetSpy
             Button b = (sender as Button);
             Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
             b.Background = _regexTypes ? brush : null;
+            filterBox_TextChanged(typesFilterBox, null);
+        }
+
+        private void typesWithInstancesFilterButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            _onlyTypesInHeap = !_onlyTypesInHeap;
+            Button b = (sender as Button);
+            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
+            b.Background = _onlyTypesInHeap ? brush : null;
             filterBox_TextChanged(typesFilterBox, null);
         }
 

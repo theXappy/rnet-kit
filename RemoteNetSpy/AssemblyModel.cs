@@ -12,6 +12,8 @@ namespace RemoteNetSpy
     public class AssemblyModel : INotifyPropertyChanged
     {
         private bool _isMonitoringAllocation;
+        private bool anyTypes;
+
         public string Name { get; private set; }
         public RuntimeType Runtime { get; private set; }
 
@@ -24,7 +26,11 @@ namespace RemoteNetSpy
         /// <summary>
         /// Whether any types spotted inside this assembly
         /// </summary>
-        public bool AnyTypes { get; set; }
+        public bool AnyTypes 
+        {
+            get => anyTypes; 
+            set => SetField(ref anyTypes, value); 
+        }
 
 
         public AssemblyModel(string name, RuntimeType runtime, bool anyTypes)
