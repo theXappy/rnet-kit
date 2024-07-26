@@ -840,6 +840,12 @@ namespace RemoteNetSpy
                 Process.Start(psi);
             }
         }
+        private void AssemblyMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string typeName = (mi.DataContext as AssemblyModel).Name;
+            Clipboard.SetText(typeName);
+        }
 
         private void TypeMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
