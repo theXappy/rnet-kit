@@ -346,8 +346,8 @@
                                 >
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Type Name" 
-                                                      Click="TypeMenuItem_OnClick" DataContext="{Binding Mode=OneWay}"/>
+                                                <MenuItem Header="Copy Type Name" Click="TypeMenuItem_OnClick"/>
+                                                <MenuItem Header="Go To Assembly" Click="GoToAssemblyMenuItem_OnClick"/>
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
