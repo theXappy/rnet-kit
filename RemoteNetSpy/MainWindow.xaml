@@ -1,4 +1,4 @@
-<Window x:Class="RemoteNetSpy.MainWindow"
+﻿<Window x:Class="RemoteNetSpy.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -532,7 +532,7 @@
                         <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="OpenTraceListClicked">
                             <Image Source="icons/OpenFolder.png" Height="16"/>
                         </Button>
-                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="SaveTraceListClicked">
+                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="SaveTraceFunctionsListClicked">
                             <Image Source="icons/Save.png" Height="16"/>
                         </Button>
                         <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="ClearTraceListButtonClicked">
