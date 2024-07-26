@@ -442,6 +442,7 @@ namespace RemoteNetSpy
         {
             bool matchCase = true;
             bool useRegex = false;
+            bool onlyTypesInHeap = false;
             Regex r = null;
 
             ListBox associatedBox = null;
@@ -450,6 +451,7 @@ namespace RemoteNetSpy
                 associatedBox = typesListBox;
                 matchCase = _matchCaseTypes;
                 useRegex = _regexTypes;
+                onlyTypesInHeap = _onlyTypesInHeap;
 
                 if (useRegex)
                 {
@@ -486,12 +488,16 @@ namespace RemoteNetSpy
             string filter = (sender as TextBox)?.Text;
             ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
             if (view == null) return;
-            if (string.IsNullOrWhiteSpace(filter))
+            if (string.IsNullOrWhiteSpace(filter) && !onlyTypesInHeap)
             {
                 view.Filter = null;
             }
             else
             {
+                // For when we're only filtering with the `_onlyTypesInHeap` flag
+                if (filter == null)
+                    filter = string.Empty;
+
                 StringComparison comp =
                     matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
                 view.Filter = (o) =>
@@ -503,7 +509,9 @@ namespace RemoteNetSpy
 
                     if (sender == typesFilterBox)
                     {
-                        string input= _dumpedTypeToDescription.Convert(o, null, null, null) as string;
+                        string input = _dumpedTypeToDescription.Convert(o, null, null, null) as string;
+                        if (onlyTypesInHeap && !input.Contains('('))
+                            return false;
                         if (!useRegex)
                             return input?.Contains(filter, comp) == true;
                         return r.IsMatch(input);
