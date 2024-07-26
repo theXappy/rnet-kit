@@ -311,8 +311,16 @@
                             <Button x:Name="clearTypesFilterButton" 
                             DockPanel.Dock="Right" 
                             Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+                            <Button x:Name="typesWithInstancesFilterButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                                        ToolTip="Only types found in heap"
+                                        Background="{x:Null}"
+                                        BorderBrush="{x:Null}"
+                                        Click="typesWithInstancesFilterButton_OnClick"
+                                    >
+                                <Button.Content>(#)</Button.Content>
+                            </Button>
                             <Button x:Name="typesRegexButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
-                                ToolTip="Regexs"
+                                ToolTip="Regex"
                                 Background="{x:Null}"
                                 BorderBrush="{x:Null}"
                                 Click="TypesRegexButton_OnClick"
