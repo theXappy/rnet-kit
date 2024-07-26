@@ -854,6 +854,21 @@ namespace RemoteNetSpy
             Clipboard.SetText(typeName);
         }
 
+        private void GoToAssemblyMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string assembly = (mi.DataContext as DumpedType).Assembly;
+            AssemblyModel? matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
+            int index = assembliesListBox.Items.IndexOf(matchingAssembly);
+
+            // Trick to scroll to our selected item from the BOTTOM
+            double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
+            double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
+            var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
+            assembliesListBox.SelectedItem = matchingAssembly;
+            assembliesListBox.ScrollIntoView(furtherDownItem);
+        }
+
         private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
             MenuItem mi = sender as MenuItem;
