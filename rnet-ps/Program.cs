@@ -3,6 +3,8 @@ using System.Diagnostics;
 using RemoteNET.Internal;
 using System.Net.NetworkInformation;
 
+const string HOLLOW_SNAPSHOT = "[No Threads Found. Possibly a Hollow Snapshot (Select parent with Diver instead)]";
+
 int ourPid = Process.GetCurrentProcess().Id;
 var allProcs = Process.GetProcesses();
 
@@ -22,7 +24,14 @@ foreach (var proc in allProcs.OrderBy(proc => proc.ProcessName))
     var dotNetVer = proc.GetSupportedTargetFramework();
 
     if (!usedPorts.Contains(proc.Id))
-        _tasks.Enqueue(Task.FromResult($"{proc.Id,6}\t{proc.ProcessName,-40}\t{dotNetVer,-10}\t"));
+    {
+        string noThreadsIndication = string.Empty;
+        if (proc.Threads.Count == 0)
+        {
+            noThreadsIndication = HOLLOW_SNAPSHOT;
+        }
+        _tasks.Enqueue(Task.FromResult($"{proc.Id,6}\t{proc.ProcessName,-40}\t{dotNetVer,-10}\t{noThreadsIndication}"));
+    }
     else
     {
         _tasks.Enqueue(Task.Factory.StartNew(() =>
@@ -44,7 +53,7 @@ foreach (var proc in allProcs.OrderBy(proc => proc.ProcessName))
                     diverStatusString += "[Dead Diver! Restart this process before targeting]";
                     break;
                 case DiverState.HollowSnapshot:
-                    diverStatusString += "[Hollow Snapshot. Select parent with Diver instead]";
+                    diverStatusString += HOLLOW_SNAPSHOT;
                     break;
             }
 
