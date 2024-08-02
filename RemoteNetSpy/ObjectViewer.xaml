@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:RemoteNetSpy"
         mc:Ignorable="d"
         Title="Object Viewer" Height="560" Width="903"
-        Style="{DynamicResource CustomWindowStyle}">
+        Style="{DynamicResource CustomWindowStyle}"
+        >
     <Window.Resources>
         <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
         <local:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
@@ -15,6 +16,25 @@
         <local:StrValueToInvokeButtonVisibilityConverter x:Key="strValueToInvokeButtonVisibilityConverter"/>
         <local:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
         <local:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
+        <Style TargetType="ToolBar">
+            <!-- Not Dropdown Button -->
+            <Setter Property="ToolBarTray.IsLocked" Value="True"/>
+            <!-- Not Overflow Button -->
+            <Setter Property="OverflowMode" Value="Never"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <ToolBarPanel IsItemsHost="True" Background="{x:Null}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Style for ToolBarTrays -->
+        <Style TargetType="ToolBarTray">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+        <!-- Style for Buttons -->
+        <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}"/>
     </Window.Resources>
     <DockPanel Margin="7">
         <DockPanel DockPanel.Dock="Top">

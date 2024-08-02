@@ -14,13 +14,13 @@ namespace RemoteNetSpy
     {
         private Type _type;
 
-        public StringObjectViewer(Window parent, string str)
+        public StringObjectViewer(Window parent, Type t, string str)
         {
             InitializeComponent();
             double multiplier = parent is ObjectViewer ? 1 : 0.9;
             this.Height = parent.Height * multiplier;
             this.Width = parent.Width * multiplier;
-            _type = str.GetType();
+            _type = t;
 
             objTypeTextBox.Text = TypeNameUtils.Normalize(_type.FullName);
             contentTextBox.Text = str;

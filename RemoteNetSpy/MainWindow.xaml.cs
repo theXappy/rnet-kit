@@ -34,6 +34,7 @@ namespace RemoteNetSpy
 
         public MainWindow()
         {
+            DataContext = new RemoteAppModel();
             InitializeComponent();
             tracesListBox.ItemsSource = _traceList;
             tracesListBox.Items.SortDescriptions.Add(
@@ -143,6 +144,8 @@ namespace RemoteNetSpy
 
                     return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
                 });
+                // TODO: Not like this...
+                (this.DataContext as RemoteAppModel).Update(_app);
             }
             catch (Exception ex)
             {

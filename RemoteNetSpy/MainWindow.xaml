@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
+        xmlns:controls="clr-namespace:RemoteNetSpy.Controls"
         mc:Ignorable="d"
         Title="RemoteNET Spy"
         Height="820" Width="1450"
@@ -74,14 +75,14 @@
                       ShowsPreview="true"
                       Width="5" Background="#00112233" 
         />
-        <GridSplitter Grid.ColumnSpan="3" 
+        <GridSplitter Grid.Column="0" Grid.ColumnSpan="3" 
                       Grid.Row="1"
                       HorizontalAlignment="Stretch" 
                       VerticalAlignment="Bottom"
                       ShowsPreview="true"
                       Height="5" Background="#00112233" 
         />
-        <DockPanel Grid.ColumnSpan="4" >
+        <DockPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
             <DockPanel DockPanel.Dock="Top" Margin="5">
                 <TextBlock DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center">Target:</TextBlock>
                 <DockPanel>
@@ -145,7 +146,7 @@
                 </ToolBar>
             </ToolBarTray>
         </DockPanel>
-        <Grid x:Name="CenterAreaGrid" Grid.Row="1" Grid.ColumnSpan="4">
+        <Grid x:Name="CenterAreaGrid" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3">
             <Grid.RowDefinitions>
                 <RowDefinition Height="0"/>
                 <RowDefinition Height="3*"/>
@@ -218,7 +219,7 @@
                 <Grid x:Name="AssembliesValuesArea">
                     <ListBox DockPanel.Dock="Top" x:Name="assembliesListBox" SelectionChanged="assembliesListBox_SelectionChanged">
                         <ListBox.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate  DataType="{x:Type remoteNetSpy:AssemblyModel}">
                                 <DockPanel>
                                     <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
                                     <TextBlock Text="{Binding Path=Name}" 
@@ -557,7 +558,10 @@
                     </ListBox>
                 </DockPanel>
             </TabItem>
+            <TabItem Header="IInspectable Heap Instances" IsEnabled="{Binding HasIInspectables, FallbackValue=False}">
+                <controls:IInspectableHeapPage/>
+            </TabItem>
         </TabControl>
-        <DockPanel Background="#424242" Grid.Row="3" Grid.ColumnSpan="4"/>
+        <DockPanel Background="#424242" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"/>
     </Grid>
 </Window>

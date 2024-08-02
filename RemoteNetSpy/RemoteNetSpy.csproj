@@ -187,8 +187,4 @@
 		<NativeLibs Remove="app.manifest" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Controls\" />
-	</ItemGroup>
-
 </Project>
