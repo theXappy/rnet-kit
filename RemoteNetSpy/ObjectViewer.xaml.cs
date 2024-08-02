@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -348,10 +349,32 @@ namespace RemoteNetSpy
 
         public static Window CreateViewerWindow(Window parent, object obj)
         {
-            if(obj is RemoteObject ro)
-                return new ObjectViewer(parent, ro);
+            if (obj is RemoteObject ro)
+            {
+                // Ugly Hack
+                Type? remoteType = ro.GetRemoteType();
+                if (remoteType?.FullName == "System.Byte[]")
+                {
+                    byte[] LocalBytes = (byte[])(ro.Dynamify() as DynamicRemoteObject);
+                    StringBuilder builder = new StringBuilder();
+                    for (int i = 0; i < LocalBytes.Length; i++)
+                    {
+                        if (i % 16 == 0 && i != 0)
+                        {
+                            builder.AppendLine();
+                        }
+
+                        builder.Append($"{LocalBytes[i]:X2} ");
+                    }
+                    return new StringObjectViewer(parent, remoteType, builder.ToString());
+                }
+                else
+                {
+                    return new ObjectViewer(parent, ro);
+                }
+            }
             if (obj is string str)
-                return new StringObjectViewer(parent, str);
+                return new StringObjectViewer(parent, typeof(string), str);
             throw new Exception($"Unsupported object type to view. Type: {obj.GetType().Name}");
         }
     }

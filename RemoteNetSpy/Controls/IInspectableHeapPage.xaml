@@ -1,0 +1,127 @@
+﻿<UserControl x:Class="RemoteNetSpy.Controls.IInspectableHeapPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      >
+    <UserControl.Resources>
+        <remoteNetSpy:MemberToIconConverter x:Key="memToIconConverter"/>
+        <remoteNetSpy:ModuleToIconConverter x:Key="moduleToIconConverter"/>
+        <remoteNetSpy:BoolToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
+        <remoteNetSpy:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
+        <remoteNetSpy:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
+        <remoteNetSpy:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
+        <remoteNetSpy:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
+        <remoteNetSpy:BoolToForegroundColor x:Key="boolToForegroundColor"/>
+        <remoteNetSpy:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
+        <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+    </UserControl.Resources>
+        <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Button Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                <Grid>
+                    <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="/icons/StatusBarSearch1.png" Height="16"/>
+                        <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
+                        <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(remoteNetSpy:DumpedType.FullTypeName), FallbackValue='IInspectable'}"
+                           Foreground="#976e01"
+                           />
+                        <TextBlock>s</TextBlock>
+                    </StackPanel>
+                    <remoteNetSpy:Spinner x:Name="findHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
+                </Grid>
+            </Button>
+            <Button Click="ExportHeapInstancesButtonClicked" Padding="5,0" Margin="2,2" MinHeight="21">
+                <Grid>
+                    <StackPanel x:Name="exportHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="/icons/Save.png" Height="16"/>
+                        <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Export CSV</TextBlock>
+                    </StackPanel>
+                    <remoteNetSpy:Spinner x:Name="exportHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
+                </Grid>
+            </Button>
+        </StackPanel>
+        <ListBox x:Name="heapInstancesListBox" DockPanel.Dock="Top">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type remoteNetSpy:HeapObject}">
+                    <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
+                        <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
+                               VerticalAlignment="Center"/>
+                        <TextBlock Foreground="Aquamarine"
+                               Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisabilityConverter}}"
+                               VerticalAlignment="Center"
+                               Margin="10,0"
+                               > (Frozen)</TextBlock>
+                        <Button DockPanel.Dock="Right"
+                            IsEnabled="{Binding Path=Frozen}"
+                            Padding="8,0"
+                            Margin="0,0,4,0"
+                            Click="ExploreButtonBaseOnClick"
+                    >
+                            <Button.Content>
+                                <DockPanel>
+                                    <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,2,3,2" Height="16"/>
+                                    <TextBlock Text="Explore"/>
+                                </DockPanel>
+                            </Button.Content>
+                        </Button>
+                        <Button DockPanel.Dock="Right"
+                            IsEnabled="{Binding Path=Frozen}"
+                            Padding="8,0"
+                            Margin="0,0,4,0"
+                            Click="InspectButtonBaseOnClick"
+                            >
+                            <Button.Content>
+                                <DockPanel>
+                                    <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
+                                    <TextBlock Text="Inspect"/>
+                                </DockPanel>
+                            </Button.Content>
+                        </Button>
+                        <Button DockPanel.Dock="Right" 
+                            Click="FreezeUnfreezeHeapObject"
+                            Padding="8,0"
+                            Margin="0,0,4,0"
+                            MinWidth="85"
+                            >
+                            <Button.Content>
+                                <Grid>
+                                    <DockPanel>
+                                        <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
+                                        <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                        <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                    </DockPanel>
+                                    <Image RenderTransformOrigin="0.5, 0.5" Source="/icons/Loading.png" Visibility="Collapsed" Height="16">
+                                        <Image.RenderTransform>
+                                            <!-- giving the transform a name tells the framework not to freeze it -->
+                                            <RotateTransform x:Name="noFreeze" />
+                                        </Image.RenderTransform>
+                                        <Image.Triggers>
+                                            <EventTrigger RoutedEvent="Loaded">
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation
+                                                        Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
+                                                        To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Image.Triggers>
+                                    </Image>
+                                </Grid>
+                            </Button.Content>
+                        </Button>
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

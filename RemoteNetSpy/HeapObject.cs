@@ -10,6 +10,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
 {
     private ulong _address;
     private RemoteObject remoteObject;
+    private string _fullTypeName;
 
     public ulong Address
     {
@@ -28,7 +29,16 @@ public class HeapObject : INotifyPropertyChanged, IComparable
         }
     }
 
-    public string FullTypeName { get; set; }
+    public string FullTypeName
+    {
+        get => _fullTypeName;
+        set
+        {
+            if (value == _fullTypeName) return;
+            _fullTypeName = value;
+            OnPropertyChanged();
+        }
+    }
 
     public RemoteObject RemoteObject
     {
