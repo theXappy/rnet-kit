@@ -460,6 +460,9 @@ namespace RemoteNetSpy
 
         private List<HeapObject> _instancesList;
 
+        [GeneratedRegex("\\([\\d]+\\)$", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex HeapInstancesRegex();
+
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             bool matchCase = true;
@@ -532,7 +535,7 @@ namespace RemoteNetSpy
                     if (sender == typesFilterBox)
                     {
                         string input = _dumpedTypeToDescription.Convert(o, null, null, null) as string;
-                        if (onlyTypesInHeap && !input.Contains('('))
+                        if (onlyTypesInHeap && !HeapInstancesRegex().IsMatch(input))
                             return false;
                         if (!useRegex)
                             return input?.Contains(filter, comp) == true;
