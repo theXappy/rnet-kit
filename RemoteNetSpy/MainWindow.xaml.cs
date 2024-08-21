@@ -120,6 +120,37 @@ namespace RemoteNetSpy
                 return;
 
             _procBoxCurrItem = procsBox.SelectedItem as InjectableProcess;
+            bool canConnectToUnmanagedDiver = _procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]");
+            bool canConnectToManagedDiver = _procBoxCurrItem.DiverState.Contains("[Diver Injected]");
+            if (canConnectToManagedDiver && canConnectToManagedDiver)
+            {
+                // Both divers present, let user choose which to connect to.
+                DiverSelectionDialog dsd = new DiverSelectionDialog();
+                dsd.Owner = this;
+                if (dsd.ShowDialog() != true)
+                {
+                    // User cancelled.
+                    procsBox.SelectedIndex = -1;
+                    return;
+                }
+
+                if(dsd.SelectedRuntime == RuntimeType.Unmanaged)
+                {
+                    canConnectToUnmanagedDiver = true;
+                    canConnectToManagedDiver = false;
+                }
+                else if (dsd.SelectedRuntime == RuntimeType.Managed)
+                {
+                    canConnectToUnmanagedDiver = false;
+                    canConnectToManagedDiver = true;
+                }
+                else
+                {
+                    MessageBox.Show($"Unexpected results from Diver selection dialog. Aborting app switch.\nSelected Runtime: {dsd.SelectedRuntime}");
+                    return;
+                }
+            }
+
 
             StopGlow();
 
@@ -132,12 +163,10 @@ namespace RemoteNetSpy
             {
                 _app = await Task.Run(() =>
                 {
-                    bool hasUnmanagedDiver = _procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]");
-                    bool hasManagedDiver = _procBoxCurrItem.DiverState.Contains("[Diver Injected]");
-                    bool noDiver = !hasUnmanagedDiver && !hasManagedDiver;
+                    bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
                     bool isNativeApp = !_procBoxCurrItem.DotNetVersion.StartsWith("net");
                     if ((noDiver && isNativeApp) ||
-                        (hasUnmanagedDiver && !hasManagedDiver))
+                        (canConnectToUnmanagedDiver && !canConnectToManagedDiver))
                     {
                         return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
                     }
