@@ -1,4 +1,4 @@
-﻿using RemoteNET.Internal.Extensions;
+using RemoteNET.Internal.Extensions;
 using System.Diagnostics;
 using RemoteNET.Internal;
 using System.Net.NetworkInformation;
@@ -9,8 +9,8 @@ int ourPid = Process.GetCurrentProcess().Id;
 var allProcs = Process.GetProcesses();
 
 IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
-TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
-HashSet<int> usedPorts = tcpConnInfoArray.Select(conInfo => conInfo.LocalEndPoint.Port).ToHashSet();
+System.Net.IPEndPoint[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpListeners();
+HashSet<int> usedPorts = tcpConnInfoArray.Select(conInfo => conInfo.Port).ToHashSet();
 
 Queue<Task<string>> _tasks = new Queue<Task<string>>();
 foreach (var proc in allProcs.OrderBy(proc => proc.ProcessName))
