@@ -209,6 +209,8 @@ namespace RemoteNetSpy
 
         private Task RefreshAssembliesAsync()
         {
+            _assembliesToTypes.Clear();
+
             return Task.Run(() =>
             {
 
