@@ -1,5 +1,6 @@
 using RemoteNET;
 using System.ComponentModel;
+using System.Linq;
 
 namespace RemoteNetSpy;
 
@@ -22,8 +23,8 @@ public class RemoteAppModel : INotifyPropertyChanged
         App = app;
         try
         {
-            var iinspectableType = app.GetRemoteType("WinRT.IInspectable");
-            HasIInspectables = iinspectableType != null;
+            CandidateType? candidate = app.QueryTypes("WinRT.IInspectable").FirstOrDefault();
+            HasIInspectables = candidate != null;
         }
         catch
         {
