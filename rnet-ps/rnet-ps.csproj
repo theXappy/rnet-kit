@@ -1,20 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>remotenet_ps</RootNamespace>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <FileVersion>1.0.2</FileVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net7.0</TargetFramework>
+		<RootNamespace>remotenet_ps</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyVersion>1.0.3</AssemblyVersion>
+		<FileVersion>1.0.3</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
+	</ItemGroup>
 
 </Project>

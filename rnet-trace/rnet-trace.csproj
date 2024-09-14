@@ -1,23 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>RemotenetTrace</RootNamespace>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <FileVersion>1.0.2</FileVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net7.0</TargetFramework>
+		<RootNamespace>RemotenetTrace</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyVersion>1.0.3</AssemblyVersion>
+		<FileVersion>1.0.3</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.3.1" />
-    <PackageReference Include="Pastel" Version="3.0.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="CommandLineParser" Version="2.9.1" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.3.1" />
+		<PackageReference Include="Pastel" Version="3.0.1" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
-    <ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
+		<ProjectReference Include="..\RnetKit.Common\RnetKit.Common.csproj" />
+	</ItemGroup>
 
 </Project>

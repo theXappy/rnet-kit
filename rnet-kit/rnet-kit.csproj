@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>remotenet_kit</RootNamespace>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <FileVersion>1.0.2</FileVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net7.0</TargetFramework>
+		<RootNamespace>remotenet_kit</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyVersion>1.0.3</AssemblyVersion>
+		<FileVersion>1.0.3</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
-    <ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
-    <ProjectReference Include="..\rnet-repl\RemoteNetRepl\CSharpRepl\CSharpRepl.csproj" />
-    <ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
+		<ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
+		<ProjectReference Include="..\rnet-repl\RemoteNetRepl\CSharpRepl\CSharpRepl.csproj" />
+		<ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
+	</ItemGroup>
 
 </Project>
