@@ -9,6 +9,12 @@ Use this app to research and explore .NET apps:
 
 ![screenshot](https://raw.githubusercontent.com/theXappy/rnet-kit/main/pr.png)
 
+# Installation
+1. Install [.NET 7](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-7.0.20-windows-x64-installer).
+2. Install [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+3. Download the `zip` file from the [Releases](https://github.com/theXappy/rnet-kit/releases) page.
+4. Run `RemoteNetSpy.exe`
+
 # rnet-kit
 This repo also contains other programs that use RemoteNET.  
 Together with RemoteNetSpy, they are called the **rnet-kit**.   
