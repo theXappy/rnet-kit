@@ -12,6 +12,7 @@ using Pastel;
 using RemoteNET.Common;
 using RnetKit.Common;
 using System.Drawing;
+using RemoteNET.Internal.Reflection;
 
 namespace QuickStart
 {
@@ -472,19 +473,31 @@ namespace QuickStart
             // First we'll find all overloads based on the requested method name
             Regex typeRegex = SimpleFilterToRegex(fullTypeNameQuery);
             Regex methodNameRegex = SimpleFilterToRegex(nameQuery);
-            MethodBase[]? matchingMethods = allMethods
-                .Where(mi => methodNameRegex.IsMatch(mi.Name))
-                .Where(mi =>
-                {
-                    if (mi is IRttiMethodBase rttiMethod)
+
+            MethodBase[]? matchingMethods;
+            if (allMethods.Any(mi => mi is RemoteRttiMethodInfo))
+            {
+                var allRttiMethods = allMethods.Cast<RemoteRttiMethodInfo>();
+                matchingMethods = allRttiMethods
+                    .Where(rttiMethod => methodNameRegex.IsMatch(rttiMethod.MangledName))
+                    .Where(rttiMethod =>
                     {
                         return typeRegex.IsMatch(rttiMethod.LazyDeclaringType.TypeFullName);
-                    }
-                    // This one will trigger remote type resolution for every parameter type...
-                    Debug.WriteLine("[@@@] SLOW declaring type resolution!");
-                    return typeRegex.IsMatch(mi.DeclaringType.FullName);
-                })
-                .ToArray();
+                    })
+                    .ToArray();
+            }
+            else 
+            {
+                matchingMethods = allMethods
+                    .Where(mi => methodNameRegex.IsMatch(mi.Name))
+                    .Where(mi =>
+                    {
+                        // This one will trigger remote type resolution for every parameter type...
+                        Debug.WriteLine("[@@@] SLOW declaring type resolution!");
+                        return typeRegex.IsMatch(mi.DeclaringType.FullName);
+                    })
+                    .ToArray();
+            }
 
             // No we will filter only the overloads matching the parameters query
             encodedParametersQuery = encodedParametersQuery?.TrimStart('(').TrimEnd(')');
