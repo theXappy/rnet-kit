@@ -656,36 +656,44 @@ namespace RemoteNetSpy
 
         private void TraceMember(DumpedMember? sender)
         {
+            string newItem;
             string member = sender?.RawName;
             if (member == null)
-            {
                 return;
-            }
 
             if (sender.MemberType != "Method" && sender.MemberType != "Constructor")
-            {
                 return;
-            }
+
+            string targetClass = ClassName;
 
             // Removing "[Method]" prefix
             string justSignature = member[(member.IndexOf(']') + 1)..].TrimStart();
+            if (justSignature.Contains('('))
+            {
+                // Managed
 
-            // Splitting return type + name / parameters
-            string parametrs = justSignature[(justSignature.IndexOf('('))..];
-            string retTypeAndName = justSignature[..(justSignature.IndexOf('('))];
+                // Splitting return type + name / parameters
+                string parametrs = justSignature[(justSignature.IndexOf('('))..];
+                string retTypeAndName = justSignature[..(justSignature.IndexOf('('))];
 
-            // Splitting return type and name
-            string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
-            string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
+                // Splitting return type and name
+                string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
+                string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
 
-            // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
-            parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
-            parametrs = parametrs.Replace("*", "\\*");
+                // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
+                parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
+                parametrs = parametrs.Replace("*", "\\*");
 
-            string sigWithoutReturnType = methodName + parametrs;
-            string targetClass = ClassName;
+                string sigWithoutReturnType = methodName + parametrs;
 
-            string newItem = $"{targetClass}.{sigWithoutReturnType}";
+                newItem = $"{targetClass}.{sigWithoutReturnType}";
+            }
+            else
+            {
+                // Unmanaged
+                newItem = $"{targetClass}.{justSignature}";
+            }
+
             if (!_traceList.Contains(newItem))
                 _traceList.Add(newItem);
 
