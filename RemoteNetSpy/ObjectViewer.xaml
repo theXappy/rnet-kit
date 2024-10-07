@@ -126,6 +126,11 @@
                                         <TextBlock Padding="5,1">Inspect</TextBlock>
                                     </DockPanel>
                                 </Button>
+                                <!-- (X) icon for thrown exceptions when accessing/invoking the member/method -->
+                                <Image DockPanel.Dock="Left" Source="/icons/statusError.png" 
+                                           Visibility="{Binding IsThrownException, Converter={StaticResource BoolToVisabilityConverter}}" 
+                                           Height="16"
+                                           Width="16"/>
                                 <Grid DockPanel.Dock="Left">
                                     <TextBlock Text="{Binding Path=Value}"  MouseLeftButtonDown="UIElement_OnPreviewMouseRightButtonDown"/>
                                     <TextBox Visibility="Hidden" Text="{Binding Path=Value}" LostFocus="UIElement_OnLostFocus" Background="White" Foreground="Black"/>

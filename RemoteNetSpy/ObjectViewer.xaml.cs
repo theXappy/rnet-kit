@@ -81,7 +81,9 @@ namespace RemoteNetSpy
                 }
                 catch (Exception ex)
                 {
-                    mgi.Value = $"ERROR: Couldn't read value (Exception thrown: {ex.Message})";
+                    mgi.RawValue = ex;
+                    mgi.Value = ex.Message;
+                    mgi.IsThrownException = true;
                 }
                 tempItems.Add(mgi);
             }
@@ -245,6 +247,17 @@ namespace RemoteNetSpy
                 }
             }
 
+            private bool _isThrownException;
+            public bool IsThrownException
+            {
+                get => _isThrownException;
+                set
+                {
+                    _isThrownException = value;
+                    NotifyPropertyChanged(nameof(IsThrownException));
+                }
+            }
+
             private MemberInfo _memInfo;
 
             public MembersGridItem(MemberInfo memInfo)
@@ -271,9 +284,19 @@ namespace RemoteNetSpy
         {
             MembersGridItem mgi = (sender as Button)?.DataContext as MembersGridItem;
             MethodInfo memInfo = mgi.GetOriginalMemberInfo() as MethodInfo;
-            object results = memInfo.Invoke(_ro, Array.Empty<object?>());
-            mgi.RawValue = results;
-            mgi.Value = results.ToString();
+            try
+            {
+                object results = memInfo.Invoke(_ro, Array.Empty<object?>());
+                mgi.RawValue = results;
+                mgi.Value = results.ToString();
+                mgi.IsThrownException = false;
+            }
+            catch (Exception ex)
+            {
+                mgi.RawValue = ex;
+                mgi.Value = ex.Message.ToString();
+                mgi.IsThrownException = true;
+            }
         }
 
         private void InspectClicked(object sender, RoutedEventArgs e)
