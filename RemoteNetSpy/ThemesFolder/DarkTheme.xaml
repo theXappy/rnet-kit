@@ -405,7 +405,8 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="HasContent" Value="true">
-                            <Setter Property="FocusVisualStyle" Value="{StaticResource OptionMarkFocusVisual}" />
+                            <!-- SS: Silenced this annoying error -->
+                            <!--<Setter Property="FocusVisualStyle" Value="{StaticResource OptionMarkFocusVisual}" />-->
                             <Setter Property="Padding" Value="4,-1,0,0" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="true">
@@ -3649,7 +3650,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="true">
-                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource ControlPrimaryMouseOverBackground}" />
+                            <!-- SS: Silenced this annoying error -->
+                            <!--<Setter Property="Background" TargetName="Bd" Value="{StaticResource ControlPrimaryMouseOverBackground}" />-->
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="true">
                             <Setter Property="Background" TargetName="Bd" Value="{StaticResource ControlDefaultBackground}" />
@@ -3681,7 +3683,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="true">
-                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource ControlPrimaryMouseOverBackground}" />
+                            <!-- SS: Silenced this annoying error -->
+                            <!--<Setter Property="Background" TargetName="Bd" Value="{StaticResource ControlPrimaryMouseOverBackground}" />-->
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="true">
                             <Setter Property="Background" TargetName="Bd" Value="{StaticResource ControlDefaultBackground}" />
@@ -4471,7 +4474,7 @@
             </Trigger>
         </Style.Triggers>
     </Style>
-    
+
     <Style TargetType="{x:Type DataGrid}">
         <Setter Property="Background" Value="{StaticResource ControlDefaultBackground}" />
         <Setter Property="BorderBrush" Value="{StaticResource ControlBrightDefaultBorderBrush}" />
@@ -4489,9 +4492,10 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type DataGrid}">
                     <Border x:Name="border" SnapsToDevicePixels="True" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
-                        <Border.Background>
-                            <SolidColorBrush Color="{DynamicResource ControlLightColor}" />
-                        </Border.Background>
+                        <!-- SS: Silenced this annoying error -->
+                        <!--<Border.Background>-->
+                            <!--<SolidColorBrush Color="{DynamicResource ControlLightColor}" />-->
+                        <!--</Border.Background>-->
                         <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false" Background="Black">
                             <ScrollViewer.Template>
                                 <ControlTemplate TargetType="{x:Type ScrollViewer}">
