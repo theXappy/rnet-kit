@@ -387,6 +387,8 @@ namespace RemoteNetSpy
             dumpedMembers.Sort(CompareDumperMembers);
 
             membersListBox.ItemsSource = dumpedMembers;
+
+            filterBox_TextChanged(membersFilterBox, null);
         }
 
         private int CompareDumperMembers(DumpedMember member1, DumpedMember member2)
@@ -1156,7 +1158,11 @@ dynamic dro = ro.Dynamify();
         private void LaunchBrowserClick(object sender, RoutedEventArgs e)
         {
             if (_app == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
+            }
 
             Process.Start(new ProcessStartInfo
             {
@@ -1246,6 +1252,25 @@ dynamic dro = ro.Dynamify();
         {
             traceTypeExtraButtonHoverHack.Visibility = (sender as Button).IsMouseOver ? Visibility.Visible : Visibility.Hidden;
             Debug.WriteLine($"traceTypeExtraButtonHoverHack.Visibility changed to {traceTypeExtraButtonHoverHack.Visibility}");
+        }
+
+        private void memoryViewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if(_app == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            MemoryViewWindow mvw = new MemoryViewWindow(DataContext as RemoteAppModel);
+            mvw.Show();
+        }
+
+        private void CopyAddressMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var heapObj = (sender as MenuItem).DataContext as HeapObject;
+            Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
     }
 
