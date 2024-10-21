@@ -66,7 +66,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
 
     public override string ToString()
     {
-        return $"0x{Address:X8} {FullTypeName}";
+        return $"0x{Address:X16} {FullTypeName}";
     }
 
     public int CompareTo(object? obj)

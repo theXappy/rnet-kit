@@ -133,12 +133,23 @@
             <ToolBarTray DockPanel.Dock="Top" Background="#22000000" Margin="2,0" Height="30">
                 <ToolBar BandIndex="3" Height="28" Margin="1,1">
                     <DockPanel>
-                        <Button x:Name="browserButton" DockPanel.Dock="Right" Margin="1,1" Padding="0" Click="LaunchBrowserClick">
+                        <Button x:Name="browserButton" Margin="1,1" Padding="0" Click="LaunchBrowserClick"
+                                DockPanel.Dock="Left">
                             <Grid Height="26">
                                 <TextBlock/>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0">
                                     <Image Source="icons/Web.png" Height="16"/>
                                     <TextBlock  Margin="4,0" VerticalAlignment="Center" HorizontalAlignment="Center">Browse API</TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="memoryViewButton" Margin="1,1" Padding="0" Click="memoryViewButton_Click"
+                                DockPanel.Dock="Left">
+                            <Grid Height="26">
+                                <TextBlock/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0">
+                                    <Image Source="icons/Memory.png" Height="16"/>
+                                    <TextBlock  Margin="4,0" VerticalAlignment="Center" HorizontalAlignment="Center">Memory View</TextBlock>
                                 </StackPanel>
                             </Grid>
                         </Button>
@@ -449,72 +460,78 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type remoteNetSpy:HeapObject}">
                                 <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
-                                    <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
+                                    <DockPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
+                                        </ContextMenu>
+                                    </DockPanel.ContextMenu>
+                                    <DockPanel.Children>
+                                        <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
                                                VerticalAlignment="Center"/>
-                                    <TextBlock Foreground="Aquamarine"
+                                        <TextBlock Foreground="Aquamarine"
                                                Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisabilityConverter}}"
                                                VerticalAlignment="Center"
                                                Margin="10,0"
                                                > (Frozen)</TextBlock>
-                                    <Button DockPanel.Dock="Right"
+                                        <Button DockPanel.Dock="Right"
                                             IsEnabled="{Binding Path=Frozen}"
                                             Padding="8,0"
                                             Margin="0,0,4,0"
-                                            Click="ExploreButtonBaseOnClick"
-                                    >
-                                        <Button.Content>
-                                            <DockPanel>
-                                                <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,2,3,2" Height="16"/>
-                                                <TextBlock Text="Explore"/>
-                                            </DockPanel>
-                                        </Button.Content>
-                                    </Button>
-                                    <Button DockPanel.Dock="Right"
+                                            Click="ExploreButtonBaseOnClick">
+                                            <Button.Content>
+                                                <DockPanel>
+                                                    <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,2,3,2" Height="16"/>
+                                                    <TextBlock Text="Explore"/>
+                                                </DockPanel>
+                                            </Button.Content>
+                                        </Button>
+                                        <Button DockPanel.Dock="Right"
                                             IsEnabled="{Binding Path=Frozen}"
                                             Padding="8,0"
                                             Margin="0,0,4,0"
                                             Click="InspectButtonBaseOnClick"
                                             >
-                                        <Button.Content>
-                                            <DockPanel>
-                                                <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
-                                                <TextBlock Text="Inspect"/>
-                                            </DockPanel>
-                                        </Button.Content>
-                                    </Button>
-                                    <Button DockPanel.Dock="Right" 
+                                            <Button.Content>
+                                                <DockPanel>
+                                                    <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
+                                                    <TextBlock Text="Inspect"/>
+                                                </DockPanel>
+                                            </Button.Content>
+                                        </Button>
+                                        <Button DockPanel.Dock="Right" 
                                             Click="FreezeUnfreezeHeapObject"
                                             Padding="8,0"
                                             Margin="0,0,4,0"
                                             MinWidth="85"
                                             >
-                                        <Button.Content>
-                                            <Grid>
-                                                <DockPanel>
-                                                    <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
-                                                    <!--<TextBlock Text="Interact in rnet-explore"/>-->
-                                                    <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
-                                                </DockPanel>
-                                                <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
-                                                    <Image.RenderTransform>
-                                                        <!-- giving the transform a name tells the framework not to freeze it -->
-                                                        <RotateTransform x:Name="noFreeze" />
-                                                    </Image.RenderTransform>
-                                                    <Image.Triggers>
-                                                        <EventTrigger RoutedEvent="Loaded">
-                                                            <BeginStoryboard>
-                                                                <Storyboard>
-                                                                    <DoubleAnimation
+                                            <Button.Content>
+                                                <Grid>
+                                                    <DockPanel>
+                                                        <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
+                                                        <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                                        <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                                    </DockPanel>
+                                                    <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
+                                                        <Image.RenderTransform>
+                                                            <!-- giving the transform a name tells the framework not to freeze it -->
+                                                            <RotateTransform x:Name="noFreeze" />
+                                                        </Image.RenderTransform>
+                                                        <Image.Triggers>
+                                                            <EventTrigger RoutedEvent="Loaded">
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation
                                                                         Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
                                                                         To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                                                </Storyboard>
-                                                            </BeginStoryboard>
-                                                        </EventTrigger>
-                                                    </Image.Triggers>
-                                                </Image>
-                                            </Grid>
-                                        </Button.Content>
-                                    </Button>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </EventTrigger>
+                                                        </Image.Triggers>
+                                                    </Image>
+                                                </Grid>
+                                            </Button.Content>
+                                        </Button>
+                                    </DockPanel.Children>
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
