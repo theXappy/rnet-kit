@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
@@ -175,8 +175,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CliWrap" Version="3.5.0" />
-		<PackageReference Include="Dirkster.AvalonDock" Version="4.70.2" />
+		<PackageReference Include="CliWrap" Version="3.6.6" />
+		<PackageReference Include="Dirkster.AvalonDock" Version="4.72.1" />
 		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
 		<PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
 		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
