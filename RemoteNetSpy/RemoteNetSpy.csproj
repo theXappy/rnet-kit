@@ -26,6 +26,7 @@
 		<None Remove="icons\Field.png" />
 		<None Remove="icons\InteractiveMode.png" />
 		<None Remove="icons\Loading.png" />
+		<None Remove="icons\Memory.png" />
 		<None Remove="icons\Method.png" />
 		<None Remove="icons\MethodTable.png" />
 		<None Remove="icons\MissingFile.png" />
@@ -43,6 +44,7 @@
 		<None Remove="icons\SearchClass.png" />
 		<None Remove="icons\Snowflake.png" />
 		<None Remove="icons\StatusBarSearch1.png" />
+		<None Remove="icons\StatusError.png" />
 		<None Remove="icons\TraceClass.png" />
 		<None Remove="icons\TraceMethod.png" />
 		<None Remove="icons\TracepointEnabled.png" />
@@ -93,6 +95,9 @@
 		</Content>
 		<Content Include="icons\Loading.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\Memory.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="icons\Method.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -145,6 +150,9 @@
 		<Content Include="icons\StatusBarSearch1.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<Content Include="icons\StatusError.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="icons\TraceClass.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
@@ -169,6 +177,12 @@
 	<ItemGroup>
 		<PackageReference Include="CliWrap" Version="3.5.0" />
 		<PackageReference Include="Dirkster.AvalonDock" Version="4.70.2" />
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+		<PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
+		<PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
+		<PackageReference Include="System.Text.Json" Version="8.0.5" />
+		<PackageReference Include="WPFHexaEditor" Version="2.1.7" />
 	</ItemGroup>
 
 	<ItemGroup>
