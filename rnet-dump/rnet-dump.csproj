@@ -5,7 +5,7 @@
 		<TargetFramework>net7.0-windows</TargetFramework>
 		<RootNamespace>remotenet_dump</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
+		<Nullable>disable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<AssemblyVersion>1.0.3</AssemblyVersion>
 		<FileVersion>1.0.3</FileVersion>
