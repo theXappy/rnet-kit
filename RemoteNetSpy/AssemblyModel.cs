@@ -45,7 +45,7 @@ namespace RemoteNetSpy
         {
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals(object obj)
         {
             if (obj is not AssemblyModel other) return false;
             // Intentionally not checking 'anyTypes'
@@ -57,14 +57,14 @@ namespace RemoteNetSpy
             return Name.GetHashCode();
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+        protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(field, value)) return false;
             field = value;

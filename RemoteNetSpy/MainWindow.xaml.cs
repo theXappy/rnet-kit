@@ -42,7 +42,7 @@ namespace RemoteNetSpy
                     System.ComponentModel.ListSortDirection.Ascending));
         }
 
-        private async void MainWindow_OnInitialized(object? sender, EventArgs e) => await RefreshProcessesList();
+        private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
 
         private async Task RefreshProcessesList()
         {
@@ -70,11 +70,11 @@ namespace RemoteNetSpy
         }
 
 
-        private Timer? t;
+        private Timer t;
         private bool _glowActive = false;
         private int step = 0;
 
-        private void UpdateGlowEffect(object? state)
+        private void UpdateGlowEffect(object state)
         {
             if (!_glowActive)
                 return;
@@ -100,7 +100,7 @@ namespace RemoteNetSpy
         }
 
 
-        public InjectableProcess? _procBoxCurrItem;
+        public InjectableProcess _procBoxCurrItem;
         public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
 
         private DumpedType _currSelectedType;
@@ -198,12 +198,11 @@ namespace RemoteNetSpy
                 oldApp = null;
             }
 
-            RefreshAssembliesAsync();
+            await RefreshAssembliesAsync();
         }
 
 
-        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) =>
-            RefreshAssembliesAsync();
+        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesAsync();
 
         private Regex r = new Regex(@"\[(.*?)\]\[(.*?)\](.*)");
 
@@ -656,7 +655,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private void TraceMember(DumpedMember? sender)
+        private void TraceMember(DumpedMember sender)
         {
             string newItem;
             string member = sender?.RawName;
@@ -773,7 +772,7 @@ namespace RemoteNetSpy
             dPanel.Visibility = Visibility.Collapsed;
             loadingImage.Visibility = Visibility.Visible;
 
-            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            HeapObject dataContext = senderButton.DataContext as HeapObject;
 
             bool isFrozen = dataContext.Frozen;
             try
@@ -949,7 +948,7 @@ namespace RemoteNetSpy
         {
             MenuItem mi = sender as MenuItem;
             string assembly = (mi.DataContext as DumpedType).Assembly;
-            AssemblyModel? matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
+            AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
             int index = assembliesListBox.Items.IndexOf(matchingAssembly);
 
             // Trick to scroll to our selected item from the BOTTOM
@@ -1001,7 +1000,7 @@ namespace RemoteNetSpy
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
-            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            HeapObject dataContext = senderButton.DataContext as HeapObject;
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
                 MessageBox.Show("ERROR: Object must be frozed.");
@@ -1023,7 +1022,7 @@ namespace RemoteNetSpy
         private void ExploreButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
-            HeapObject? dataContext = senderButton.DataContext as HeapObject;
+            HeapObject dataContext = senderButton.DataContext as HeapObject;
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
                 MessageBox.Show("ERROR: Object must be frozed.");
@@ -1034,7 +1033,7 @@ namespace RemoteNetSpy
             if (_app is UnmanagedRemoteApp)
                 runtime = RuntimeType.Unmanaged;
 
-            string? RuntimeTypeFullTypeName = typeof(RuntimeType).FullName;
+            string RuntimeTypeFullTypeName = typeof(RuntimeType).FullName;
 
             string script =
                 @$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});

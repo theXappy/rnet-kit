@@ -23,7 +23,7 @@ public class RemoteAppModel : INotifyPropertyChanged
         App = app;
         try
         {
-            CandidateType? candidate = app.QueryTypes("WinRT.IInspectable").FirstOrDefault();
+            CandidateType candidate = app.QueryTypes("WinRT.IInspectable").FirstOrDefault();
             HasIInspectables = candidate != null;
         }
         catch

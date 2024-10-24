@@ -27,7 +27,7 @@ public class DumpedType
         _numInstances = numInstances;
     }
 
-    public override bool Equals(object? obj)
+    public override bool Equals(object obj)
     {
         return obj is DumpedType type &&
                Assembly == type.Assembly &&

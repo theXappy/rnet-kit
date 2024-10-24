@@ -110,7 +110,7 @@ namespace RemoteNetSpy
             membersGrid.ItemsSource = _items;
         }
 
-        private static void GetMemberValue(DynamicRemoteObject? dro, MemberInfo member, MembersGridItem mgi)
+        private static void GetMemberValue(DynamicRemoteObject dro, MemberInfo member, MembersGridItem mgi)
         {
             if (member is FieldInfo || member is PropertyInfo)
             {
@@ -129,7 +129,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private static void GetFieldPropValue(DynamicRemoteObject? dro, MemberInfo field, MembersGridItem mgi)
+        private static void GetFieldPropValue(DynamicRemoteObject dro, MemberInfo field, MembersGridItem mgi)
         {
             if (DynamicRemoteObject.TryGetDynamicMember(dro, field.Name, out dynamic res))
             {
@@ -286,7 +286,7 @@ namespace RemoteNetSpy
             MethodInfo memInfo = mgi.GetOriginalMemberInfo() as MethodInfo;
             try
             {
-                object results = memInfo.Invoke(_ro, Array.Empty<object?>());
+                object results = memInfo.Invoke(_ro, Array.Empty<object>());
                 mgi.RawValue = results;
                 mgi.Value = results.ToString();
                 mgi.IsThrownException = false;
@@ -306,7 +306,7 @@ namespace RemoteNetSpy
                 return;
             if (mgi.RawValue == null)
                 return;
-            RemoteObject? ro = mgi.RawValue as RemoteObject;
+            RemoteObject ro = mgi.RawValue as RemoteObject;
             if (mgi.RawValue is not RemoteObject)
                 ro = (mgi.RawValue as DynamicRemoteObject)?.__ro;
 
@@ -325,7 +325,7 @@ namespace RemoteNetSpy
         private void UIElement_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             var parent = (sender as TextBlock).Parent as Grid;
-            TextBox? tBox = parent?.Children.Cast<UIElement>().Single(c => c is TextBox) as TextBox;
+            TextBox tBox = parent?.Children.Cast<UIElement>().Single(c => c is TextBox) as TextBox;
             if (tBox == null)
                 return;
             tBox.Visibility = Visibility.Visible;
@@ -375,7 +375,7 @@ namespace RemoteNetSpy
             if (obj is RemoteObject ro)
             {
                 // Ugly Hack
-                Type? remoteType = ro.GetRemoteType();
+                Type remoteType = ro.GetRemoteType();
                 if (remoteType?.FullName == "System.Byte[]")
                 {
                     byte[] LocalBytes = (byte[])(ro.Dynamify() as DynamicRemoteObject);
