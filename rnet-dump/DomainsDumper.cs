@@ -13,7 +13,7 @@ namespace remotenet_dump
         public static int DumpDomains(DomainsDumpOptions opts)
         {
             Console.WriteLine("Loading...");
-            DomainsDump? domains = null;
+            DomainsDump domains = null;
             try
             {
                 using RemoteApp app = Common.Connect(opts.TargetProcess, opts.Unmanaged);

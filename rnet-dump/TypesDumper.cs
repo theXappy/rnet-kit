@@ -21,7 +21,7 @@ public static class TypesDumper
         }
 
         Console.WriteLine("Loading...");
-        List<CandidateType>? candidates = null;
+        List<CandidateType> candidates = null;
         try
         {
             using RemoteApp app = Common.Connect(opts.TargetProcess, opts.Unmanaged);

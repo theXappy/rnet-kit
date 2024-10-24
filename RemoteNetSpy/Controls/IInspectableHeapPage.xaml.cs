@@ -27,15 +27,15 @@ namespace RemoteNetSpy.Controls
         private void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
             RemoteApp app = (DataContext as RemoteAppModel).App;
-            IEnumerable<CandidateType>? iinspectable = app.QueryTypes("WinRT.IInspectable");
-            Type? iinspectaleType = app.GetRemoteType(iinspectable?.FirstOrDefault());
+            IEnumerable<CandidateType> iinspectable = app.QueryTypes("WinRT.IInspectable");
+            Type iinspectaleType = app.GetRemoteType(iinspectable?.FirstOrDefault());
             if (iinspectaleType == null)
             {
                 MessageBox.Show("Couldn't find IInspectable type in the remote process.");
                 return;
             }
 
-            IEnumerable<CandidateObject>? candidates = app.QueryInstances(iinspectaleType);
+            IEnumerable<CandidateObject> candidates = app.QueryInstances(iinspectaleType);
 
             findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
             findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
@@ -44,7 +44,7 @@ namespace RemoteNetSpy.Controls
             List<HeapObject> newInstances = new List<HeapObject>();
             foreach (CandidateObject candidate in candidates)
             {
-                RemoteObject? ro;
+                RemoteObject ro;
                 try
                 {
                     ro = app.GetRemoteObject(candidate);

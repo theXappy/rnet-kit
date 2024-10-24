@@ -69,14 +69,14 @@ public class HeapObject : INotifyPropertyChanged, IComparable
         return $"0x{Address:X16} {FullTypeName}";
     }
 
-    public int CompareTo(object? obj)
+    public int CompareTo(object obj)
     {
         if (obj is HeapObject casted)
             return this._address.CompareTo(casted._address);
         return -1;
     }
 
-    public override bool Equals(object? obj)
+    public override bool Equals(object obj)
     {
         if (obj is HeapObject casted)
             return this._address.Equals(casted._address);
@@ -86,14 +86,14 @@ public class HeapObject : INotifyPropertyChanged, IComparable
     public override int GetHashCode() => this._address.GetHashCode();
 
     #region INotifyPropertyChanged
-    public event PropertyChangedEventHandler? PropertyChanged;
+    public event PropertyChangedEventHandler PropertyChanged;
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;
