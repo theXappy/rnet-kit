@@ -31,6 +31,7 @@ namespace RemoteNetSpy
     {
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
+        private Dictionary<string, DumpedType> _dumpedTypesCache = new Dictionary<string, DumpedType>();
 
         public MainWindow()
         {
@@ -492,7 +493,7 @@ namespace RemoteNetSpy
 
         private List<HeapObject> _instancesList;
 
-        [GeneratedRegex("\\([\\d]+\\)$", RegexOptions.IgnoreCase, "en-US")]
+        [GeneratedRegex("\\(Count: [\\d]", RegexOptions.IgnoreCase, "en-US")]
         private static partial Regex HeapInstancesRegex();
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -870,8 +871,17 @@ namespace RemoteNetSpy
             foreach (KeyValuePair<string, int> kvp in typesAndInstancesCount)
             {
                 int? numInstances = kvp.Value != 0 ? kvp.Value : null;
-                DumpedType dt = typeNamesToTypes[kvp.Key];
-                dt.NumInstances = numInstances;
+                DumpedType dt;
+                if (_dumpedTypesCache.TryGetValue(kvp.Key, out dt))
+                {
+                    dt.NumInstances = numInstances;
+                }
+                else
+                {
+                    dt = typeNamesToTypes[kvp.Key];
+                    dt.NumInstances = numInstances;
+                    _dumpedTypesCache[kvp.Key] = dt;
+                }
                 dumpedTypes.Add(dt);
 
                 // Check if this was the last selected type  in the listbox

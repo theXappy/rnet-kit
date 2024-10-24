@@ -171,7 +171,18 @@ public class DumpedTypeToDescription : IValueConverter
 
         string desc = a.FullTypeName;
         if (a.HaveInstances)
-            desc += $" ({a.NumInstances})";
+        {
+            int difference = a.NumInstances.GetValueOrDefault() - a.PreviousNumInstances.GetValueOrDefault();
+            string differenceText = difference != 0 ? (difference > 0 ? $"+{difference}" : difference.ToString()) : string.Empty;
+            if (string.IsNullOrEmpty(differenceText))
+            {
+                desc += $" (Count: {a.NumInstances})";
+            }
+            else
+            {
+                desc += $" (Count: {a.NumInstances}, Diff: {differenceText})";
+            }
+        }
         return desc;
     }
 
@@ -224,6 +235,32 @@ public class BoolToForegroundColor : IValueConverter
     {
         return (bool)value ? Brushes.White : Brushes.Gray;
 
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class DifferenceToForegroundColor : IValueConverter
+{
+    SolidColorBrush _green = new SolidColorBrush(Color.FromRgb(0x86, 0xFF, 0x7C));
+    SolidColorBrush _red = new SolidColorBrush(Color.FromRgb(0xFF, 0x85, 0x85));
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is DumpedType dumpedType)
+        {
+            if (dumpedType.NumInstances == 0)
+                return Brushes.Gray;
+            int difference = dumpedType.NumInstances.GetValueOrDefault() - dumpedType.PreviousNumInstances.GetValueOrDefault();
+            if (difference > 0)
+                return _green;
+            if (difference < 0)
+                return _red;
+            return Brushes.White;
+        }
+        return Brushes.White;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
