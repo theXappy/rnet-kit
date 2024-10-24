@@ -26,6 +26,7 @@
         <remoteNetSpy:BoolToForegroundColor x:Key="boolToForegroundColor"/>
         <remoteNetSpy:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+        <remoteNetSpy:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>
@@ -361,7 +362,7 @@
                                 <DockPanel>
                                     <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
                                     <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 
-                                           Foreground="{Binding HaveInstances, Converter={StaticResource boolToForegroundColor}}" 
+                                           Foreground="{Binding Path=., Converter={StaticResource differenceToForegroundColor}}" 
                                            FontSize="{Binding Path=FontSize, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"
                                 >
                                         <TextBlock.ContextMenu>
