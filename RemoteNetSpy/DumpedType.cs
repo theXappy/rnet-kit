@@ -16,15 +16,19 @@ public class DumpedType
         }
         set
         {
+            PreviousNumInstances = _numInstances;
             _numInstances = value;
         }
     }
+
+    public int? PreviousNumInstances { get; private set; }
 
     public DumpedType(string assembly, string fullTypeName, int? numInstances)
     {
         Assembly = assembly;
         FullTypeName = fullTypeName;
         _numInstances = numInstances;
+        PreviousNumInstances = null;
     }
 
     public override bool Equals(object obj)
