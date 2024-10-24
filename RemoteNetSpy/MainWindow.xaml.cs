@@ -41,6 +41,11 @@ namespace RemoteNetSpy
             tracesListBox.Items.SortDescriptions.Add(
                 new System.ComponentModel.SortDescription("",
                     System.ComponentModel.ListSortDirection.Ascending));
+
+            // Set the data context of the TypesControl to an instance of the TypesModel class
+            TypesControl.DataContext = new TypesModel();
+            // Subscribe to the PropertyChanged event of the TypesModel
+            (TypesControl.DataContext as TypesModel).PropertyChanged += TypesModel_PropertyChanged;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
@@ -1280,6 +1285,52 @@ dynamic dro = ro.Dynamify();
         {
             var heapObj = (sender as MenuItem).DataContext as HeapObject;
             Clipboard.SetText($"0x{heapObj.Address:X16}");
+        }
+
+        private async void TypesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TypesModel.SelectedType))
+            {
+                var selectedType = (sender as TypesModel).SelectedType;
+                if (selectedType != null)
+                {
+                    _currSelectedType = selectedType;
+                    string type = _currSelectedType?.FullTypeName;
+                    if (type == null)
+                    {
+                        membersListBox.ItemsSource = null;
+                        return;
+                    }
+
+                    var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+                        .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
+                        .WithValidation(CommandResultValidation.None)
+                        .ExecuteBufferedAsync();
+                    var res = await x.Task;
+                    var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                        .SkipWhile(line => !line.Contains("Members of "))
+                        .Skip(1)
+                        .Select(str => str.Trim());
+
+                    List<string> rawLinesList = xx.ToList();
+                    List<DumpedMember> dumpedMembers = new List<DumpedMember>();
+                    for (int i = 0; i < rawLinesList.Count; i += 2)
+                    {
+                        DumpedMember dumpedMember = new DumpedMember()
+                        {
+                            RawName = rawLinesList[i],
+                            NormalizedName = rawLinesList[i + 1]
+                        };
+                        dumpedMembers.Add(dumpedMember);
+                    }
+
+                    dumpedMembers.Sort(CompareDumperMembers);
+
+                    membersListBox.ItemsSource = dumpedMembers;
+
+                    filterBox_TextChanged(membersFilterBox, null);
+                }
+            }
         }
     }
 
