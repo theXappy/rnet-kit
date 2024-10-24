@@ -32,6 +32,12 @@ namespace RemoteNetSpy
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
         private Dictionary<string, DumpedType> _dumpedTypesCache = new Dictionary<string, DumpedType>();
+        private TypesModel _typesModel;
+        public InjectableProcess _procBoxCurrItem;
+        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
+
+        private DumpedType _currSelectedType => _typesModel.SelectedType;
+        public string ClassName => _currSelectedType.FullTypeName;
 
         public MainWindow()
         {
@@ -43,9 +49,10 @@ namespace RemoteNetSpy
                     System.ComponentModel.ListSortDirection.Ascending));
 
             // Set the data context of the TypesControl to an instance of the TypesModel class
-            TypesControl.DataContext = new TypesModel();
+            _typesModel = new TypesModel();
+            TypesControl.DataContext = _typesModel;
             // Subscribe to the PropertyChanged event of the TypesModel
-            (TypesControl.DataContext as TypesModel).PropertyChanged += TypesModel_PropertyChanged;
+            _typesModel.PropertyChanged += TypesModel_PropertyChanged;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
@@ -106,11 +113,6 @@ namespace RemoteNetSpy
         }
 
 
-        public InjectableProcess _procBoxCurrItem;
-        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
-
-        private DumpedType _currSelectedType;
-        public string ClassName => _currSelectedType.FullTypeName;
 
         private void StopGlow()
         {
@@ -312,15 +314,14 @@ namespace RemoteNetSpy
             List<DumpedType> dumpedTypes = await GetTypesList();
             // In the rare case where we switch between the "All" pseudo assembly
             // and a specific one, this will allow us to re-focus on the currently selected type.
-            DumpedType currentType = typesListBox.SelectedItem as DumpedType;
-            typesListBox.ItemsSource = dumpedTypes;
+            DumpedType currentType = _currSelectedType;
+            _typesModel.Types = new ObservableCollection<DumpedType>(dumpedTypes);
             if (currentType != null)
             {
                 var matchingItem = dumpedTypes.FirstOrDefault(t => t == currentType);
                 if (matchingItem != null)
                 {
-                    typesListBox.SelectedItem = matchingItem;
-                    typesListBox.ScrollIntoView(matchingItem);
+                    _typesModel.SelectedType = matchingItem;
                 }
             }
 
@@ -358,7 +359,7 @@ namespace RemoteNetSpy
 
         private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _currSelectedType = (typesListBox.SelectedItem as DumpedType);
+            _currSelectedType = (_currSelectedType);
             string type = _currSelectedType?.FullTypeName;
             if (type == null)
             {
@@ -450,7 +451,7 @@ namespace RemoteNetSpy
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
-            if (typesListBox.SelectedItem == null)
+            if (_currSelectedType == null)
             {
                 MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -461,7 +462,7 @@ namespace RemoteNetSpy
             findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
             findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
 
-            string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
+            string type = (_currSelectedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
                 .WithArguments($"heap -t {TargetPid} -q \"{type}\" " + UnmanagedFlagIfNeeded())
@@ -984,34 +985,6 @@ namespace RemoteNetSpy
         private bool _matchCaseTypes = false;
         private bool _regexTypes = false;
         private bool _onlyTypesInHeap = false;
-
-        private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            _matchCaseTypes = !_matchCaseTypes;
-            Button b = (sender as Button);
-            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _matchCaseTypes ? brush : null;
-            filterBox_TextChanged(typesFilterBox, null);
-        }
-
-        private void TypesRegexButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            _regexTypes = !_regexTypes;
-            Button b = (sender as Button);
-            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _regexTypes ? brush : null;
-            filterBox_TextChanged(typesFilterBox, null);
-        }
-
-        private void typesWithInstancesFilterButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            _onlyTypesInHeap = !_onlyTypesInHeap;
-            Button b = (sender as Button);
-            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _onlyTypesInHeap ? brush : null;
-            filterBox_TextChanged(typesFilterBox, null);
-        }
-
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
@@ -1190,9 +1163,10 @@ dynamic dro = ro.Dynamify();
             TraceMember(membersListBox?.SelectedItem as DumpedMember);
         }
 
+
         private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
         {
-            if (typesListBox.SelectedItem == null)
+            if (_currSelectedType == null)
             {
                 MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1207,7 +1181,7 @@ dynamic dro = ro.Dynamify();
         }
         private void TraceTypeOptimal_OnClick(object sender, RoutedEventArgs e)
         {
-            if (typesListBox.SelectedItem == null)
+            if (_currSelectedType == null)
             {
                 MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
