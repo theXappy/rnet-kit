@@ -493,7 +493,7 @@ namespace RemoteNetSpy
 
         private List<HeapObject> _instancesList;
 
-        [GeneratedRegex("\\([\\d]+\\)$", RegexOptions.IgnoreCase, "en-US")]
+        [GeneratedRegex("\\(Count: [\\d]", RegexOptions.IgnoreCase, "en-US")]
         private static partial Regex HeapInstancesRegex();
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
