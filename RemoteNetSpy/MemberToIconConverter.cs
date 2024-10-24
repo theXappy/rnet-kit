@@ -245,6 +245,8 @@ public class BoolToForegroundColor : IValueConverter
 
 public class DifferenceToForegroundColor : IValueConverter
 {
+    SolidColorBrush _green = new SolidColorBrush(Color.FromRgb(0x86, 0xFF, 0x7C));
+    SolidColorBrush _red = new SolidColorBrush(Color.FromRgb(0xFF, 0x85, 0x85));
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is DumpedType dumpedType)
@@ -253,9 +255,9 @@ public class DifferenceToForegroundColor : IValueConverter
                 return Brushes.Gray;
             int difference = dumpedType.NumInstances.GetValueOrDefault() - dumpedType.PreviousNumInstances.GetValueOrDefault();
             if (difference > 0)
-                return Brushes.Green;
+                return _green;
             if (difference < 0)
-                return Brushes.Red;
+                return _red;
             return Brushes.White;
         }
         return Brushes.White;
