@@ -9,7 +9,8 @@
         Style="{DynamicResource CustomWindowStyle}"
         Title="Type Selection"
         Height="500"
-        Width="600">
+        Width="600"
+        Loaded="Window_Loaded">
     <Window.Resources>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->

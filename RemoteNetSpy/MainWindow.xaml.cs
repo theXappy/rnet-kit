@@ -1343,10 +1343,14 @@ dynamic dro = ro.Dynamify();
                 return;
             }
 
+            //
+            // Prepare new "Type Selection Window" to select the target type
+            //
+
+            // Helper dict of dumped types from the LAST heap "objects count" so we can propogate
+            // the num of instances into the types list in the sub-window
             ObservableCollection<DumpedTypeModel> mainTypesControlTypes = (this.TypesControl.DataContext as TypesModel).Types;
             Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
-
-            var typeSelectionWindow = new TypeSelectionWindow();
             var typesModel = new TypesModel();
             List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(_allAssembliescModel).ContinueWith((task) =>
             {
@@ -1362,24 +1366,48 @@ dynamic dro = ro.Dynamify();
             });
             typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
 
+            var typeSelectionWindow = new TypeSelectionWindow();
             typeSelectionWindow.DataContext = typesModel;
-            if (typeSelectionWindow.ShowDialog() == true)
+
+            // Set "hint" in types window: If the current type is a C++ type, suggest other types
+            // with the same name in all assemblies.
+            // e.g., mylib.dll!MyNameSpace::MyType
+            // will suggest a regex that'll also cover:
+            // * my_other_lib.dll!MyNameSpace::MyType
+            // * mylib.dll!SecondNamespace::MyType
+            // Regex breakdown:
+            // ::MyType(?:\s\([^)]+\))?$
+            //  ^  ^    ^^^^^^^^^^^^^^^^^
+            //  |  |             |
+            //  | Curr type name |
+            //  |                |
+            //  |    Match end of line OR "(Count: X...)" suffix  
+            // Separator
+            string currFullTypeName = heapObject.FullTypeName;
+            if (currFullTypeName.Contains("::"))
             {
-                DumpedTypeModel selectedType = typesModel.SelectedType;
-                if (selectedType != null)
-                {
-                    try
-                    {
-                        Type newType = _app.GetRemoteType(selectedType.FullTypeName);
-                        var newRemoteObject = heapObject.RemoteObject.Cast(newType);
-                        heapObject.RemoteObject = newRemoteObject;
-                        heapObject.FullTypeName = selectedType.FullTypeName;
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
+                string currTypeName = currFullTypeName.Split("::").Last();
+                string regex = "::" + currTypeName + @"(?:\s\([^)]+\))?$";
+                typeSelectionWindow.ApplyRegexFilter(regex);
+            }
+
+            if (typeSelectionWindow.ShowDialog() != true)
+                return;
+
+            DumpedTypeModel selectedType = typesModel.SelectedType;
+            if (selectedType == null)
+                return;
+
+            try
+            {
+                Type newType = _app.GetRemoteType(selectedType.FullTypeName);
+                var newRemoteObject = heapObject.RemoteObject.Cast(newType);
+                heapObject.RemoteObject = newRemoteObject;
+                heapObject.FullTypeName = selectedType.FullTypeName;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
