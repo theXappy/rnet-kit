@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         Title="Object Viewer" Height="560" Width="903"
         Style="{DynamicResource CustomWindowStyle}"
+        WindowStartupLocation="CenterOwner"
         >
     <Window.Resources>
         <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
