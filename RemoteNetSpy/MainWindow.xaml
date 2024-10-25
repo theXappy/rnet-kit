@@ -252,7 +252,71 @@
                     <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
                 </Grid>
             </DockPanel>
-            <controls:TypesControl x:Name="TypesControl" Grid.Column="1" Grid.Row="1" Margin="5,5,0,5"/>
+            <DockPanel Grid.Column="1" Grid.Row="1"  Margin="5,5,5,5">
+                <DockPanel DockPanel.Dock="Top" Background="#07ffffff">
+                    <Label DockPanel.Dock="Top">Types</Label>
+                    <ToolBarTray DockPanel.Dock="Top" Height="26">
+                        <ToolBar ToolBarTray.IsLocked="True">
+                            <DockPanel>
+                                <Button x:Name="countButton" MinHeight="22" Margin="2,0" Click="CountButton_Click">
+                                    <Button.Content>
+                                        <Grid>
+                                            <TextBlock/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Image Source="icons/SearchClass.png" Height="16" Margin="2,0,0,0"/>
+                                                <TextBlock x:Name="countLabel" Margin="4,0">Count Instances</TextBlock>
+                                            </StackPanel>
+                                            <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
+                                        </Grid>
+                                    </Button.Content>
+                                </Button>
+                                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
+                                <DockPanel>
+                                    <Button x:Name="traceClassButton" MinHeight="22" DockPanel.Dock="Left" Margin="2,0" Click="TraceTypeOptimal_OnClick" Padding="0">
+                                        <Button.Content>
+                                            <Grid Height="24">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.ColumnSpan="2"/>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Image Source="icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
+                                                    <TextBlock Margin="4,0">Trace Type (Optimal)</TextBlock>
+                                                </StackPanel>
+                                                <Grid Grid.Column="1">
+                                                    <Button x:Name="traceTypeExtraButton" Grid.Column="1" FontFamily="Marlett" Content="6" Click="ShowTraceTypeContextMenu">
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem
+                                                           Header="Trace Type (Full)"
+                                                           ToolTip="Traces all methods of the type, including ones that might be problematic like Equals, Finalize, ..."
+                                                           Click="TraceTypeFull_OnClick" 
+                                                           >
+                                                                    <MenuItem.Icon>
+                                                                        <Image Source="icons/TraceClass.png"/>
+                                                                    </MenuItem.Icon>
+                                                                </MenuItem>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
+                                                    <TextBlock x:Name="traceTypeExtraButtonHoverHack" Background="#11ffffff" IsHitTestVisible="False"
+                                                      Visibility="{Binding IsMouseOver, ElementName=traceTypeExtraButton, Converter={StaticResource boolToVisabilityConverter}, FallbackValue=Hidden}"
+                                                      />
+                                                </Grid>
+                                            </Grid>
+                                        </Button.Content>
+                                    </Button>
+                                </DockPanel>
+                            </DockPanel>
+                        </ToolBar>
+                    </ToolBarTray>
+
+                </DockPanel>
+                <controls:TypesControl x:Name="TypesControl" GoToAssemblyInvoked="TypesControl_GoToAssemblyInvoked" />
+            </DockPanel>
+
+
             <DockPanel Grid.Column="2" Grid.Row="1"  Margin="5,5,5,5">
                 <DockPanel x:Name="MembersLeftArea" Dock="Top" Background="#07ffffff">
                     <Label DockPanel.Dock="Top">Members</Label>
