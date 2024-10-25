@@ -1,14 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.ComponentModel;
 using System.Windows.Data;
-using RemoteNetSpy;
 
 namespace RemoteNetSpy.Controls
 {
@@ -18,6 +14,8 @@ namespace RemoteNetSpy.Controls
         private bool _regexTypes = false;
         private bool _onlyTypesInHeap = false;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
+
+        public event Action<string> GoToAssemblyInvoked;
 
         public TypesControl()
         {
@@ -118,5 +116,19 @@ namespace RemoteNetSpy.Controls
 
         [GeneratedRegex("\\(Count: [\\d]", RegexOptions.IgnoreCase, "en-US")]
         private static partial Regex HeapInstancesRegex();
+
+        private void TypeMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string typeName = (mi.DataContext as DumpedType).FullTypeName;
+            Clipboard.SetText(typeName);
+        }
+
+        private void GoToAssemblyMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string assembly = (mi.DataContext as DumpedType).Assembly;
+            GoToAssemblyInvoked?.Invoke(assembly);
+        }
     }
 }
