@@ -802,7 +802,7 @@ namespace RemoteNetSpy
                     ulong address = dataContext.Address;
 
                     // Check if the assembly related to the HeapObject is already being monitored
-                    string assemblyName = dataContext.FullTypeName.Split('.')[0];
+                    string assemblyName = dataContext.FullTypeName.Split('!')[0];
                     AssemblyModel assembly = _assembliesToTypes.Keys.FirstOrDefault(a => a.Name == assemblyName);
                     if (assembly != null && !assembly.IsMonitoringAllocation)
                     {
