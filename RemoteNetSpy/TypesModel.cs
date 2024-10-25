@@ -7,16 +7,16 @@ namespace RemoteNetSpy
 {
     public class TypesModel : INotifyPropertyChanged
     {
-        private ObservableCollection<DumpedType> _types;
-        private DumpedType _selectedType;
+        private ObservableCollection<DumpedTypeModel> _types;
+        private DumpedTypeModel _selectedType;
 
-        public ObservableCollection<DumpedType> Types
+        public ObservableCollection<DumpedTypeModel> Types
         {
             get => _types;
             set => SetField(ref _types, value);
         }
 
-        public DumpedType SelectedType
+        public DumpedTypeModel SelectedType
         {
             get => _selectedType;
             set => SetField(ref _selectedType, value);

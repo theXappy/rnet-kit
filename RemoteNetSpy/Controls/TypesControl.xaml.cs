@@ -111,7 +111,7 @@ namespace RemoteNetSpy.Controls
         private void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var model = DataContext as TypesModel;
-            model.SelectedType = typesListBox.SelectedItem as DumpedType;
+            model.SelectedType = typesListBox.SelectedItem as DumpedTypeModel;
         }
 
         [GeneratedRegex("\\(Count: [\\d]", RegexOptions.IgnoreCase, "en-US")]
@@ -120,14 +120,14 @@ namespace RemoteNetSpy.Controls
         private void TypeMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
             MenuItem mi = sender as MenuItem;
-            string typeName = (mi.DataContext as DumpedType).FullTypeName;
+            string typeName = (mi.DataContext as DumpedTypeModel).FullTypeName;
             Clipboard.SetText(typeName);
         }
 
         private void GoToAssemblyMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
             MenuItem mi = sender as MenuItem;
-            string assembly = (mi.DataContext as DumpedType).Assembly;
+            string assembly = (mi.DataContext as DumpedTypeModel).Assembly;
             GoToAssemblyInvoked?.Invoke(assembly);
         }
     }
