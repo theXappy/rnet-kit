@@ -1337,6 +1337,12 @@ dynamic dro = ro.Dynamify();
             if (heapObject == null)
                 return;
 
+            if (!heapObject.Frozen)
+            {
+                MessageBox.Show("Object must be frozen before casting.", "Error", MessageBoxButton.OK);
+                return;
+            }
+
             ObservableCollection<DumpedTypeModel> mainTypesControlTypes = (this.TypesControl.DataContext as TypesModel).Types;
             Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
 
