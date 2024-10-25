@@ -1,4 +1,4 @@
-﻿<Window x:Class="RemoteNetSpy.MainWindow"
+<Window x:Class="RemoteNetSpy.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -374,7 +374,7 @@
                                 <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Image Source="icons/StatusBarSearch1.png" Height="16"/>
                                     <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
-                                    <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(remoteNetSpy:DumpedType.FullTypeName), FallbackValue='(?)'}"
+                                    <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(remoteNetSpy:DumpedTypeModel.FullTypeName), FallbackValue='(?)'}"
                                            Foreground="#976e01"
                                            />
                                 </StackPanel>
@@ -403,10 +403,11 @@
                                     <DockPanel.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
+                                            <MenuItem Header="Cast to Another Type" Click="CastToAnotherTypeMenuItem_Click"/>
                                         </ContextMenu>
                                     </DockPanel.ContextMenu>
                                     <DockPanel.Children>
-                                        <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
+                                        <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left"
                                                VerticalAlignment="Center"/>
                                         <TextBlock Foreground="Aquamarine"
                                                Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisabilityConverter}}"
