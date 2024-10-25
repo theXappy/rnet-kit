@@ -288,7 +288,7 @@ namespace RemoteNetSpy
             {
                 object results = memInfo.Invoke(_ro, Array.Empty<object>());
                 mgi.RawValue = results;
-                mgi.Value = results.ToString();
+                mgi.Value = results?.ToString() ?? "null";
                 mgi.IsThrownException = false;
             }
             catch (Exception ex)
