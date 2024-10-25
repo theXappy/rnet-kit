@@ -10,8 +10,8 @@ namespace RemoteNetSpy.Controls
 {
     public partial class TypesControl : UserControl
     {
+        public bool UseRegex { get; set; } = false;
         private bool _matchCaseTypes = false;
-        private bool _regexTypes = false;
         private bool _onlyTypesInHeap = false;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
 
@@ -23,10 +23,16 @@ namespace RemoteNetSpy.Controls
             DataContext = new TypesModel();
         }
 
+        public void SetFilter(string text)
+        {
+            typesFilterBox.Text = text;
+            filterBox_TextChanged(this.typesFilterBox, null);
+        }
+
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             bool matchCase = _matchCaseTypes;
-            bool useRegex = _regexTypes;
+            bool useRegex = UseRegex;
             bool onlyTypesInHeap = _onlyTypesInHeap;
             Regex r = null;
 
@@ -92,10 +98,10 @@ namespace RemoteNetSpy.Controls
 
         private void TypesRegexButton_OnClick(object sender, RoutedEventArgs e)
         {
-            _regexTypes = !_regexTypes;
+            UseRegex = !UseRegex;
             Button b = (sender as Button);
             Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _regexTypes ? brush : null;
+            b.Background = UseRegex ? brush : null;
             filterBox_TextChanged(typesFilterBox, null);
         }
 
