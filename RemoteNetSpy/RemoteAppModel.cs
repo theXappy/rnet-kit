@@ -32,6 +32,26 @@ public class RemoteAppModel : INotifyPropertyChanged
         }
     }
 
+    public void PerformCast(HeapObject heapObject, string newType)
+    {
+        try
+        {
+            RemoteObject newRemoteObject = heapObject.RemoteObject.Cast(newType);
+            heapObject.RemoteObject = newRemoteObject;
+            heapObject.FullTypeName = newType;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to cast to {newType}.", ex);
+        }
+    }
+
+    public void UpdateRemoteObjectList(HeapObject oldHeapObject, RemoteObject newRemoteObject)
+    {
+        oldHeapObject.RemoteObject = newRemoteObject;
+        oldHeapObject.FullTypeName = newRemoteObject.TypeName;
+    }
+
     #region INotifyPropertyChanged
 
     public event PropertyChangedEventHandler PropertyChanged;

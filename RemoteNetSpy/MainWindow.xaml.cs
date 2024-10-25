@@ -319,8 +319,6 @@ namespace RemoteNetSpy
                 }
             }
 
-
-
             // Reapply filter for types
             filterBox_TextChanged(typesFilterBox, null);
         }
@@ -1280,6 +1278,31 @@ dynamic dro = ro.Dynamify();
         {
             var heapObj = (sender as MenuItem).DataContext as HeapObject;
             Clipboard.SetText($"0x{heapObj.Address:X16}");
+        }
+
+        private void CastMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var heapObj = (sender as MenuItem).DataContext as HeapObject;
+            TypeSelectionWindow typeSelectionWindow = new TypeSelectionWindow();
+            if (typeSelectionWindow.ShowDialog() == true)
+            {
+                string selectedType = typeSelectionWindow.SelectedType;
+                PerformCast(heapObj, selectedType);
+            }
+        }
+
+        private void PerformCast(HeapObject heapObj, string newType)
+        {
+            try
+            {
+                RemoteObject newRemoteObject = heapObj.RemoteObject.Cast(newType);
+                heapObj.RemoteObject = newRemoteObject;
+                heapObj.FullTypeName = newType;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to cast to {newType}.\n\n" + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 

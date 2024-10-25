@@ -1,4 +1,4 @@
-﻿<Window x:Class="RemoteNetSpy.MainWindow"
+<Window x:Class="RemoteNetSpy.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -464,6 +464,7 @@
                                     <DockPanel.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
+                                            <MenuItem Header="Cast to Another Type" Click="CastMenuItem_Click"/>
                                         </ContextMenu>
                                     </DockPanel.ContextMenu>
                                     <DockPanel.Children>
