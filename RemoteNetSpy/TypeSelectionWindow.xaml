@@ -4,13 +4,41 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RemoteNetSpy"
+        xmlns:controls="clr-namespace:RemoteNetSpy.Controls"
         mc:Ignorable="d"
+        Style="{DynamicResource CustomWindowStyle}"
         Title="Type Selection"
-        Height="450"
-        Width="800">
-    <Grid>
-        <local:TypesControl x:Name="TypesControl" />
-        <Button Content="OK" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="75" Click="OkButton_Click"/>
-        <Button Content="Cancel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="75" Click="CancelButton_Click"/>
-    </Grid>
+        Height="500"
+        Width="600">
+    <Window.Resources>
+        <Style TargetType="ToolBar">
+            <!-- Not Dropdown Button -->
+            <Setter Property="ToolBarTray.IsLocked" Value="True"/>
+            <!-- Not Overflow Button -->
+            <Setter Property="OverflowMode" Value="Never"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <ToolBarPanel IsItemsHost="True" Background="{x:Null}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Style for ToolBarTrays -->
+        <Style TargetType="ToolBarTray">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+        <!-- Style for Buttons -->
+        <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}">
+            <Setter Property="Background" Value="{x:Null}"/>
+            <Setter Property="BorderBrush" Value="{x:Null}"/>
+        </Style>
+    </Window.Resources>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5,5">
+            <Button DockPanel.Dock="Right" Margin="5,0" Content="Cancel" Width="75" Click="CancelButton_Click" BorderBrush="#FF3C3C3C"/>
+            <Button DockPanel.Dock="Right" Content="OK" Width="75" Click="OkButton_Click" BorderBrush="#FF3C3C3C"/>
+        </StackPanel>
+        <controls:TypesControl DockPanel.Dock="Top" x:Name="TypesControl" DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
+    </DockPanel>
 </Window>

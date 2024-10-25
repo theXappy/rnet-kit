@@ -374,7 +374,7 @@
                                 <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Image Source="icons/StatusBarSearch1.png" Height="16"/>
                                     <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Search</TextBlock>
-                                    <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(remoteNetSpy:DumpedType.FullTypeName), FallbackValue='(?)'}"
+                                    <TextBlock Text="{Binding ElementName=typesListBox, Path=SelectedItem.(remoteNetSpy:DumpedTypeModel.FullTypeName), FallbackValue='(?)'}"
                                            Foreground="#976e01"
                                            />
                                 </StackPanel>
@@ -407,7 +407,7 @@
                                         </ContextMenu>
                                     </DockPanel.ContextMenu>
                                     <DockPanel.Children>
-                                        <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
+                                        <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left"
                                                VerticalAlignment="Center"/>
                                         <TextBlock Foreground="Aquamarine"
                                                Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisabilityConverter}}"

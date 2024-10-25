@@ -26,6 +26,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
                 throw new Exception("Can't set address for frozen heap object");
             _address = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(Description));
         }
     }
 
@@ -37,6 +38,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
             if (value == _fullTypeName) return;
             _fullTypeName = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(Description));
         }
     }
 
@@ -48,10 +50,13 @@ public class HeapObject : INotifyPropertyChanged, IComparable
             remoteObject = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(Frozen));
+            OnPropertyChanged(nameof(Description));
         }
     }
 
     public bool Frozen => RemoteObject != null;
+
+    public string Description => $"0x{Address:X16} {FullTypeName}";
 
     public static HeapObject Parse(string text)
     {
@@ -66,7 +71,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
 
     public override string ToString()
     {
-        return $"0x{Address:X16} {FullTypeName}";
+        return $"HeapObject: 0x{Address:X16} {FullTypeName}";
     }
 
     public int CompareTo(object obj)

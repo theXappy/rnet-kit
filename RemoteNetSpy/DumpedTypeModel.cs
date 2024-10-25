@@ -2,7 +2,7 @@ using System;
 
 namespace RemoteNetSpy;
 
-public class DumpedType
+public class DumpedTypeModel
 {
     public string Assembly { get; private set; }
     public string FullTypeName { get; private set; }
@@ -23,7 +23,7 @@ public class DumpedType
 
     public int? PreviousNumInstances { get; private set; }
 
-    public DumpedType(string assembly, string fullTypeName, int? numInstances)
+    public DumpedTypeModel(string assembly, string fullTypeName, int? numInstances)
     {
         Assembly = assembly;
         FullTypeName = fullTypeName;
@@ -33,7 +33,7 @@ public class DumpedType
 
     public override bool Equals(object obj)
     {
-        return obj is DumpedType type &&
+        return obj is DumpedTypeModel type &&
                Assembly == type.Assembly &&
                FullTypeName == type.FullTypeName;
     }

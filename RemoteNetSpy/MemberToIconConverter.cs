@@ -165,7 +165,7 @@ public class DumpedTypeToDescription : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        DumpedType a = value as DumpedType;
+        DumpedTypeModel a = value as DumpedTypeModel;
         if (a == null)
             return "Error: null";
 
@@ -249,7 +249,7 @@ public class DifferenceToForegroundColor : IValueConverter
     SolidColorBrush _red = new SolidColorBrush(Color.FromRgb(0xFF, 0x85, 0x85));
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is DumpedType dumpedType)
+        if (value is DumpedTypeModel dumpedType)
         {
             if (dumpedType.NumInstances == 0)
                 return Brushes.Gray;

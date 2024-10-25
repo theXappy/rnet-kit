@@ -31,13 +31,17 @@ namespace RemoteNetSpy
     {
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
-        private Dictionary<string, DumpedType> _dumpedTypesCache = new Dictionary<string, DumpedType>();
+        private Dictionary<string, DumpedTypeModel> _dumpedTypesCache = new Dictionary<string, DumpedTypeModel>();
         private TypesModel _typesModel;
         public InjectableProcess _procBoxCurrItem;
         public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
 
-        private DumpedType _currSelectedType => _typesModel.SelectedType;
+        private DumpedTypeModel _currSelectedType => _typesModel.SelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
+
+        private AssemblyModel _allAssembliescModel;
+        private Dictionary<AssemblyModel, List<string>>
+            _assembliesToTypes = new Dictionary<AssemblyModel, List<string>>();
 
         public MainWindow()
         {
@@ -280,7 +284,8 @@ namespace RemoteNetSpy
                 }
 
                 List<AssemblyModel> assemblies = _assembliesToTypes.Keys.ToList();
-                assemblies.Add(new AssemblyModel("* All", RuntimeType.Unknown, anyTypes: true));
+                _allAssembliescModel = new AssemblyModel("* All", RuntimeType.Unknown, anyTypes: true);
+                assemblies.Add(_allAssembliescModel);
                 assemblies.Sort((desc, assemblyModel) => desc.Name.CompareTo(assemblyModel.Name));
 
                 Dispatcher.Invoke(() =>
@@ -304,18 +309,15 @@ namespace RemoteNetSpy
             return string.Empty;
         }
 
-        private Dictionary<AssemblyModel, List<string>>
-            _assembliesToTypes = new Dictionary<AssemblyModel, List<string>>();
-
         private async void assembliesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             membersListBox.ItemsSource = null;
 
-            List<DumpedType> dumpedTypes = await GetTypesList();
+            List<DumpedTypeModel> dumpedTypes = await GetTypesListAsync();
             // In the rare case where we switch between the "All" pseudo assembly
             // and a specific one, this will allow us to re-focus on the currently selected type.
-            DumpedType currentType = _currSelectedType;
-            _typesModel.Types = new ObservableCollection<DumpedType>(dumpedTypes);
+            DumpedTypeModel currentType = _currSelectedType;
+            _typesModel.Types = new ObservableCollection<DumpedTypeModel>(dumpedTypes);
             if (currentType != null)
             {
                 var matchingItem = dumpedTypes.FirstOrDefault(t => t == currentType);
@@ -330,24 +332,29 @@ namespace RemoteNetSpy
             //filterBox_TextChanged(typesFilterBox, null);
         }
 
-        private async Task<List<DumpedType>> GetTypesList()
+        private async Task<List<DumpedTypeModel>> GetTypesListAsync()
         {
             AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
-            IEnumerable<DumpedType> types = null;
+            return await GetTypesListAsync(assembly);
+        }
+
+        private async Task<List<DumpedTypeModel>> GetTypesListAsync(AssemblyModel assembly)
+        {
+            IEnumerable<DumpedTypeModel> types = null;
             if (assembly == null)
-                return new List<DumpedType>();
+                return new List<DumpedTypeModel>();
             if (assembly.Name == "* All")
             {
                 await Task.Run(() =>
                 {
-                    types = _assembliesToTypes.SelectMany(kvp => kvp.Value.Select(type => new DumpedType(kvp.Key.Name, type, null)));
+                    types = _assembliesToTypes.SelectMany(kvp => kvp.Value.Select(type => new DumpedTypeModel(kvp.Key.Name, type, null)));
                 });
             }
             else
             {
                 await Task.Run(() =>
                 {
-                    types = _assembliesToTypes[assembly].Select(str => new DumpedType(assembly.Name, str, null));
+                    types = _assembliesToTypes[assembly].Select(str => new DumpedTypeModel(assembly.Name, str, null));
                 });
             }
 
@@ -857,10 +864,10 @@ namespace RemoteNetSpy
                 .Select(str => str.Trim())
                 .Select(str => str.Split(' ')[1]);
 
-            List<DumpedType> types = await GetTypesList();
+            List<DumpedTypeModel> types = await GetTypesListAsync();
             // Like `Distinct` without an IEqualityComparer
             var uniqueTypes = types.GroupBy(x => x.FullTypeName).Select(grp => grp.First());
-            Dictionary<string, DumpedType> typeNamesToTypes = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName);
+            Dictionary<string, DumpedTypeModel> typeNamesToTypes = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName);
             Dictionary<string, int> typesAndInstancesCount = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName, _ => 0);
             foreach (string heapObjectType in rnetDumpStdOutLines)
             {
@@ -869,13 +876,13 @@ namespace RemoteNetSpy
             }
 
             string lastSelected = _currSelectedType?.FullTypeName;
-            DumpedType typeToReselect = null;
+            DumpedTypeModel typeToReselect = null;
 
-            List<DumpedType> dumpedTypes = new List<DumpedType>();
+            List<DumpedTypeModel> dumpedTypes = new List<DumpedTypeModel>();
             foreach (KeyValuePair<string, int> kvp in typesAndInstancesCount)
             {
                 int? numInstances = kvp.Value != 0 ? kvp.Value : null;
-                DumpedType dt;
+                DumpedTypeModel dt;
                 if (_dumpedTypesCache.TryGetValue(kvp.Key, out dt))
                 {
                     dt.NumInstances = numInstances;
@@ -895,7 +902,7 @@ namespace RemoteNetSpy
                 }
             }
 
-            _typesModel.Types = new ObservableCollection<DumpedType>(dumpedTypes);
+            _typesModel.Types = new ObservableCollection<DumpedTypeModel>(dumpedTypes);
             if (typeToReselect != null)
             {
                 _typesModel.SelectedType = typeToReselect;
@@ -1293,16 +1300,22 @@ dynamic dro = ro.Dynamify();
 
             var typeSelectionWindow = new TypeSelectionWindow();
             var typesModel = new TypesModel();
+            List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(_allAssembliescModel).ContinueWith((task) =>
+            {
+                return task.Result.Select(x => new DumpedTypeModel(x.Assembly, x.FullTypeName, x.NumInstances)).ToList();
+            });
+            typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
+
             typeSelectionWindow.DataContext = typesModel;
-            typesModel.Types = _typesModel.Types;
             if (typeSelectionWindow.ShowDialog() == true)
             {
-                var selectedType = typeSelectionWindow.SelectedType;
+                DumpedTypeModel selectedType = typesModel.SelectedType;
                 if (selectedType != null)
                 {
                     try
                     {
-                        var newRemoteObject = heapObject.RemoteObject.Cast(selectedType.FullTypeName);
+                        Type newType = _app.GetRemoteType(selectedType.FullTypeName);
+                        var newRemoteObject = heapObject.RemoteObject.Cast(newType);
                         heapObject.RemoteObject = newRemoteObject;
                         heapObject.FullTypeName = selectedType.FullTypeName;
                     }
