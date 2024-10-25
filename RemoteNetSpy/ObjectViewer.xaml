@@ -1,4 +1,4 @@
-﻿<Window x:Class="RemoteNetSpy.ObjectViewer"
+<Window x:Class="RemoteNetSpy.ObjectViewer"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -73,12 +73,12 @@
                 <DataGridTemplateColumn Header="Name" Width="4*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <DockPanel>
-                                <!-- Button to expend IEnumerables -->
-                                <DockPanel Width="30" 
-                                            Visibility="{Binding Path=Name, Converter={StaticResource rawViewItemToVisabilityConverter}}" 
-                                           />
-                                <Button Visibility="{Binding Path=Name, Converter={StaticResource rawViewToVisabilityConverter}}" 
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Visibility="{Binding Path=Name, Converter={StaticResource rawViewToVisabilityConverter}}" 
                                         Padding="5,0"
                                         Click="EnumerateRawValueButton_OnClick"
                                         Background="Transparent"
@@ -92,20 +92,25 @@
                                                  Visibility="{Binding IsEnabled, Converter={StaticResource InverseBoolToVisabilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
                                     </Canvas>
                                 </Button>
-                                <Image DockPanel.Dock="Left"
+                                <Image Grid.Column="1"
                                 Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16"/>
-                                <TextBlock DockPanel.Dock="Left"
+                                <TextBlock Grid.Column="1"
                                 Text="{Binding Path=Name}"/>
-                            </DockPanel>
+                            </Grid>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTemplateColumn Header="Value" MinWidth="30" Width="10*" >
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <DockPanel Margin="2,0">
+                            <Grid Margin="2,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
                                 <!-- 'Invoke' button for methods. -->
-                                <Button DockPanel.Dock="Right" Click="InvokeClicked" Visibility="{Binding Converter={StaticResource strValueToInvokeButtonVisibilityConverter}}"
+                                <Button Grid.Column="1" Click="InvokeClicked" Visibility="{Binding Converter={StaticResource strValueToInvokeButtonVisibilityConverter}}"
                                         Padding="2,1"
                                         VerticalContentAlignment="Center">
                                     <DockPanel>
@@ -116,7 +121,7 @@
                                     </DockPanel>
                                 </Button>
                                 <!-- 'Inspect' button for non-primitive objects. -->
-                                <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource strValueToVisabilityConverter}}"
+                                <Button Grid.Column="2" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource strValueToVisabilityConverter}}"
                                         Padding="2,1"
                                         VerticalContentAlignment="Center">
                                     <DockPanel>
@@ -127,15 +132,15 @@
                                     </DockPanel>
                                 </Button>
                                 <!-- (X) icon for thrown exceptions when accessing/invoking the member/method -->
-                                <Image DockPanel.Dock="Left" Source="/icons/statusError.png" 
+                                <Image Grid.Column="0" Source="/icons/statusError.png" 
                                            Visibility="{Binding IsThrownException, Converter={StaticResource BoolToVisabilityConverter}}" 
                                            Height="16"
                                            Width="16"/>
-                                <Grid DockPanel.Dock="Left">
+                                <Grid Grid.Column="0">
                                     <TextBlock Text="{Binding Path=Value}"  MouseLeftButtonDown="UIElement_OnPreviewMouseRightButtonDown"/>
                                     <TextBox Visibility="Hidden" Text="{Binding Path=Value}" LostFocus="UIElement_OnLostFocus" Background="White" Foreground="Black"/>
                                 </Grid>
-                            </DockPanel>
+                            </Grid>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
