@@ -54,7 +54,7 @@
                      ItemsSource="{Binding Types}"
                      SelectedItem="{Binding SelectedType}">
                 <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type remoteNetSpy:DumpedType}">
+                    <DataTemplate DataType="{x:Type remoteNetSpy:DumpedTypeModel}">
                         <DockPanel>
                             <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
                             <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 
