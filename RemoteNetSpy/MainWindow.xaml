@@ -128,6 +128,7 @@
                                >
                             <TextBlock.Text>Loading...</TextBlock.Text>
                         </TextBlock>
+                        <remoteNetSpy:Spinner x:Name="processConnectionSpinner" Margin="1" Visibility="Collapsed"/>
                     </Grid>
                 </DockPanel>
             </DockPanel>
