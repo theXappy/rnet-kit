@@ -1285,6 +1285,35 @@ dynamic dro = ro.Dynamify();
             }
         }
 
+        private async void CastToAnotherTypeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var heapObject = (sender as MenuItem).DataContext as HeapObject;
+            if (heapObject == null)
+                return;
+
+            var typeSelectionWindow = new TypeSelectionWindow();
+            var typesModel = new TypesModel();
+            typeSelectionWindow.DataContext = typesModel;
+            typesModel.Types = _typesModel.Types;
+            if (typeSelectionWindow.ShowDialog() == true)
+            {
+                var selectedType = typeSelectionWindow.SelectedType;
+                if (selectedType != null)
+                {
+                    try
+                    {
+                        var newRemoteObject = heapObject.RemoteObject.Cast(selectedType.FullTypeName);
+                        heapObject.RemoteObject = newRemoteObject;
+                        heapObject.FullTypeName = selectedType.FullTypeName;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
 #pragma warning disable IDE0051 // Remove unused private members
         private void TypesControl_GoToAssemblyInvoked(string assembly)
         {
