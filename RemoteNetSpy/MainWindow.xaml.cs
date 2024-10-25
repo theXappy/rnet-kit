@@ -32,6 +32,12 @@ namespace RemoteNetSpy
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
         private Dictionary<string, DumpedType> _dumpedTypesCache = new Dictionary<string, DumpedType>();
+        private TypesModel _typesModel;
+        public InjectableProcess _procBoxCurrItem;
+        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
+
+        private DumpedType _currSelectedType => _typesModel.SelectedType;
+        public string ClassName => _currSelectedType.FullTypeName;
 
         public MainWindow()
         {
@@ -41,6 +47,12 @@ namespace RemoteNetSpy
             tracesListBox.Items.SortDescriptions.Add(
                 new System.ComponentModel.SortDescription("",
                     System.ComponentModel.ListSortDirection.Ascending));
+
+            // Set the data context of the TypesControl to an instance of the TypesModel class
+            _typesModel = new TypesModel();
+            TypesControl.DataContext = _typesModel;
+            // Subscribe to the PropertyChanged event of the TypesModel
+            _typesModel.PropertyChanged += TypesModel_PropertyChanged;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
@@ -101,11 +113,6 @@ namespace RemoteNetSpy
         }
 
 
-        public InjectableProcess _procBoxCurrItem;
-        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
-
-        private DumpedType _currSelectedType;
-        public string ClassName => _currSelectedType.FullTypeName;
 
         private void StopGlow()
         {
@@ -307,22 +314,20 @@ namespace RemoteNetSpy
             List<DumpedType> dumpedTypes = await GetTypesList();
             // In the rare case where we switch between the "All" pseudo assembly
             // and a specific one, this will allow us to re-focus on the currently selected type.
-            DumpedType currentType = typesListBox.SelectedItem as DumpedType;
-            typesListBox.ItemsSource = dumpedTypes;
+            DumpedType currentType = _currSelectedType;
+            _typesModel.Types = new ObservableCollection<DumpedType>(dumpedTypes);
             if (currentType != null)
             {
                 var matchingItem = dumpedTypes.FirstOrDefault(t => t == currentType);
                 if (matchingItem != null)
                 {
-                    typesListBox.SelectedItem = matchingItem;
-                    typesListBox.ScrollIntoView(matchingItem);
+                    _typesModel.SelectedType = matchingItem;
                 }
             }
 
-
-
             // Reapply filter for types
-            filterBox_TextChanged(typesFilterBox, null);
+            // TODO:
+            //filterBox_TextChanged(typesFilterBox, null);
         }
 
         private async Task<List<DumpedType>> GetTypesList()
@@ -351,45 +356,45 @@ namespace RemoteNetSpy
             return tempList;
         }
 
-        private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            _currSelectedType = (typesListBox.SelectedItem as DumpedType);
-            string type = _currSelectedType?.FullTypeName;
-            if (type == null)
-            {
-                membersListBox.ItemsSource = null;
-                return;
-            }
+        //private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        //{
+        //    _currSelectedType = (_currSelectedType);
+        //    string type = _currSelectedType?.FullTypeName;
+        //    if (type == null)
+        //    {
+        //        membersListBox.ItemsSource = null;
+        //        return;
+        //    }
 
 
-            var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
-            var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .SkipWhile(line => !line.Contains("Members of "))
-                .Skip(1)
-                .Select(str => str.Trim());
+        //    var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+        //        .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
+        //        .WithValidation(CommandResultValidation.None)
+        //        .ExecuteBufferedAsync();
+        //    var res = await x.Task;
+        //    var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        //        .SkipWhile(line => !line.Contains("Members of "))
+        //        .Skip(1)
+        //        .Select(str => str.Trim());
 
-            List<string> rawLinesList = xx.ToList();
-            List<DumpedMember> dumpedMembers = new List<DumpedMember>();
-            for (int i = 0; i < rawLinesList.Count; i += 2)
-            {
-                DumpedMember dumpedMember = new DumpedMember()
-                {
-                    RawName = rawLinesList[i],
-                    NormalizedName = rawLinesList[i + 1]
-                };
-                dumpedMembers.Add(dumpedMember);
-            }
+        //    List<string> rawLinesList = xx.ToList();
+        //    List<DumpedMember> dumpedMembers = new List<DumpedMember>();
+        //    for (int i = 0; i < rawLinesList.Count; i += 2)
+        //    {
+        //        DumpedMember dumpedMember = new DumpedMember()
+        //        {
+        //            RawName = rawLinesList[i],
+        //            NormalizedName = rawLinesList[i + 1]
+        //        };
+        //        dumpedMembers.Add(dumpedMember);
+        //    }
 
-            dumpedMembers.Sort(CompareDumperMembers);
+        //    dumpedMembers.Sort(CompareDumperMembers);
 
-            membersListBox.ItemsSource = dumpedMembers;
+        //    membersListBox.ItemsSource = dumpedMembers;
 
-            filterBox_TextChanged(membersFilterBox, null);
-        }
+        //    filterBox_TextChanged(membersFilterBox, null);
+        //}
 
         private int CompareDumperMembers(DumpedMember member1, DumpedMember member2)
         {
@@ -445,7 +450,7 @@ namespace RemoteNetSpy
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
-            if (typesListBox.SelectedItem == null)
+            if (_currSelectedType == null)
             {
                 MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -456,7 +461,7 @@ namespace RemoteNetSpy
             findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
             findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
 
-            string type = (typesListBox.SelectedItem as DumpedType)?.FullTypeName;
+            string type = (_currSelectedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
                 .WithArguments($"heap -t {TargetPid} -q \"{type}\" " + UnmanagedFlagIfNeeded())
@@ -504,30 +509,30 @@ namespace RemoteNetSpy
             Regex r = null;
 
             ListBox associatedBox = null;
-            if (sender == typesFilterBox)
-            {
-                associatedBox = typesListBox;
-                matchCase = _matchCaseTypes;
-                useRegex = _regexTypes;
-                onlyTypesInHeap = _onlyTypesInHeap;
+            //if (sender == typesFilterBox)
+            //{
+            //    associatedBox = typesListBox;
+            //    matchCase = _matchCaseTypes;
+            //    useRegex = _regexTypes;
+            //    onlyTypesInHeap = _onlyTypesInHeap;
 
-                if (useRegex)
-                {
-                    try
-                    {
-                        string tempFilter = (sender as TextBox)?.Text;
-                        r = new Regex(tempFilter);
-                    }
-                    catch
-                    {
-                        typesFilterBoxBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 153, 164));
-                        return;
-                    }
-                }
+            //    if (useRegex)
+            //    {
+            //        try
+            //        {
+            //            string tempFilter = (sender as TextBox)?.Text;
+            //            r = new Regex(tempFilter);
+            //        }
+            //        catch
+            //        {
+            //            typesFilterBoxBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 153, 164));
+            //            return;
+            //        }
+            //    }
 
-                // No errors in the types filter, reset border
-                typesFilterBoxBorder.BorderBrush = null;
-            }
+            //    // No errors in the types filter, reset border
+            //    typesFilterBoxBorder.BorderBrush = null;
+            //}
 
             if (sender == assembliesFilterBox)
             {
@@ -565,15 +570,15 @@ namespace RemoteNetSpy
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     }
 
-                    if (sender == typesFilterBox)
-                    {
-                        string input = _dumpedTypeToDescription.Convert(o, null, null, null) as string;
-                        if (onlyTypesInHeap && !HeapInstancesRegex().IsMatch(input))
-                            return false;
-                        if (!useRegex)
-                            return input?.Contains(filter, comp) == true;
-                        return r.IsMatch(input);
-                    }
+                    //if (sender == typesFilterBox)
+                    //{
+                    //    string input = _dumpedTypeToDescription.Convert(o, null, null, null) as string;
+                    //    if (onlyTypesInHeap && !HeapInstancesRegex().IsMatch(input))
+                    //        return false;
+                    //    if (!useRegex)
+                    //        return input?.Contains(filter, comp) == true;
+                    //    return r.IsMatch(input);
+                    //}
 
                     if (sender == assembliesFilterBox)
                     {
@@ -587,8 +592,6 @@ namespace RemoteNetSpy
 
         private void clearTypesFilterButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (sender == clearTypesFilterButton)
-                typesFilterBox.Clear();
             if (sender == clearAssembliesFilterButton)
                 assembliesFilterBox.Clear();
             if (sender == clearMembersFilterButton)
@@ -598,7 +601,8 @@ namespace RemoteNetSpy
         private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
         {
             membersListBox.ItemsSource = null;
-            typesListBox.ItemsSource = null;
+            _typesModel.SelectedType = null;
+            _typesModel.Types = null;
             assembliesListBox.ItemsSource = null;
             heapInstancesListBox.ItemsSource = null;
             _traceList.Clear();
@@ -864,7 +868,7 @@ namespace RemoteNetSpy
                     typesAndInstancesCount[heapObjectType]++;
             }
 
-            string lastSelected = (typesListBox?.SelectedItem as DumpedType)?.FullTypeName;
+            string lastSelected = _currSelectedType?.FullTypeName;
             DumpedType typeToReselect = null;
 
             List<DumpedType> dumpedTypes = new List<DumpedType>();
@@ -891,14 +895,15 @@ namespace RemoteNetSpy
                 }
             }
 
-            typesListBox.ItemsSource = dumpedTypes;
+            _typesModel.Types = new ObservableCollection<DumpedType>(dumpedTypes);
             if (typeToReselect != null)
             {
-                typesListBox.SelectedItem = typeToReselect;
+                _typesModel.SelectedType = typeToReselect;
             }
 
             // Reapply filter
-            filterBox_TextChanged(typesFilterBox, null);
+            //TODO:
+            //filterBox_TextChanged(typesFilterBox, null);
 
             spinner1.Visibility = Visibility.Collapsed;
             countLabel.Foreground = originalBrush;
@@ -947,27 +952,7 @@ namespace RemoteNetSpy
             Clipboard.SetText(typeName);
         }
 
-        private void TypeMenuItem_OnClick(object sender, RoutedEventArgs e)
-        {
-            MenuItem mi = sender as MenuItem;
-            string typeName = (mi.DataContext as DumpedType).FullTypeName;
-            Clipboard.SetText(typeName);
-        }
 
-        private void GoToAssemblyMenuItem_OnClick(object sender, RoutedEventArgs e)
-        {
-            MenuItem mi = sender as MenuItem;
-            string assembly = (mi.DataContext as DumpedType).Assembly;
-            AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
-            int index = assembliesListBox.Items.IndexOf(matchingAssembly);
-
-            // Trick to scroll to our selected item from the BOTTOM
-            double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
-            double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
-            var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
-            assembliesListBox.SelectedItem = matchingAssembly;
-            assembliesListBox.ScrollIntoView(furtherDownItem);
-        }
 
         private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
@@ -979,34 +964,6 @@ namespace RemoteNetSpy
         private bool _matchCaseTypes = false;
         private bool _regexTypes = false;
         private bool _onlyTypesInHeap = false;
-
-        private void TypesMatchCaseButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            _matchCaseTypes = !_matchCaseTypes;
-            Button b = (sender as Button);
-            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _matchCaseTypes ? brush : null;
-            filterBox_TextChanged(typesFilterBox, null);
-        }
-
-        private void TypesRegexButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            _regexTypes = !_regexTypes;
-            Button b = (sender as Button);
-            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _regexTypes ? brush : null;
-            filterBox_TextChanged(typesFilterBox, null);
-        }
-
-        private void typesWithInstancesFilterButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            _onlyTypesInHeap = !_onlyTypesInHeap;
-            Button b = (sender as Button);
-            Brush brush = b.FindResource("ControlSelectedBackground") as Brush;
-            b.Background = _onlyTypesInHeap ? brush : null;
-            filterBox_TextChanged(typesFilterBox, null);
-        }
-
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
@@ -1185,9 +1142,10 @@ dynamic dro = ro.Dynamify();
             TraceMember(membersListBox?.SelectedItem as DumpedMember);
         }
 
+
         private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
         {
-            if (typesListBox.SelectedItem == null)
+            if (_currSelectedType == null)
             {
                 MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1202,7 +1160,7 @@ dynamic dro = ro.Dynamify();
         }
         private void TraceTypeOptimal_OnClick(object sender, RoutedEventArgs e)
         {
-            if (typesListBox.SelectedItem == null)
+            if (_currSelectedType == null)
             {
                 MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1281,6 +1239,66 @@ dynamic dro = ro.Dynamify();
             var heapObj = (sender as MenuItem).DataContext as HeapObject;
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
+
+        private async void TypesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TypesModel.SelectedType))
+            {
+                var selectedType = (sender as TypesModel).SelectedType;
+                if (selectedType != null)
+                {
+                    string type = _currSelectedType?.FullTypeName;
+                    if (type == null)
+                    {
+                        membersListBox.ItemsSource = null;
+                        return;
+                    }
+
+                    var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+                        .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
+                        .WithValidation(CommandResultValidation.None)
+                        .ExecuteBufferedAsync();
+                    var res = await x.Task;
+                    var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                        .SkipWhile(line => !line.Contains("Members of "))
+                        .Skip(1)
+                        .Select(str => str.Trim());
+
+                    List<string> rawLinesList = xx.ToList();
+                    List<DumpedMember> dumpedMembers = new List<DumpedMember>();
+                    for (int i = 0; i < rawLinesList.Count; i += 2)
+                    {
+                        DumpedMember dumpedMember = new DumpedMember()
+                        {
+                            RawName = rawLinesList[i],
+                            NormalizedName = rawLinesList[i + 1]
+                        };
+                        dumpedMembers.Add(dumpedMember);
+                    }
+
+                    dumpedMembers.Sort(CompareDumperMembers);
+
+                    membersListBox.ItemsSource = dumpedMembers;
+
+                    filterBox_TextChanged(membersFilterBox, null);
+                }
+            }
+        }
+
+#pragma warning disable IDE0051 // Remove unused private members
+        private void TypesControl_GoToAssemblyInvoked(string assembly)
+        {
+            AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
+            int index = assembliesListBox.Items.IndexOf(matchingAssembly);
+
+            //Trick to scroll to our selected item from the BOTTOM
+            double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
+            double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
+            var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
+            assembliesListBox.SelectedItem = matchingAssembly;
+            assembliesListBox.ScrollIntoView(furtherDownItem);
+        }
+#pragma warning restore IDE0051 // Remove unused private members
     }
 
     public static class VisualTreeHelperExtensions

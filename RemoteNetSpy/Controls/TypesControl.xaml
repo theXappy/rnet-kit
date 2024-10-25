@@ -1,0 +1,76 @@
+<UserControl x:Class="RemoteNetSpy.Controls.TypesControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+        <remoteNetSpy:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
+        <remoteNetSpy:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
+    </UserControl.Resources>
+    <DockPanel>
+        <DockPanel x:Name="TypesAreaHeader" Dock="Top" Background="#07ffffff">
+            <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
+                <TextBox x:Name="typesFilterBox" TextChanged="filterBox_TextChanged" Height="26" VerticalContentAlignment="Center" Background="#07ffffff"/>
+                <Border x:Name="typesFilterBoxBorder" BorderBrush="{x:Null}" BorderThickness="1">
+                    <TextBlock IsHitTestVisible="False"/>
+                </Border>
+                <DockPanel>
+                    <Button x:Name="clearTypesFilterButton" 
+                            DockPanel.Dock="Right" 
+                            Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+                    <Button x:Name="typesWithInstancesFilterButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                            ToolTip="Only types found in heap"
+                            Background="{x:Null}"
+                            BorderBrush="{x:Null}"
+                            Click="typesWithInstancesFilterButton_OnClick">
+                        <Button.Content>(#)</Button.Content>
+                    </Button>
+                    <Button x:Name="typesRegexButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                            ToolTip="Regex"
+                            Background="{x:Null}"
+                            BorderBrush="{x:Null}"
+                            Click="TypesRegexButton_OnClick">
+                        <Button.Content>.*</Button.Content>
+                    </Button>
+                    <Button x:Name="typesMatchCaseButton" DockPanel.Dock="Right" Width="24" HorizontalAlignment="Right"
+                            ToolTip="Match Case"
+                            Background="{x:Null}"
+                            BorderBrush="{x:Null}"
+                            Click="TypesMatchCaseButton_OnClick">
+                        <Button.Content>Aa</Button.Content>
+                    </Button>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+        <Grid x:Name="TypesValuesArea">
+            <ListBox x:Name="typesListBox" SelectionChanged="typesListBox_SelectionChanged" 
+                     VirtualizingStackPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.CanContentScroll="True" 
+                     VirtualizingStackPanel.IsVirtualizing="True"
+                     ItemsSource="{Binding Types}"
+                     SelectedItem="{Binding SelectedType}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type remoteNetSpy:DumpedType}">
+                        <DockPanel>
+                            <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
+                            <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 
+                                       Foreground="{Binding Path=., Converter={StaticResource differenceToForegroundColor}}" 
+                                       FontSize="{Binding Path=FontSize, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}">
+                                <TextBlock.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Copy Type Name" Click="TypeMenuItem_OnClick"/>
+                                        <MenuItem Header="Go To Assembly" Click="GoToAssemblyMenuItem_OnClick"/>
+                                    </ContextMenu>
+                                </TextBlock.ContextMenu>
+                            </TextBlock>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </DockPanel>
+</UserControl>
