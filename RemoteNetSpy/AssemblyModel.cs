@@ -2,13 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RemoteNetSpy
 {
+    [DebuggerDisplay("{Name} ({Runtime}) IsMonitoringAllocation={IsMonitoringAllocation}")]
     public class AssemblyModel : INotifyPropertyChanged
     {
         private bool _isMonitoringAllocation;
