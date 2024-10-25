@@ -43,9 +43,12 @@ namespace RemoteNetSpy
         private Dictionary<AssemblyModel, List<string>>
             _assembliesToTypes = new Dictionary<AssemblyModel, List<string>>();
 
+        private RemoteAppModel _remoteAppModel;
+
         public MainWindow()
         {
-            DataContext = new RemoteAppModel();
+            _remoteAppModel = new RemoteAppModel();
+            DataContext = _remoteAppModel;
             InitializeComponent();
             tracesListBox.ItemsSource = _traceList;
             tracesListBox.Items.SortDescriptions.Add(
@@ -128,14 +131,17 @@ namespace RemoteNetSpy
 
         private async void procsBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> procsBox_SelectionChanged");
             if (procsBox.SelectedIndex == -1)
                 return;
 
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Checking injectability");
             _procBoxCurrItem = procsBox.SelectedItem as InjectableProcess;
             bool canConnectToUnmanagedDiver = _procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]");
             bool canConnectToManagedDiver = _procBoxCurrItem.DiverState.Contains("[Diver Injected]");
             if (canConnectToManagedDiver && canConnectToManagedDiver)
             {
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Can inject to both. Prompting user to choose.");
                 // Both divers present, let user choose which to connect to.
                 DiverSelectionDialog dsd = new DiverSelectionDialog();
                 dsd.Owner = this;
@@ -146,7 +152,8 @@ namespace RemoteNetSpy
                     return;
                 }
 
-                if(dsd.SelectedRuntime == RuntimeType.Unmanaged)
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] User chose: {dsd.SelectedRuntime}");
+                if (dsd.SelectedRuntime == RuntimeType.Unmanaged)
                 {
                     canConnectToUnmanagedDiver = true;
                     canConnectToManagedDiver = false;
@@ -164,15 +171,52 @@ namespace RemoteNetSpy
             }
 
 
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Stopping Glow");
             StopGlow();
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Stopped Glow");
 
             // Saving aside last RemoteApp
             var oldApp = _app;
 
             // Creating new RemoteApp
+            Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Visible; });
+            var connectorTask = Task.Run(() => ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver).Wait());
+            await connectorTask;
+            Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
+
+
+            // Only now we try to dispose of the old RemoteApp.
+            // We must do it after creating a new one for the case where the user re-attaches to the same
+            // app. Closing our old one before the new one is connected willl cause the Diver to die.
+            if (oldApp != null)
+            {
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Disposing old app");
+                try
+                {
+                    oldApp.Dispose();
+                }
+                catch
+                {
+                }
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Disposed old app");
+
+                oldApp = null;
+            }
+
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RefreshAssembliesAsync");
+            await RefreshAssembliesAsync();
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << RefreshAssembliesAsync back into procsBox_SelectionChanged");
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << procsBox_SelectionChanged");
+        }
+
+        private async Task ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
+        {
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={TargetPid})");
             Process proc = Process.GetProcessById(TargetPid);
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={TargetPid}), returned: {proc}");
             try
             {
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Awaiting app creatoin task");
                 _app = await Task.Run(() =>
                 {
                     bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
@@ -185,34 +229,19 @@ namespace RemoteNetSpy
 
                     return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
                 });
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Remote App created: {_app}");
+
                 // TODO: Not like this...
-                (this.DataContext as RemoteAppModel).Update(_app);
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RemoteAppModel.Update");
+                await _remoteAppModel.UpdateAsync(_app);
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << RemoteAppModel.Update back into procsBox_SelectionChanged");
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to connect to target '{_procBoxCurrItem.Name}'.\n\n" + ex);
                 return;
             }
-
-            // Only now we try to dispose of the old RemoteApp.
-            // We must do it after creating a new one for the case where the user re-attaches to the same
-            // app. Closing our old one before the new one is connected willl cause the Diver to die.
-            if (oldApp != null)
-            {
-                try
-                {
-                    oldApp.Dispose();
-                }
-                catch
-                {
-                }
-
-                oldApp = null;
-            }
-
-            await RefreshAssembliesAsync();
         }
-
 
         private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesAsync();
 
@@ -1240,7 +1269,7 @@ dynamic dro = ro.Dynamify();
 
         private void memoryViewButton_Click(object sender, RoutedEventArgs e)
         {
-            if(_app == null)
+            if (_app == null)
             {
                 MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -1308,11 +1337,22 @@ dynamic dro = ro.Dynamify();
             if (heapObject == null)
                 return;
 
+            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = (this.TypesControl.DataContext as TypesModel).Types;
+            Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
+
             var typeSelectionWindow = new TypeSelectionWindow();
             var typesModel = new TypesModel();
             List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(_allAssembliescModel).ContinueWith((task) =>
             {
-                return task.Result.Select(x => new DumpedTypeModel(x.Assembly, x.FullTypeName, x.NumInstances)).ToList();
+                return task.Result.Select(newTypeDump =>
+                {
+                    if (mainControlFullTypeNameToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
+                    {
+                        // Return the same objects as in the main TypesControl to preserve number of instances
+                        return existingTypeDump;
+                    }
+                    return newTypeDump;
+                }).ToList();
             });
             typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
 

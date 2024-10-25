@@ -1,6 +1,7 @@
 using RemoteNET;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace RemoteNetSpy;
 
@@ -30,6 +31,11 @@ public class RemoteAppModel : INotifyPropertyChanged
         {
             HasIInspectables = false;
         }
+    }
+
+    public Task UpdateAsync(RemoteApp app)
+    {
+        return Task.Run(() => Update(app));
     }
 
     #region INotifyPropertyChanged
