@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
 using RemoteNET;
+using RemoteNET.Internal.Reflection;
 
 namespace RemoteNetSpy;
 
@@ -18,7 +19,9 @@ public class StrValueToInvokeButtonVisibilityConverter : IValueConverter
         {
             if (mgi.GetOriginalMemberInfo() is MethodInfo mi)
             {
-                if (mi.GetParameters().Length == 0)
+                bool isDotNetInvokable = mi.GetParameters().Length == 0; // Only parameter-less
+                bool isMsvcInvokable = mi is RemoteRttiMethodInfo; // All native functions
+                if (isDotNetInvokable || isMsvcInvokable)
                     return Visibility.Visible;
             }
         }
