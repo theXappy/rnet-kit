@@ -124,7 +124,14 @@ namespace RemoteNetSpy
                 }
                 else
                 {
-                    mgi.Value = "<Argumented functions not supported>";
+                    if (dro.__ro is UnmanagedRemoteObject)
+                    {
+                        mgi.Value = "Invokable with arguments!";
+                    }
+                    else
+                    {
+                        mgi.Value = "<Argumented functions not supported>";
+                    }
                 }
             }
         }
@@ -286,10 +293,31 @@ namespace RemoteNetSpy
             MethodInfo memInfo = mgi.GetOriginalMemberInfo() as MethodInfo;
             try
             {
-                object results = memInfo.Invoke(_ro, Array.Empty<object>());
-                mgi.RawValue = results;
-                mgi.Value = results?.ToString() ?? "null";
-                mgi.IsThrownException = false;
+                if (memInfo.GetParameters().Length == 0)
+                {
+                    object results = memInfo.Invoke(_ro, Array.Empty<object>());
+                    mgi.RawValue = results;
+                    mgi.Value = results?.ToString() ?? "null";
+                    mgi.IsThrownException = false;
+                }
+                else
+                {
+                    if (_ro is UnmanagedRemoteObject)
+                    {
+                        var arguments = PromptForArguments(memInfo.GetParameters().Length);
+                        if (arguments != null)
+                        {
+                            object results = memInfo.Invoke(_ro, arguments);
+                            mgi.RawValue = results;
+                            mgi.Value = results?.ToString() ?? "null";
+                            mgi.IsThrownException = false;
+                        }
+                    }
+                    else
+                    {
+                        mgi.Value = "<Argumented functions not supported>";
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -297,6 +325,16 @@ namespace RemoteNetSpy
                 mgi.Value = ex.Message.ToString();
                 mgi.IsThrownException = true;
             }
+        }
+
+        private object[] PromptForArguments(int parameterCount)
+        {
+            ArgumentPromptWindow promptWindow = new ArgumentPromptWindow(parameterCount);
+            if (promptWindow.ShowDialog() == true)
+            {
+                return promptWindow.Arguments;
+            }
+            return null;
         }
 
         private void InspectClicked(object sender, RoutedEventArgs e)
