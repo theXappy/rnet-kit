@@ -1,7 +1,31 @@
 <Window x:Class="RemoteNetSpy.ArgumentPromptWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{DynamicResource CustomWindowStyle}"
         Title="Argument Prompt" Height="300" Width="400">
+    <Window.Resources>
+        <Style TargetType="ToolBar">
+            <!-- Not Dropdown Button -->
+            <Setter Property="ToolBarTray.IsLocked" Value="True"/>
+            <!-- Not Overflow Button -->
+            <Setter Property="OverflowMode" Value="Never"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <ToolBarPanel IsItemsHost="True" Background="{x:Null}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Style for ToolBarTrays -->
+        <Style TargetType="ToolBarTray">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+        <!-- Style for Buttons -->
+        <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
