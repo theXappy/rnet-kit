@@ -118,20 +118,15 @@ namespace RemoteNetSpy
             }
             else if (member is MethodInfo mi)
             {
-                if (mi.GetParameters().Length == 0)
+                bool isDotNetInvokable = mi.GetParameters().Length == 0;
+                bool isMsvcInvokable = mi is RemoteRttiMethodInfo;
+                if (isDotNetInvokable || isMsvcInvokable)
                 {
                     mgi.Value = "Invokable!";
                 }
                 else
                 {
-                    if (dro.__ro is UnmanagedRemoteObject)
-                    {
-                        mgi.Value = "Invokable with arguments!";
-                    }
-                    else
-                    {
-                        mgi.Value = "<Argumented functions not supported>";
-                    }
+                    mgi.Value = "<Argumented functions not supported for .NET targets>";
                 }
             }
         }
@@ -403,7 +398,7 @@ namespace RemoteNetSpy
                 _items.Add(itemMgi);
                 i++;
             }
-            
+
             (sender as Button).IsEnabled = false;
         }
 
