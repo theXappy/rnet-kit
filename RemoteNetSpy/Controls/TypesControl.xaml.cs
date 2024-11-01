@@ -5,6 +5,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.ComponentModel;
 using System.Windows.Data;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace RemoteNetSpy.Controls
 {
@@ -14,6 +17,7 @@ namespace RemoteNetSpy.Controls
         private bool _matchCaseTypes = false;
         private bool _onlyTypesInHeap = false;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
+        private string _currentFilter;
 
         public event Action<string> GoToAssemblyInvoked;
 
@@ -21,12 +25,34 @@ namespace RemoteNetSpy.Controls
         {
             InitializeComponent();
             DataContext = new TypesModel();
+            var model = DataContext as TypesModel;
+            model.PropertyChanged += TypesModel_PropertyChanged;
         }
 
         public void SetFilter(string text)
         {
             typesFilterBox.Text = text;
             filterBox_TextChanged(this.typesFilterBox, null);
+        }
+
+        public void UpdateTypesList(List<DumpedTypeModel> dumpedTypes)
+        {
+            var model = DataContext as TypesModel;
+
+            // In the rare case where we switch between the "All" pseudo assembly
+            // and a specific one, this will allow us to re-focus on the currently selected type.
+            DumpedTypeModel currentType = model.SelectedType;
+            model.Types = new ObservableCollection<DumpedTypeModel>(dumpedTypes);
+            if (currentType != null)
+            {
+                var matchingItem = dumpedTypes.FirstOrDefault(t => t == currentType);
+                if (matchingItem != null)
+                {
+                    model.SelectedType = matchingItem;
+                }
+            }
+
+            ReapplyFilter();
         }
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -56,6 +82,7 @@ namespace RemoteNetSpy.Controls
             typesFilterBoxBorder.BorderBrush = null;
 
             string filter = (sender as TextBox)?.Text;
+            _currentFilter = filter;
             ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
             if (view == null) return;
             if (string.IsNullOrWhiteSpace(filter) && !onlyTypesInHeap)
@@ -135,6 +162,19 @@ namespace RemoteNetSpy.Controls
             MenuItem mi = sender as MenuItem;
             string assembly = (mi.DataContext as DumpedTypeModel).Assembly;
             GoToAssemblyInvoked?.Invoke(assembly);
+        }
+
+        private void ReapplyFilter()
+        {
+            filterBox_TextChanged(typesFilterBox, null);
+        }
+
+        private void TypesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TypesModel.Types))
+            {
+                ReapplyFilter();
+            }
         }
     }
 }

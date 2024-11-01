@@ -56,8 +56,7 @@ namespace RemoteNetSpy
                     System.ComponentModel.ListSortDirection.Ascending));
 
             // Set the data context of the TypesControl to an instance of the TypesModel class
-            _typesModel = new TypesModel();
-            TypesControl.DataContext = _typesModel;
+            _typesModel = TypesControl.DataContext as TypesModel;
             // Subscribe to the PropertyChanged event of the TypesModel
             _typesModel.PropertyChanged += TypesModel_PropertyChanged;
         }
@@ -343,22 +342,7 @@ namespace RemoteNetSpy
             membersListBox.ItemsSource = null;
 
             List<DumpedTypeModel> dumpedTypes = await GetTypesListAsync();
-            // In the rare case where we switch between the "All" pseudo assembly
-            // and a specific one, this will allow us to re-focus on the currently selected type.
-            DumpedTypeModel currentType = _currSelectedType;
-            _typesModel.Types = new ObservableCollection<DumpedTypeModel>(dumpedTypes);
-            if (currentType != null)
-            {
-                var matchingItem = dumpedTypes.FirstOrDefault(t => t == currentType);
-                if (matchingItem != null)
-                {
-                    _typesModel.SelectedType = matchingItem;
-                }
-            }
-
-            // Reapply filter for types
-            // TODO:
-            //filterBox_TextChanged(typesFilterBox, null);
+            TypesControl.UpdateTypesList(dumpedTypes);
         }
 
         private async Task<List<DumpedTypeModel>> GetTypesListAsync()
@@ -920,8 +904,6 @@ namespace RemoteNetSpy
                     typesAndInstancesCount[heapObjectType]++;
             }
 
-            string lastSelected = _currSelectedType?.FullTypeName;
-            DumpedTypeModel typeToReselect = null;
 
             List<DumpedTypeModel> dumpedTypes = new List<DumpedTypeModel>();
             foreach (KeyValuePair<string, int> kvp in typesAndInstancesCount)
@@ -939,27 +921,12 @@ namespace RemoteNetSpy
                     _dumpedTypesCache[kvp.Key] = dt;
                 }
                 dumpedTypes.Add(dt);
-
-                // Check if this was the last selected type  in the listbox
-                if (kvp.Key == lastSelected)
-                {
-                    typeToReselect = dt;
-                }
             }
 
-            _typesModel.Types = new ObservableCollection<DumpedTypeModel>(dumpedTypes);
-            if (typeToReselect != null)
-            {
-                _typesModel.SelectedType = typeToReselect;
-            }
-
-            // Reapply filter
-            //TODO:
-            //filterBox_TextChanged(typesFilterBox, null);
+            TypesControl.UpdateTypesList(dumpedTypes);
 
             spinner1.Visibility = Visibility.Collapsed;
             countLabel.Foreground = originalBrush;
-
             countButton.IsEnabled = true;
         }
 
