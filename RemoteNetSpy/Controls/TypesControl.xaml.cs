@@ -55,6 +55,15 @@ namespace RemoteNetSpy.Controls
             ReapplyFilter();
         }
 
+        public DumpedTypeModel SelectedItem
+        {
+            get { return (DumpedTypeModel)GetValue(SelectedItemProperty); }
+            set { SetValue(SelectedItemProperty, value); }
+        }
+
+        public static readonly DependencyProperty SelectedItemProperty =
+            DependencyProperty.Register("SelectedItem", typeof(DumpedTypeModel), typeof(TypesControl), new PropertyMetadata(null));
+
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             bool matchCase = _matchCaseTypes;
@@ -145,6 +154,7 @@ namespace RemoteNetSpy.Controls
         {
             var model = DataContext as TypesModel;
             model.SelectedType = typesListBox.SelectedItem as DumpedTypeModel;
+            SelectedItem = model.SelectedType;
         }
 
         [GeneratedRegex("\\(Count: [\\d]", RegexOptions.IgnoreCase, "en-US")]
