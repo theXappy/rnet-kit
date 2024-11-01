@@ -27,9 +27,12 @@ namespace RemoteNetSpy
         private Type _type;
         ObservableCollection<MembersGridItem> _items;
 
+        private RemoteAppModel _appModel;
 
-        private ObjectViewer(Window parent, RemoteObject ro)
+        private ObjectViewer(Window parent, RemoteAppModel appModel, RemoteObject ro)
         {
+            _appModel = appModel;
+
             InitializeComponent();
             double multiplier = parent is ObjectViewer ? 1 : 0.9;
             this.Height = parent.Height * multiplier;
@@ -352,7 +355,48 @@ namespace RemoteNetSpy
             }
 
             //MessageBox.Show("Value is not a Remote Object.\nHere's a ToString():\n" + ro);
-            CreateViewerWindow(this, obj).ShowDialog();
+            CreateViewerWindow(this, _appModel, obj).ShowDialog();
+        }
+
+        private void ViewMemoryClicked(object sender, RoutedEventArgs e)
+        {
+            MembersGridItem mgi = (sender as Button)?.DataContext as MembersGridItem;
+            if (mgi == null)
+                return;
+            if (mgi.RawValue == null)
+                return;
+            ulong addr;
+            if (mgi.RawValue is UIntPtr uPtr)
+            {
+                addr = (ulong)uPtr;
+            }
+            else if (mgi.RawValue is string strVal)
+            {
+                try
+                {
+                    addr = ulong.Parse(strVal);
+                }
+                catch
+                {
+                    MessageBox.Show($"Could not convert raw value {mgi.RawValue} to a ulong.", "Error");
+                    return;
+                }
+            }
+            else // int? long? ulong? idk
+            {
+                try
+                {
+                    addr = Convert.ToUInt64(mgi.RawValue);
+                }
+                catch
+                {
+                    MessageBox.Show($"Could not convert raw value {mgi.RawValue} to a ulong.", "Error");
+                    return;
+                }
+            }
+
+            MemoryViewWindow mvw = new MemoryViewWindow(_appModel, addr);
+            mvw.Show();
         }
 
         private void UIElement_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -403,7 +447,7 @@ namespace RemoteNetSpy
         }
 
 
-        public static Window CreateViewerWindow(Window parent, object obj)
+        public static Window CreateViewerWindow(Window parent, RemoteAppModel appModel, object obj)
         {
             if (obj is RemoteObject ro)
             {
@@ -426,12 +470,20 @@ namespace RemoteNetSpy
                 }
                 else
                 {
-                    return new ObjectViewer(parent, ro);
+                    return new ObjectViewer(parent, appModel, ro);
                 }
             }
             if (obj is string str)
                 return new StringObjectViewer(parent, typeof(string), str);
             throw new Exception($"Unsupported object type to view. Type: {obj.GetType().Name}");
+        }
+
+        private void memoryViewButton_Click(object sender, RoutedEventArgs e)
+        {
+            ulong address = _ro.RemoteToken;
+
+            MemoryViewWindow mvw = new MemoryViewWindow(_appModel, address);
+            mvw.Show();
         }
     }
 }

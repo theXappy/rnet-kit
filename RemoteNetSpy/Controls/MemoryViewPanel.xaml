@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:control="clr-namespace:WpfHexaEditor;assembly=WPFHexaEditor"
-             xmlns:local="clr-namespace:RemoteNetSpy.Controls"
+             xmlns:local="clr-namespace:RemoteNetSpy.Controls" xmlns:remotenetspy="clr-namespace:RemoteNetSpy"
              mc:Ignorable="d" 
             d:DataContext="{d:DesignInstance Type=local:MemoryViewPanelModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="450" d:DesignWidth="450">
@@ -30,10 +30,12 @@
             <TextBox Grid.Row="0" Grid.Column="1" x:Name="addressTextBox" MinWidth="200"
              Text="{Binding Address, Converter={StaticResource ULongToHexConverter}}"
              Margin="0,0,0,5"/>
-            <Button Grid.Row="0" Grid.Column="2" Padding="20,0" Margin="5,0,0,5" Click="GoButtonClicked"
+            <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
+                <Button Padding="20,0" Margin="5,0,0,5" Click="GoButtonClicked"
             BorderBrush="#555555"
             BorderThickness="1">Go</Button>
-
+                <remotenetspy:Spinner x:Name="fetchSpinner" Visibility="Collapsed"/>
+            </StackPanel>
             <!-- Second Row: Size -->
             <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,5,0" VerticalAlignment="Center">Size:</TextBlock>
             <TextBox Grid.Row="1" Grid.Column="1" x:Name="sizeTextBox" MinWidth="200"

@@ -13,7 +13,8 @@
         <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
         <local:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
         <local:MemberToIconConverter x:Key="memToIconConverter"/>
-        <local:StrValueToVisibilityConverter x:Key="strValueToVisabilityConverter"/>
+        <local:ComplexObjectVisibilityConverter x:Key="complexObjectVisibilityConverter"/>
+        <local:AddressesVisibilityConverter x:Key="addressesVisibilityConverter"/>
         <local:StrValueToInvokeButtonVisibilityConverter x:Key="strValueToInvokeButtonVisibilityConverter"/>
         <local:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
         <local:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
@@ -43,12 +44,17 @@
                 <DockPanel DockPanel.Dock="Top" Margin="0,3">
                     <TextBlock DockPanel.Dock="Left" Padding="0,0,5,0">Object Type:</TextBlock>
                     <Image DockPanel.Dock="Left" MaxHeight="14" Source="/icons/Class.png" Margin="0,0,3,0" />
-
-                    <TextBlock x:Name="objTypeTextBox"></TextBlock>
+                    <TextBlock x:Name="objTypeTextBox" d:Text="Namespace.ClassName"/>
                 </DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,3">
-                    <TextBlock Margin="0,0,5,0">Object Address:</TextBlock>
-                    <TextBlock x:Name="objAddrTextBox"/>
+                <DockPanel DockPanel.Dock="Top" Margin="0,3" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0">Object Address:</TextBlock>
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center"  x:Name="objAddrTextBox" d:Text="0x0000aabbccdd"/>
+                    <Button  VerticalAlignment="Center" DockPanel.Dock="Left" Margin="3,0" Click="memoryViewButton_Click" VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="icons/Memory.png" Height="16"/>
+                            <TextBlock Margin="3,0" VerticalAlignment="Center">View</TextBlock>
+                        </StackPanel>
+                    </Button>
                 </DockPanel>
             </DockPanel>
             <DockPanel DockPanel.Dock="Top" Margin="0,5">
@@ -117,7 +123,7 @@
                                     </DockPanel>
                                 </Button>
                                 <!-- 'Inspect' button for non-primitive objects. -->
-                                <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource strValueToVisabilityConverter}}"
+                                <Button DockPanel.Dock="Right" Click="InspectClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource complexObjectVisibilityConverter}}"
                                         Padding="2,1"
                                         VerticalContentAlignment="Center">
                                     <DockPanel>
@@ -127,11 +133,23 @@
                                         <TextBlock Padding="5,1">Inspect</TextBlock>
                                     </DockPanel>
                                 </Button>
+                                <!-- 'View Memory' button for ulong objects (assuming they're addresses). -->
+                                <Button DockPanel.Dock="Right" Click="ViewMemoryClicked" Visibility="{Binding Path=RawValue, Converter={StaticResource addressesVisibilityConverter}}"
+                                        Padding="2,1"
+                                        VerticalContentAlignment="Center">
+                                    <DockPanel>
+                                        <Image Margin="0,0,3,0" Height="14" 
+                                               Source="/icons/Memory.png"
+                                               />
+                                        <TextBlock Padding="5,1">View</TextBlock>
+                                    </DockPanel>
+                                </Button>
                                 <!-- (X) icon for thrown exceptions when accessing/invoking the member/method -->
                                 <Image DockPanel.Dock="Left" Source="/icons/statusError.png" 
                                            Visibility="{Binding IsThrownException, Converter={StaticResource BoolToVisabilityConverter}}" 
                                            Height="16"
                                            Width="16"/>
+                                <!-- View textblock/textbox. At all times, only one of them is visible.-->
                                 <Grid DockPanel.Dock="Left">
                                     <TextBlock Text="{Binding Path=Value}"  MouseLeftButtonDown="UIElement_OnPreviewMouseRightButtonDown"/>
                                     <TextBox Visibility="Hidden" Text="{Binding Path=Value}" LostFocus="UIElement_OnLostFocus" Background="White" Foreground="Black"/>
