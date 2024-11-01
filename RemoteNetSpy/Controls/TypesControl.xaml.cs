@@ -14,6 +14,7 @@ namespace RemoteNetSpy.Controls
         private bool _matchCaseTypes = false;
         private bool _onlyTypesInHeap = false;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
+        private string _currentFilter;
 
         public event Action<string> GoToAssemblyInvoked;
 
@@ -21,6 +22,8 @@ namespace RemoteNetSpy.Controls
         {
             InitializeComponent();
             DataContext = new TypesModel();
+            var model = DataContext as TypesModel;
+            model.PropertyChanged += TypesModel_PropertyChanged;
         }
 
         public void SetFilter(string text)
@@ -56,6 +59,7 @@ namespace RemoteNetSpy.Controls
             typesFilterBoxBorder.BorderBrush = null;
 
             string filter = (sender as TextBox)?.Text;
+            _currentFilter = filter;
             ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
             if (view == null) return;
             if (string.IsNullOrWhiteSpace(filter) && !onlyTypesInHeap)
@@ -135,6 +139,19 @@ namespace RemoteNetSpy.Controls
             MenuItem mi = sender as MenuItem;
             string assembly = (mi.DataContext as DumpedTypeModel).Assembly;
             GoToAssemblyInvoked?.Invoke(assembly);
+        }
+
+        private void ReapplyFilter()
+        {
+            filterBox_TextChanged(typesFilterBox, null);
+        }
+
+        private void TypesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TypesModel.Types))
+            {
+                ReapplyFilter();
+            }
         }
     }
 }
