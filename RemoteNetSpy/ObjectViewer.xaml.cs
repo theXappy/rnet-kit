@@ -68,10 +68,15 @@ namespace RemoteNetSpy
                     if (mi is IRttiMethodBase rmi)
                     {
                         mgi.Name = rmi.UndecoratedSignature;
+                        mgi.Type = TypeNameUtils.Normalize(rmi.LazyRetType.TypeName);
+                    }
+                    else
+                    {
+                        // TODO: This triggers a cascade of recursive calls to the resolve remote Types.
+                        mgi.Type = TypeNameUtils.Normalize(mi.ReturnType.ToString());
                     }
 
                     mgi.MemberType = "Method";
-                    mgi.Type = TypeNameUtils.Normalize(mi.ReturnType.ToString()); // Specifying expected type
                 }
                 else
                 {
