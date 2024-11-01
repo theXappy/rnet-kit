@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -135,30 +136,35 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-        private void GoButtonClicked(object sender, RoutedEventArgs e) => LoadBytes();
+        private async void GoButtonClicked(object sender, RoutedEventArgs e) => LoadBytesAsync();
 
-        public void LoadBytes()
+        public async Task LoadBytesAsync()
         {
-            var mvpModel = DataContext as MemoryViewPanelModel;
-            if (mvpModel == null)
+            using (fetchSpinner.TemporarilyShow())
             {
-                MessageBox.Show("DataContext is not a RemoteAppModel");
-                return;
-            }
+                var mvpModel = DataContext as MemoryViewPanelModel;
+                if (mvpModel == null)
+                {
+                    MessageBox.Show("DataContext is not a RemoteAppModel");
+                    return;
+                }
 
-            byte[] temp = new byte[mvpModel.Size];
-            try
-            {
-                mvpModel.RemoteAppModel.App.Marshal.Read((nint)mvpModel.Address, temp, 0, mvpModel.Size);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-                return;
-            }
+                byte[] temp = new byte[mvpModel.Size];
+                try
+                {
+                    RemoteNET.RemoteMarshal marshal = mvpModel.RemoteAppModel.App.Marshal;
+                    await Task.Run(() =>
+                        marshal.Read((nint)mvpModel.Address, temp, 0, mvpModel.Size));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    return;
+                }
 
-            MemoryStream ba = new MemoryStream(temp);
-            myHexEditor.Stream = ba;
+                MemoryStream ba = new MemoryStream(temp);
+                myHexEditor.Stream = ba;
+            }
         }
     }
 }

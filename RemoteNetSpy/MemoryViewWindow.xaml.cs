@@ -5,16 +5,25 @@ namespace RemoteNetSpy
 {
     public partial class MemoryViewWindow : Window
     {
+        MemoryViewPanelModel _model => DataContext as MemoryViewPanelModel;
+
         public MemoryViewWindow(RemoteAppModel raModel, ulong? address = null)
         {
             InitializeComponent();
 
-            var model = new MemoryViewPanelModel(raModel);
-            memoryViewPanel.DataContext = model;
+            DataContext = new MemoryViewPanelModel(raModel);
+            memoryViewPanel.DataContext = _model;
             if (address != null)
             {
-                model.Address = address.Value;
-                memoryViewPanel.LoadBytes();
+                _model.Address = address.Value;
+            }
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_model.Address != 0)
+            {
+                memoryViewPanel.LoadBytesAsync();
             }
         }
     }

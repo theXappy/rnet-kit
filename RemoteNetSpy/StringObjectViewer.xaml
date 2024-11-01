@@ -11,7 +11,7 @@
         <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
         <local:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
         <local:MemberToIconConverter x:Key="memToIconConverter"/>
-        <local:StrValueToVisibilityConverter x:Key="strValueToVisabilityConverter"/>
+        <local:ComplexObjectVisibilityConverter x:Key="strValueToVisabilityConverter"/>
         <local:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
         <local:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
         <Style TargetType="ToolBar">

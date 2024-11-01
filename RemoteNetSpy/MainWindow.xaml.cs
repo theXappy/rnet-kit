@@ -1020,7 +1020,7 @@ namespace RemoteNetSpy
                 return;
             }
 
-            (ObjectViewer.CreateViewerWindow(this, dataContext.RemoteObject)).ShowDialog();
+            (ObjectViewer.CreateViewerWindow(this, _remoteAppModel, dataContext.RemoteObject)).ShowDialog();
         }
 
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)

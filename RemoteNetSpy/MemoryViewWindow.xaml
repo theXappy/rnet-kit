@@ -6,12 +6,12 @@
         xmlns:local="clr-namespace:RemoteNetSpy" xmlns:controls="clr-namespace:RemoteNetSpy.Controls"
         mc:Ignorable="d"
         Style="{DynamicResource CustomWindowStyle}"
-        Title="MemoryViewWindow" Height="450" Width="620">
+        Title="Memory View" Height="450" Width="620"
+        Loaded="Window_Loaded">
     <Window.Resources>
     <!-- Style for Buttons -->
     <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}">
         <Setter Property="Background" Value="{x:Null}"/>
-        <Setter Property="BorderBrush" Value="{x:Null}"/>
     </Style>
     </Window.Resources>
     <Grid>

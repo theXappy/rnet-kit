@@ -1,4 +1,5 @@
-﻿using System.Windows.Controls;
+﻿using System;
+using System.Windows.Controls;
 
 namespace RemoteNetSpy
 {
@@ -26,6 +27,26 @@ namespace RemoteNetSpy
         public Spinner()
         {
             InitializeComponent();
+        }
+
+        public IDisposable TemporarilyShow()
+        {
+            return new SpinnerShower(this);
+        }
+
+        private class SpinnerShower : IDisposable
+        {
+            private Spinner _spinner;
+            public SpinnerShower(Spinner spinner)
+            {
+                _spinner = spinner;
+                _spinner.Dispatcher.Invoke(() => { _spinner.Visibility = System.Windows.Visibility.Visible; });
+            }
+
+            public void Dispose()
+            {
+                _spinner.Dispatcher.Invoke(() => { _spinner.Visibility = System.Windows.Visibility.Collapsed; });
+            }
         }
     }
 }
