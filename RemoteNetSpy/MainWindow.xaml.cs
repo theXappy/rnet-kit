@@ -803,7 +803,7 @@ namespace RemoteNetSpy
             f.Close();
         }
 
-        private async void FreezeUnfreezeHeapObject(object sender, RoutedEventArgs e)
+        private async void FreezeUnfreezeHeapObjectButtonClicked(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
             var grid = senderButton.FindLogicalChildren<Grid>().Single();
@@ -813,8 +813,19 @@ namespace RemoteNetSpy
             dPanel.Visibility = Visibility.Collapsed;
             loadingImage.Visibility = Visibility.Visible;
 
-            HeapObject dataContext = senderButton.DataContext as HeapObject;
+            try
+            {
+                await FreezeUnfreeze(senderButton.DataContext as HeapObject);
+            }
+            finally
+            {
+                dPanel.Visibility = Visibility.Visible;
+                loadingImage.Visibility = Visibility.Collapsed;
+            }
+        }
 
+        private async Task FreezeUnfreeze(HeapObject dataContext)
+        {
             bool isFrozen = dataContext.Frozen;
             try
             {
@@ -856,11 +867,6 @@ namespace RemoteNetSpy
                     error = "Error while freezing.\r\nPlease refresh the heap search and retry.\r\n";
                 error += "Exception: " + ex;
                 MessageBox.Show(error, "Error", MessageBoxButton.OK);
-            }
-            finally
-            {
-                dPanel.Visibility = Visibility.Visible;
-                loadingImage.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -1016,11 +1022,11 @@ namespace RemoteNetSpy
             HeapObject dataContext = senderButton.DataContext as HeapObject;
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
-                MessageBox.Show("ERROR: Object must be frozed.");
+                MessageBox.Show("ERROR: Object must be frozen.");
                 return;
             }
 
-            (ObjectViewer.CreateViewerWindow(this, _remoteAppModel, dataContext.RemoteObject)).ShowDialog();
+            (ObjectViewer.CreateViewerWindow(this, _remoteAppModel, dataContext.RemoteObject)).Show();
         }
 
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
@@ -1339,8 +1345,11 @@ dynamic dro = ro.Dynamify();
 
             if (!heapObject.Frozen)
             {
-                MessageBox.Show("Object must be frozen before casting.", "Error", MessageBoxButton.OK);
-                return;
+                var res = MessageBox.Show("Object must be frozen before casting.\nFreeze now?", "Error", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (res != MessageBoxResult.Yes)
+                    return;
+
+                await FreezeUnfreeze(heapObject);
             }
 
             //
