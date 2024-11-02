@@ -982,9 +982,6 @@ namespace RemoteNetSpy
             Clipboard.SetText(member);
         }
 
-        private bool _matchCaseTypes = false;
-        private bool _regexTypes = false;
-        private bool _onlyTypesInHeap = false;
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
