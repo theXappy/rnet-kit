@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using RemoteNET;
 
-namespace RemoteNetSpy;
+namespace RemoteNetSpy.Models;
 
 public class HeapObject : INotifyPropertyChanged, IComparable
 {
@@ -77,18 +77,18 @@ public class HeapObject : INotifyPropertyChanged, IComparable
     public int CompareTo(object obj)
     {
         if (obj is HeapObject casted)
-            return this._address.CompareTo(casted._address);
+            return _address.CompareTo(casted._address);
         return -1;
     }
 
     public override bool Equals(object obj)
     {
         if (obj is HeapObject casted)
-            return this._address.Equals(casted._address);
+            return _address.Equals(casted._address);
         return false;
     }
 
-    public override int GetHashCode() => this._address.GetHashCode();
+    public override int GetHashCode() => _address.GetHashCode();
 
     #region INotifyPropertyChanged
     public event PropertyChangedEventHandler PropertyChanged;

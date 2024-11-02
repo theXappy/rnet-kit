@@ -4,16 +4,17 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RemoteNetSpy"
+        xmlns:converters="clr-namespace:RemoteNetSpy.Converters"
         mc:Ignorable="d"
         Title="Object Viewer" Height="560" Width="903"
         Style="{DynamicResource CustomWindowStyle}">
     <Window.Resources>
-        <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
-        <local:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
-        <local:MemberToIconConverter x:Key="memToIconConverter"/>
-        <local:ComplexObjectVisibilityConverter x:Key="strValueToVisabilityConverter"/>
-        <local:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
-        <local:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:MemberToIconConverter x:Key="memToIconConverter"/>
+        <converters:ComplexObjectVisibilityConverter x:Key="strValueToVisibilityConverter"/>
+        <converters:RawViewToVisibilityConverter x:Key="rawViewToVisibilityConverter"/>
+        <converters:RawViewItemToVisibilityConverter x:Key="rawViewItemToVisibilityConverter"/>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>

@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace RemoteNetSpy;
+namespace RemoteNetSpy.Models;
 
 [DebuggerDisplay("{FullTypeName} (NumInstances={NumInstances}, PreviousNumInstances={PreviousNumInstances})")]
 public class DumpedTypeModel

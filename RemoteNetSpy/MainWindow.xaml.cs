@@ -21,6 +21,8 @@ using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
+using RemoteNetSpy.Converters;
+using RemoteNetSpy.Models;
 
 namespace RemoteNetSpy
 {

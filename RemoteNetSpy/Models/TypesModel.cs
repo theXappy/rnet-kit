@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace RemoteNetSpy
+namespace RemoteNetSpy.Models
 {
     public class TypesModel : INotifyPropertyChanged
     {

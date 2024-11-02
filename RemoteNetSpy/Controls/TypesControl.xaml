@@ -4,12 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
+             xmlns:models="clr-namespace:RemoteNetSpy.Models"
+             xmlns:converters="clr-namespace:RemoteNetSpy.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
-        <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
-        <remoteNetSpy:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
-        <remoteNetSpy:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
+        <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+        <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
+        <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
     </UserControl.Resources>
     <DockPanel>
         <DockPanel x:Name="TypesAreaHeader" Dock="Top" Background="#07ffffff">
@@ -54,7 +56,7 @@
                      ItemsSource="{Binding Types}"
                      SelectedItem="{Binding SelectedType}">
                 <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type remoteNetSpy:DumpedTypeModel}">
+                    <DataTemplate DataType="{x:Type models:DumpedTypeModel}">
                         <DockPanel>
                             <Image Source="/icons/Class.png" Margin="0,0,3,0"/>
                             <TextBlock Text="{Binding Path=., Converter={StaticResource dumpedTypeToDescription}}" 

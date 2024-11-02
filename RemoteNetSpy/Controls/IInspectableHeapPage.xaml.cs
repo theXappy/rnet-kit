@@ -9,6 +9,7 @@ using System.Xml.Linq;
 using CliWrap;
 using CliWrap.Buffered;
 using RemoteNET;
+using RemoteNetSpy.Models;
 
 namespace RemoteNetSpy.Controls
 {

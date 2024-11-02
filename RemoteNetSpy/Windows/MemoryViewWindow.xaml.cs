@@ -1,4 +1,5 @@
 ﻿using RemoteNetSpy.Controls;
+using RemoteNetSpy.Models;
 using System.Windows;
 
 namespace RemoteNetSpy

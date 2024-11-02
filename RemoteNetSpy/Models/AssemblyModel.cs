@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace RemoteNetSpy
+namespace RemoteNetSpy.Models
 {
     [DebuggerDisplay("{Name} ({Runtime}) IsMonitoringAllocation={IsMonitoringAllocation}")]
     public class AssemblyModel : INotifyPropertyChanged
@@ -25,10 +25,10 @@ namespace RemoteNetSpy
         /// <summary>
         /// Whether any types spotted inside this assembly
         /// </summary>
-        public bool AnyTypes 
+        public bool AnyTypes
         {
-            get => anyTypes; 
-            set => SetField(ref anyTypes, value); 
+            get => anyTypes;
+            set => SetField(ref anyTypes, value);
         }
 
 
