@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace RemoteNetSpy;
+namespace RemoteNetSpy.Models;
 
 [DebuggerDisplay("DumpedMember: {RawName}")]
 public class DumpedMember

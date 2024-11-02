@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RemoteNetSpy;
+namespace RemoteNetSpy.Models;
 
 public class RemoteAppModel : INotifyPropertyChanged
 {

@@ -14,6 +14,7 @@ using RemoteNET.Common;
 using RemoteNET.Internal;
 using RemoteNET.Internal.Reflection;
 using RemoteNET.Internal.Reflection.DotNet;
+using RemoteNetSpy.Models;
 using RnetKit.Common;
 
 namespace RemoteNetSpy

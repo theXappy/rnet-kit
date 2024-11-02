@@ -1,4 +1,4 @@
-namespace RemoteNetSpy;
+namespace RemoteNetSpy.Models;
 
 public class InjectableProcess
 {

@@ -3,21 +3,23 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
-      mc:Ignorable="d" 
+      xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy" 
+      xmlns:converters="clr-namespace:RemoteNetSpy.Converters"
+      xmlns:models="clr-namespace:RemoteNetSpy.Models"
+             mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       >
     <UserControl.Resources>
-        <remoteNetSpy:MemberToIconConverter x:Key="memToIconConverter"/>
-        <remoteNetSpy:ModuleToIconConverter x:Key="moduleToIconConverter"/>
-        <remoteNetSpy:BoolToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
-        <remoteNetSpy:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
-        <remoteNetSpy:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
-        <remoteNetSpy:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
-        <remoteNetSpy:BoolToVisabilityConverter x:Key="boolToVisabilityConverter"/>
-        <remoteNetSpy:BoolToForegroundColor x:Key="boolToForegroundColor"/>
-        <remoteNetSpy:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
-        <remoteNetSpy:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+        <converters:MemberToIconConverter x:Key="memToIconConverter"/>
+        <converters:ModuleToIconConverter x:Key="moduleToIconConverter"/>
+        <converters:BoolToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
+        <converters:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
+        <converters:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
+        <converters:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
+        <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
+        <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
+        <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
     </UserControl.Resources>
         <DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
@@ -51,12 +53,12 @@
                 </Style>
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type remoteNetSpy:HeapObject}">
+                <DataTemplate DataType="{x:Type models:HeapObject}">
                     <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
                         <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
                                VerticalAlignment="Center"/>
                         <TextBlock Foreground="Aquamarine"
-                               Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisabilityConverter}}"
+                               Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisibilityConverter}}"
                                VerticalAlignment="Center"
                                Margin="10,0"
                                > (Frozen)</TextBlock>

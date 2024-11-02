@@ -8,6 +8,8 @@ using System.Windows.Data;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using RemoteNetSpy.Models;
+using RemoteNetSpy.Converters;
 
 namespace RemoteNetSpy.Controls
 {

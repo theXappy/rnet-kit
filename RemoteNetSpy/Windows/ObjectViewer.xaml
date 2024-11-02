@@ -4,20 +4,21 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RemoteNetSpy"
+        xmlns:converters="clr-namespace:RemoteNetSpy.Converters"
         mc:Ignorable="d"
         Title="Object Viewer" Height="560" Width="903"
         Style="{DynamicResource CustomWindowStyle}"
         WindowStartupLocation="CenterOwner"
         >
     <Window.Resources>
-        <local:InverseBoolToVisabilityConverter x:Key="InverseBoolToVisabilityConverter"/>
-        <local:BoolToVisabilityConverter x:Key="BoolToVisabilityConverter"/>
-        <local:MemberToIconConverter x:Key="memToIconConverter"/>
-        <local:ComplexObjectVisibilityConverter x:Key="complexObjectVisibilityConverter"/>
-        <local:AddressesVisibilityConverter x:Key="addressesVisibilityConverter"/>
-        <local:StrValueToInvokeButtonVisibilityConverter x:Key="strValueToInvokeButtonVisibilityConverter"/>
-        <local:RawViewToVisibilityConverter x:Key="rawViewToVisabilityConverter"/>
-        <local:RawViewItemToVisabilityConverter x:Key="rawViewItemToVisabilityConverter"/>
+        <InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:MemberToIconConverter x:Key="memToIconConverter"/>
+        <converters:ComplexObjectVisibilityConverter x:Key="complexObjectVisibilityConverter"/>
+        <converters:AddressesVisibilityConverter x:Key="addressesVisibilityConverter"/>
+        <converters:StrValueToInvokeButtonVisibilityConverter x:Key="strValueToInvokeButtonVisibilityConverter"/>
+        <converters:RawViewToVisibilityConverter x:Key="rawViewToVisibilityConverter"/>
+        <converters:RawViewItemToVisibilityConverter x:Key="rawViewItemToVisibilityConverter"/>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>
@@ -83,9 +84,9 @@
                             <DockPanel>
                                 <!-- Button to expend IEnumerables -->
                                 <DockPanel Width="30" 
-                                            Visibility="{Binding Path=Name, Converter={StaticResource rawViewItemToVisabilityConverter}}" 
+                                            Visibility="{Binding Path=Name, Converter={StaticResource rawViewItemToVisibilityConverter}}" 
                                            />
-                                <Button Visibility="{Binding Path=Name, Converter={StaticResource rawViewToVisabilityConverter}}" 
+                                <Button Visibility="{Binding Path=Name, Converter={StaticResource rawViewToVisibilityConverter}}" 
                                         Padding="5,0"
                                         Click="EnumerateRawValueButton_OnClick"
                                         Background="Transparent"
@@ -94,9 +95,9 @@
                                 >
                                     <Canvas Width="5" Height="5">
                                         <Polygon Points="0,0 4,2.5, 0,5" Stroke="White" Fill="Transparent"
-                                                 Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisabilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
+                                                 Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisibilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
                                         <Polygon Points="4,4 0,4 4,0" Stroke="White" Fill="White" 
-                                                 Visibility="{Binding IsEnabled, Converter={StaticResource InverseBoolToVisabilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
+                                                 Visibility="{Binding IsEnabled, Converter={StaticResource InverseBoolToVisibilityConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"  />
                                     </Canvas>
                                 </Button>
                                 <Image DockPanel.Dock="Left"
@@ -146,7 +147,7 @@
                                 </Button>
                                 <!-- (X) icon for thrown exceptions when accessing/invoking the member/method -->
                                 <Image DockPanel.Dock="Left" Source="/icons/statusError.png" 
-                                           Visibility="{Binding IsThrownException, Converter={StaticResource BoolToVisabilityConverter}}" 
+                                           Visibility="{Binding IsThrownException, Converter={StaticResource BoolToVisibilityConverter}}" 
                                            Height="16"
                                            Width="16"/>
                                 <!-- View textblock/textbox. At all times, only one of them is visible.-->
