@@ -11,7 +11,7 @@
     <UserControl.Resources>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
         <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
-        <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
+        <converters:BoolToCollapsabilityConverter x:Key="boolToVisibilityConverter"/>
     </UserControl.Resources>
     <DockPanel>
         <DockPanel x:Name="TypesAreaHeader" Dock="Top" Background="#07ffffff">

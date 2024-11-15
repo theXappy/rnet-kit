@@ -25,6 +25,7 @@
         <converters:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
         <converters:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
         <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
+        <converters:BoolToCollapsabilityConverter x:Key="boolToCollapsabilityConverter"/>
         <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
         <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>

@@ -5,7 +5,7 @@ using System.Windows.Data;
 
 namespace RemoteNetSpy.Converters;
 
-public class BoolToVisibilityConverter : IValueConverter
+public class BoolToCollapsabilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -13,8 +13,8 @@ public class BoolToVisibilityConverter : IValueConverter
         {
             bool isReversed = parameter?.ToString()?.Equals("Reversed", StringComparison.OrdinalIgnoreCase) == true;
             return boolValue
-                ? (isReversed ? Visibility.Hidden : Visibility.Visible)
-                : (isReversed ? Visibility.Visible : Visibility.Hidden);
+                ? (isReversed ? Visibility.Collapsed : Visibility.Visible)
+                : (isReversed ? Visibility.Visible : Visibility.Collapsed);
         }
         return DependencyProperty.UnsetValue;
     }
