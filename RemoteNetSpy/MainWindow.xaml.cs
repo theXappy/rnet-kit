@@ -182,13 +182,11 @@ namespace RemoteNetSpy
 
             // Creating new RemoteApp
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Visible; });
-            var connectorTask = Task.Run(() => ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver).Wait());
-            await connectorTask;
+            _app = await ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver);
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
-            await InteractiveWindow_Init();
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << Initializing Interactive Window");
+            Task interactiveWindowInitTask = InteractiveWindow_Init();
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
@@ -209,20 +207,17 @@ namespace RemoteNetSpy
             }
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RefreshAssembliesAsync");
-            await RefreshAssembliesAsync();
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << RefreshAssembliesAsync back into procsBox_SelectionChanged");
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << procsBox_SelectionChanged");
+            Task assembliesListRefresh = RefreshAssembliesAsync();
         }
 
-        private async Task ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
+        private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
         {
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={TargetPid})");
             Process proc = Process.GetProcessById(TargetPid);
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={TargetPid}), returned: {proc}");
             try
             {
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Awaiting app creatoin task");
-                _app = await Task.Run(() =>
+                return Task.Run(() =>
                 {
                     bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
                     bool isNativeApp = !_procBoxCurrItem.DotNetVersion.StartsWith("net");
@@ -234,17 +229,11 @@ namespace RemoteNetSpy
 
                     return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
                 });
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Remote App created: {_app}");
-
-                // TODO: Not like this...
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RemoteAppModel.Update");
-                await _remoteAppModel.UpdateAsync(_app);
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << RemoteAppModel.Update back into procsBox_SelectionChanged");
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to connect to target '{_procBoxCurrItem.Name}'.\n\n" + ex);
-                return;
+                return Task.FromException<RemoteApp>(ex);
             }
         }
 
