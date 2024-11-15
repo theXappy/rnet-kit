@@ -4,3 +4,6 @@
 [submodule "RemoteNET"]
 	path = RemoteNET
 	url = https://github.com/theXappy/RemoteNET
+[submodule "conemu-inside-net8"]
+	path = conemu-inside-net8
+	url = https://github.com/theXappy/conemu-inside-net8.git
