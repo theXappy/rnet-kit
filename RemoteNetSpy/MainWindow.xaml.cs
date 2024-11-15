@@ -505,7 +505,19 @@ namespace RemoteNetSpy
             _instancesList = newInstances.ToList();
             _instancesList.Sort();
 
-            heapInstancesListBox.ItemsSource = _instancesList;
+            RefreshSearchAndWatchedLists();
+        }
+
+        private void RefreshSearchAndWatchedLists()
+        {
+            ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
+            unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
+            heapInstancesListBox.ItemsSource = unfrozens;
+
+            var instancesListCopy = _instancesList.ToList();
+            ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
+            frozens.Filter = (item) => (item as HeapObject).Frozen;
+            watchedObjectsListBox.ItemsSource = frozens;
 
             findHeapInstancesButtonSpinner.Visibility = Visibility.Collapsed;
             findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
@@ -803,7 +815,12 @@ namespace RemoteNetSpy
                 loadingImage.Visibility = Visibility.Collapsed;
             }
 
-            InterativeWindow_AddVar(ho);
+            if (ho.Frozen)
+                InterativeWindow_AddVar(ho);
+            else
+                InterativeWindow_DeleteVar(ho);
+
+            RefreshSearchAndWatchedLists();
         }
 
         private async Task FreezeUnfreeze(HeapObject dataContext)
@@ -1051,6 +1068,21 @@ $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
                     dataContext.InteractiveRoVarName = roVarName;
                     dataContext.InteractiveDroVarName = droVarName;
                 });
+            });
+        }
+
+        private void InterativeWindow_DeleteVar(HeapObject dataContext)
+        {
+            string roVarName = dataContext.InteractiveRoVarName;
+            string droVarName = dataContext.InteractiveDroVarName;
+            string objectScript =
+$"{roVarName} = null;\r\n" +
+$"{droVarName} = null;\r\n";
+            Dispatcher.Invoke(async () =>
+            {
+                await interactivePanel.WriteInputTextAsync(objectScript);
+                dataContext.InteractiveRoVarName = null;
+                dataContext.InteractiveDroVarName = null;
             });
         }
 
