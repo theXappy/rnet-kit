@@ -7,7 +7,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="32" d:DesignWidth="32">
     <DockPanel x:Name="panel" Background="#DD252525">
-        <Image x:Name="dots" RenderTransformOrigin="0.48,0.47" Source="icons/Loading.png" Height="16" Width="16">
+        <Image x:Name="dots" RenderTransformOrigin="0.48,0.47" Source="../icons/Loading.png" Height="16" Width="16">
             <Image.RenderTransform>
                 <!-- giving the transform a name tells the framework not to freeze it -->
                 <RotateTransform x:Name="noFreeze" />
