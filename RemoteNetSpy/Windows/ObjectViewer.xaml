@@ -12,7 +12,7 @@
         >
     <Window.Resources>
         <InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:BoolToCollapsabilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:MemberToIconConverter x:Key="memToIconConverter"/>
         <converters:ComplexObjectVisibilityConverter x:Key="complexObjectVisibilityConverter"/>
         <converters:AddressesVisibilityConverter x:Key="addressesVisibilityConverter"/>

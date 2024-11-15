@@ -10,7 +10,7 @@
         Style="{DynamicResource CustomWindowStyle}">
     <Window.Resources>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:BoolToCollapsabilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:MemberToIconConverter x:Key="memToIconConverter"/>
         <converters:ComplexObjectVisibilityConverter x:Key="strValueToVisibilityConverter"/>
         <converters:RawViewToVisibilityConverter x:Key="rawViewToVisibilityConverter"/>
