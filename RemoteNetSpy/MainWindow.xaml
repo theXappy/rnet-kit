@@ -425,32 +425,16 @@
                                         <TextBlock Margin="0"/>
                                         <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
                                             <DockPanel.Children>
-                                                <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left"
-                                               VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                                                 <TextBlock Foreground="Aquamarine"
-                                               Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisibilityConverter}}"
-                                               VerticalAlignment="Center"
-                                               Margin="10,0"
-                                               > (Frozen)</TextBlock>
+                                                           Visibility="{Binding Path=Frozen, Converter={StaticResource boolToVisibilityConverter}}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="10,0"> (Frozen)</TextBlock>
                                                 <Button DockPanel.Dock="Right"
-                                            IsEnabled="{Binding Path=Frozen}"
-                                            Visibility="Collapsed"
-                                            Padding="8,0"
-                                            Margin="0,0,4,0"
-                                            Click="ExploreButtonBaseOnClick">
-                                                    <Button.Content>
-                                                        <DockPanel>
-                                                            <Image DockPanel.Dock="Left" Source="/icons/InteractiveMode.png" Margin="0,2,3,2" Height="16"/>
-                                                            <TextBlock Text="Explore"/>
-                                                        </DockPanel>
-                                                    </Button.Content>
-                                                </Button>
-                                                <Button DockPanel.Dock="Right"
-                                            IsEnabled="{Binding Path=Frozen}"
-                                            Padding="8,0"
-                                            Margin="0,0,4,0"
-                                            Click="InspectButtonBaseOnClick"
-                                            >
+                                                           IsEnabled="{Binding Path=Frozen}"
+                                                           Padding="8,0"
+                                                           Margin="0,0,4,0"
+                                                           Click="InspectButtonBaseOnClick">
                                                     <Button.Content>
                                                         <DockPanel>
                                                             <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
@@ -459,11 +443,10 @@
                                                     </Button.Content>
                                                 </Button>
                                                 <Button DockPanel.Dock="Right" 
-                                            Click="FreezeUnfreezeHeapObjectButtonClicked"
-                                            Padding="8,0"
-                                            Margin="0,0,4,0"
-                                            MinWidth="85"
-                                            >
+                                                           Click="FreezeUnfreezeHeapObjectButtonClicked"
+                                                           Padding="8,0"
+                                                           Margin="0,0,4,0"
+                                                           MinWidth="85">
                                                     <Button.Content>
                                                         <Grid>
                                                             <DockPanel>
