@@ -4281,7 +4281,7 @@
     </ControlTemplate>
 
     <SolidColorBrush x:Key="ListBorder" Color="#828790" />
-    <Style TargetType="{x:Type TreeView}">
+    <Style  x:Key="darkThemeTreeViewStyleKey"  TargetType="{x:Type TreeView}">
         <Setter Property="Background" Value="{StaticResource ContainerBackground}" />
         <Setter Property="BorderBrush" Value="{StaticResource ContainerBorder}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -4391,7 +4391,7 @@
             </Setter.Value>
         </Setter>
     </Style>
-    <Style TargetType="{x:Type TreeViewItem}">
+    <Style x:Key="darkThemeTreeViewItemStyleKey" TargetType="{x:Type TreeViewItem}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" />
         <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" />

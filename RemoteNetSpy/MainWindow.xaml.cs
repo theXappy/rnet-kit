@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -18,6 +19,7 @@ using System.Windows.Media.Effects;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
+using CommandLine;
 using CSharpRepl.Services.Extensions;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Win32;
@@ -32,19 +34,15 @@ namespace RemoteNetSpy
     /// </summary>
     public partial class MainWindow : Window
     {
-        RemoteApp _app = null;
+        RemoteApp _app => _remoteAppModel.App;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
         private Dictionary<string, DumpedTypeModel> _dumpedTypesCache = new Dictionary<string, DumpedTypeModel>();
         private TypesModel _typesModel;
         public InjectableProcess _procBoxCurrItem;
-        public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
+        public int ProcBoxTargetPid => _procBoxCurrItem?.Pid ?? 0;
 
-        private DumpedTypeModel _currSelectedType => _typesModel.SelectedType;
+        private DumpedTypeModel _currSelectedType => _remoteAppModel.ClassesModel.SelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
-
-        private AssemblyModel _allAssembliescModel;
-        private Dictionary<AssemblyModel, List<string>>
-            _assembliesToTypes = new Dictionary<AssemblyModel, List<string>>();
 
         private RemoteAppModel _remoteAppModel;
 
@@ -58,10 +56,8 @@ namespace RemoteNetSpy
                 new System.ComponentModel.SortDescription("",
                     System.ComponentModel.ListSortDirection.Ascending));
 
-            // Set the data context of the TypesControl to an instance of the TypesModel class
-            _typesModel = TypesControl.DataContext as TypesModel;
-            // Subscribe to the PropertyChanged event of the TypesModel
-            _typesModel.PropertyChanged += TypesModel_PropertyChanged;
+            storeProductTreeView.DataContext = _remoteAppModel.ClassesModel;
+            _remoteAppModel.ClassesModel.PropertyChanged += ClassesModel_PropertyChanged;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
@@ -182,7 +178,8 @@ namespace RemoteNetSpy
 
             // Creating new RemoteApp
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Visible; });
-            _app = await ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver);
+            var newApp = await ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver);
+            _remoteAppModel.Update(newApp, ProcBoxTargetPid);
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
@@ -207,14 +204,14 @@ namespace RemoteNetSpy
             }
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RefreshAssembliesAsync");
-            Task assembliesListRefresh = RefreshAssembliesAsync();
+            Task assembliesListRefresh = RefreshAssembliesViewAsync();
         }
 
         private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
         {
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={TargetPid})");
-            Process proc = Process.GetProcessById(TargetPid);
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={TargetPid}), returned: {proc}");
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid})");
+            Process proc = Process.GetProcessById(ProcBoxTargetPid);
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid}), returned: {proc}");
             try
             {
                 return Task.Run(() =>
@@ -237,133 +234,58 @@ namespace RemoteNetSpy
             }
         }
 
-        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesAsync();
+        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesViewAsync();
 
-        private Regex r = new Regex(@"\[(.*?)\]\[(.*?)\](.*)");
 
-        private Task RefreshAssembliesAsync()
+        private async Task RefreshAssembliesViewAsync()
         {
-            _assembliesToTypes.Clear();
+            await Dispatcher.InvokeAsync(() => { assembliesSpinner.Visibility = Visibility.Visible; });
 
-            return Task.Run(() =>
+            await _remoteAppModel.ClassesModel.LoadAssembliesAsync();
+
+            await Dispatcher.InvokeAsync(() =>
             {
-
-                Dispatcher.Invoke(() => { assembliesSpinner.Visibility = Visibility.Visible; });
-
-                var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                    .WithArguments($"types -t {TargetPid} -q * " + UnmanagedFlagIfNeeded())
-                    .WithValidation(CommandResultValidation.None)
-                    .ExecuteBufferedAsync();
-                var res = x.Task.Result;
-                var xx = res.StandardOutput.Split('\n')
-                    .Skip(2)
-                    .Select(str => str.Trim());
-                foreach (string line in xx)
-                {
-                    var match = r.Match(line);
-                    string[] parts = match.Groups.Values.Select(g => g.Value).Skip(1).ToArray();
-                    if (parts.Length < 3)
-                        continue;
-                    string runtime = parts[0].Trim();
-                    string assemblyName = parts[1].Trim();
-                    var assembly = new AssemblyModel(assemblyName, runtime, anyTypes: true);
-                    string type = parts[2].Trim();
-                    if (!_assembliesToTypes.TryGetValue(assembly, out List<string> types))
-                    {
-                        types = new List<string>();
-                        _assembliesToTypes[assembly] = types;
-                    }
-                    else if (!types.Any())
-                    {
-                        // This assembly was previously added as a types-less assembly. Now we found a type inside so we need to indicate that.
-                        // Note the `assembly` we have in hand might not be the one used as the KEY in the dictionary.
-                        AssemblyModel assemblyKey = _assembliesToTypes.Keys.Single(key => key.Name == assembly.Name);
-                        assemblyKey.AnyTypes = true;
-                    }
-
-                    types.Add(type);
-                }
-
-                // Also look for types-less assemblies
-                var commandTask = CliWrap.Cli.Wrap("rnet-dump.exe")
-                    .WithArguments($"domains -t {TargetPid} " + UnmanagedFlagIfNeeded())
-                    .WithValidation(CommandResultValidation.None)
-                    .ExecuteBufferedAsync();
-                var domainsRes = commandTask.Task.Result;
-                var domainsStdout = domainsRes.StandardOutput.Split('\n')
-                    .Skip(2)
-                    .Select(str => str.Trim());
-                foreach (string line in domainsStdout)
-                {
-                    if (line.StartsWith("[module] "))
-                    {
-                        string moduleName = line.Substring("[module] ".Length);
-                        var assemblyModel = new AssemblyModel(moduleName, TargetRuntime, anyTypes: false);
-                        if (!_assembliesToTypes.ContainsKey(assemblyModel))
-                        {
-                            _assembliesToTypes[assemblyModel] = new List<string>();
-                        }
-                    }
-                }
-
-                List<AssemblyModel> assemblies = _assembliesToTypes.Keys.ToList();
-                _allAssembliescModel = new AssemblyModel("* All", RuntimeType.Unknown, anyTypes: true);
-                assemblies.Add(_allAssembliescModel);
-                assemblies.Sort((desc, assemblyModel) => desc.Name.CompareTo(assemblyModel.Name));
-
-                Dispatcher.Invoke(() =>
-                {
-                    assembliesListBox.ItemsSource = assemblies;
-                    assembliesSpinner.Visibility = Visibility.Collapsed;
-                });
-            })
-                .ContinueWith(_ =>
-                {
-                    Dispatcher.Invoke(() => filterBox_TextChanged(assembliesFilterBox, null));
-                });
+                assembliesSpinner.Visibility = Visibility.Collapsed;
+                //
+                // TODO
+                //
+                //assembliesListBox.ItemsSource = assemblies;
+                //filterBox_TextChanged(assembliesFilterBox, null);
+            });
         }
 
-        private RuntimeType TargetRuntime => _app is UnmanagedRemoteApp ? RuntimeType.Unmanaged : RuntimeType.Managed;
 
         private string UnmanagedFlagIfNeeded()
         {
-            if (TargetRuntime == RuntimeType.Unmanaged)
+            if (_remoteAppModel.TargetRuntime == RuntimeType.Unmanaged)
                 return "-u";
             return string.Empty;
         }
 
-        private async void assembliesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            membersListBox.ItemsSource = null;
-
-            List<DumpedTypeModel> dumpedTypes = await GetTypesListAsync();
-            TypesControl.UpdateTypesList(dumpedTypes);
-        }
-
         private async Task<List<DumpedTypeModel>> GetTypesListAsync()
         {
-            AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
-            return await GetTypesListAsync(assembly);
+            //AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
+            //return await GetTypesListAsync(assembly);
+            throw new Exception();
         }
 
-        private async Task<List<DumpedTypeModel>> GetTypesListAsync(AssemblyModel assembly)
+        private async Task<List<DumpedTypeModel>> GetTypesListAsync(bool all)
         {
             IEnumerable<DumpedTypeModel> types = null;
-            if (assembly == null)
-                return new List<DumpedTypeModel>();
-            if (assembly.Name == "* All")
+            if (all)
             {
                 await Task.Run(() =>
                 {
-                    types = _assembliesToTypes.SelectMany(kvp => kvp.Value.Select(type => new DumpedTypeModel(kvp.Key.Name, type, null)));
+                    types = _remoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
                 });
             }
             else
             {
-                await Task.Run(() =>
-                {
-                    types = _assembliesToTypes[assembly].Select(str => new DumpedTypeModel(assembly.Name, str, null));
-                });
+                throw new ArgumentException();
+                //await Task.Run(() =>
+                //{
+                //    types = _remoteAppModel.Assemblies[assembly].Types;
+                //});
             }
 
             var tempList = types.ToHashSet().ToList();
@@ -479,7 +401,7 @@ namespace RemoteNetSpy
             string type = (_currSelectedType)?.FullTypeName;
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {TargetPid} -q \"{type}\" " + UnmanagedFlagIfNeeded())
+                .WithArguments($"heap -t {ProcBoxTargetPid} -q \"{type}\" " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -536,36 +458,6 @@ namespace RemoteNetSpy
             Regex r = null;
 
             ListBox associatedBox = null;
-            //if (sender == typesFilterBox)
-            //{
-            //    associatedBox = typesListBox;
-            //    matchCase = _matchCaseTypes;
-            //    useRegex = _regexTypes;
-            //    onlyTypesInHeap = _onlyTypesInHeap;
-
-            //    if (useRegex)
-            //    {
-            //        try
-            //        {
-            //            string tempFilter = (sender as TextBox)?.Text;
-            //            r = new Regex(tempFilter);
-            //        }
-            //        catch
-            //        {
-            //            typesFilterBoxBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 153, 164));
-            //            return;
-            //        }
-            //    }
-
-            //    // No errors in the types filter, reset border
-            //    typesFilterBoxBorder.BorderBrush = null;
-            //}
-
-            if (sender == assembliesFilterBox)
-            {
-                associatedBox = assembliesListBox;
-            }
-
             if (sender == membersFilterBox)
             {
                 associatedBox = membersListBox;
@@ -596,22 +488,6 @@ namespace RemoteNetSpy
                     {
                         return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
                     }
-
-                    //if (sender == typesFilterBox)
-                    //{
-                    //    string input = _dumpedTypeToDescription.Convert(o, null, null, null) as string;
-                    //    if (onlyTypesInHeap && !HeapInstancesRegex().IsMatch(input))
-                    //        return false;
-                    //    if (!useRegex)
-                    //        return input?.Contains(filter, comp) == true;
-                    //    return r.IsMatch(input);
-                    //}
-
-                    if (sender == assembliesFilterBox)
-                    {
-                        return (o as AssemblyModel)?.Name?.Contains(filter, comp) == true;
-                    }
-
                     return (o as string)?.Contains(filter) == true;
                 };
             }
@@ -619,8 +495,6 @@ namespace RemoteNetSpy
 
         private void clearTypesFilterButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (sender == clearAssembliesFilterButton)
-                assembliesFilterBox.Clear();
             if (sender == clearMembersFilterButton)
                 membersFilterBox.Clear();
         }
@@ -630,7 +504,7 @@ namespace RemoteNetSpy
             membersListBox.ItemsSource = null;
             _typesModel.SelectedType = null;
             _typesModel.Types = null;
-            assembliesListBox.ItemsSource = null;
+            //assembliesListBox.ItemsSource = null;
             heapInstancesListBox.ItemsSource = null;
             _traceList.Clear();
 
@@ -658,7 +532,7 @@ namespace RemoteNetSpy
 
             try
             {
-                List<string> args = new List<string>() { "-t", TargetPid.ToString(), UnmanagedFlagIfNeeded() };
+                List<string> args = new List<string>() { "-t", ProcBoxTargetPid.ToString(), UnmanagedFlagIfNeeded() };
                 args.Add("-l");
                 args.Add($"\"{tempFlistPath}\"");
 
@@ -842,7 +716,7 @@ namespace RemoteNetSpy
 
                     // Check if the assembly related to the HeapObject is already being monitored
                     string assemblyName = dataContext.FullTypeName.Split('!')[0];
-                    AssemblyModel assembly = _assembliesToTypes.Keys.FirstOrDefault(a => a.Name == assemblyName);
+                    AssemblyModel assembly = _remoteAppModel.ClassesModel.Assemblies.FirstOrDefault(a => a.Name == assemblyName);
                     if (assembly != null && !assembly.IsMonitoringAllocation)
                     {
                         // Activate OffensiveGC if it is not already active
@@ -871,78 +745,7 @@ namespace RemoteNetSpy
 
         private async void CountButton_Click(object sender, RoutedEventArgs e)
         {
-            countButton.IsEnabled = false;
-
-            var originalBrush = countLabel.Foreground;
-            Brush transparentColor = originalBrush.Clone();
-            transparentColor.Opacity = 0;
-            countLabel.Foreground = transparentColor;
-            spinner1.Visibility = Visibility.Visible;
-
-
-            AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
-            if (assembly == null)
-            {
-                MessageBox.Show("You must select an assembly first.", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            string assemblyFilter = assembly.Name;
-            if (assembly.Name == "* All")
-                assemblyFilter = "*"; // Wildcard
-
-            if (_app is UnmanagedRemoteApp)
-                assemblyFilter += "!*"; // Indicate we want any type within the module
-            else if (_app is ManagedRemoteApp)
-                assemblyFilter += ".*"; // Indicate we want any type within the assembly
-
-            var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {TargetPid} -q {assemblyFilter} " + UnmanagedFlagIfNeeded())
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
-            BufferedCommandResult res = await x.Task;
-            IEnumerable<string> rnetDumpStdOutLines = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .SkipWhile(line => !line.Contains("Found "))
-                .Skip(1)
-                .Select(str => str.Trim())
-                .Select(str => str.Split(' ')[1]);
-
-            List<DumpedTypeModel> types = await GetTypesListAsync();
-            // Like `Distinct` without an IEqualityComparer
-            var uniqueTypes = types.GroupBy(x => x.FullTypeName).Select(grp => grp.First());
-            Dictionary<string, DumpedTypeModel> typeNamesToTypes = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName);
-            Dictionary<string, int> typesAndInstancesCount = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName, _ => 0);
-            foreach (string heapObjectType in rnetDumpStdOutLines)
-            {
-                if (typesAndInstancesCount.ContainsKey(heapObjectType))
-                    typesAndInstancesCount[heapObjectType]++;
-            }
-
-
-            List<DumpedTypeModel> dumpedTypes = new List<DumpedTypeModel>();
-            foreach (KeyValuePair<string, int> kvp in typesAndInstancesCount)
-            {
-                int? numInstances = kvp.Value != 0 ? kvp.Value : null;
-                DumpedTypeModel dt;
-                if (_dumpedTypesCache.TryGetValue(kvp.Key, out dt))
-                {
-                    dt.NumInstances = numInstances;
-                }
-                else
-                {
-                    dt = typeNamesToTypes[kvp.Key];
-                    dt.NumInstances = numInstances;
-                    _dumpedTypesCache[kvp.Key] = dt;
-                }
-                dumpedTypes.Add(dt);
-            }
-
-            TypesControl.UpdateTypesList(dumpedTypes);
-
-            spinner1.Visibility = Visibility.Collapsed;
-            countLabel.Foreground = originalBrush;
-            countButton.IsEnabled = true;
+         
         }
 
         private void ManualTraceClicked(object sender, RoutedEventArgs e)
@@ -959,7 +762,7 @@ namespace RemoteNetSpy
             if (res == true)
             {
 
-                List<string> args = new List<string>() { "-t", TargetPid.ToString(), UnmanagedFlagIfNeeded() };
+                List<string> args = new List<string>() { "-t", ProcBoxTargetPid.ToString(), UnmanagedFlagIfNeeded() };
                 string[] funcsToTrace = qWin.Queries;
                 foreach (string funcToTrace in funcsToTrace)
                 {
@@ -1039,7 +842,7 @@ namespace RemoteNetSpy
 
             await interactivePanel.StartAsync("rnet-repl.exe");
             string connectionScript =
-@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
+@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({ProcBoxTargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
             await interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n");
             return;
         }
@@ -1181,8 +984,9 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
         private void watchAllocationToolbarButton_Clicked(object sender, RoutedEventArgs e)
         {
-            AssemblyModel module = assembliesListBox.SelectedItem as AssemblyModel;
-            WatchModuleAllocations(module);
+            //AssemblyModel module = assembliesListBox.SelectedItem as AssemblyModel;
+            //WatchModuleAllocations(module);
+            throw new Exception();
         }
 
         private void WatchModuleAllocations(AssemblyModel module)
@@ -1208,16 +1012,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             string assembly = module.Name;
             unmanagedApp.Communicator.StartOffensiveGC(assembly);
             module.IsMonitoringAllocation = true;
-        }
-
-        private void injectDllButton_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Multiselect = false;
-            if (ofd.ShowDialog() != true)
-                return;
-
-            string file = ofd.FileName;
         }
 
         private void LaunchBrowserClick(object sender, RoutedEventArgs e)
@@ -1314,12 +1108,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             e.Handled = true;
         }
 
-        private void TraceTypeExtraButton_OnMouseEnter(object sender, MouseEventArgs e)
-        {
-            traceTypeExtraButtonHoverHack.Visibility = (sender as Button).IsMouseOver ? Visibility.Visible : Visibility.Hidden;
-            Debug.WriteLine($"traceTypeExtraButtonHoverHack.Visibility changed to {traceTypeExtraButtonHoverHack.Visibility}");
-        }
-
         private void memoryViewButton_Click(object sender, RoutedEventArgs e)
         {
             if (_app == null)
@@ -1339,12 +1127,12 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
 
-        private async void TypesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private async void ClassesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(TypesModel.SelectedType))
+            if (e.PropertyName != nameof(ClassesModel.SelectedType))
                 return;
 
-            DumpedTypeModel selectedType = (sender as TypesModel).SelectedType;
+            DumpedTypeModel selectedType = (sender as ClassesModel).SelectedType;
             if (selectedType == null)
                 return;
 
@@ -1356,7 +1144,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             }
 
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
+                .WithArguments($"members -t {ProcBoxTargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
             var res = await x.Task;
@@ -1405,10 +1193,10 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
             // Helper dict of dumped types from the LAST heap "objects count" so we can propogate
             // the num of instances into the types list in the sub-window
-            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = (this.TypesControl.DataContext as TypesModel).Types;
+            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_remoteAppModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
             Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
             var typesModel = new TypesModel();
-            List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(_allAssembliescModel).ContinueWith((task) =>
+            List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
             {
                 return task.Result.Select(newTypeDump =>
                 {
@@ -1471,15 +1259,16 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
 #pragma warning disable IDE0051 // Remove unused private members
         private void TypesControl_GoToAssemblyInvoked(string assembly)
         {
-            AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
-            int index = assembliesListBox.Items.IndexOf(matchingAssembly);
+            throw new Exception();
+            //AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
+            //int index = assembliesListBox.Items.IndexOf(matchingAssembly);
 
-            //Trick to scroll to our selected item from the BOTTOM
-            double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
-            double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
-            var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
-            assembliesListBox.SelectedItem = matchingAssembly;
-            assembliesListBox.ScrollIntoView(furtherDownItem);
+            ////Trick to scroll to our selected item from the BOTTOM
+            //double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
+            //double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
+            //var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
+            //assembliesListBox.SelectedItem = matchingAssembly;
+            //assembliesListBox.ScrollIntoView(furtherDownItem);
         }
 #pragma warning restore IDE0051 // Remove unused private members
     }

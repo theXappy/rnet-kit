@@ -1,6 +1,7 @@
 ﻿using RemoteNET;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -12,6 +13,7 @@ namespace RemoteNetSpy.Models
     {
         private bool _isMonitoringAllocation;
         private bool anyTypes;
+        private ObservableCollection<DumpedTypeModel> _types;
 
         public string Name { get; private set; }
         public RuntimeType Runtime { get; private set; }
@@ -30,7 +32,11 @@ namespace RemoteNetSpy.Models
             get => anyTypes;
             set => SetField(ref anyTypes, value);
         }
-
+        public ObservableCollection<DumpedTypeModel> Types 
+        {
+            get => _types; 
+            set => SetField(ref _types, value); 
+        }
 
         public AssemblyModel(string name, RuntimeType runtime, bool anyTypes)
         {
@@ -38,6 +44,7 @@ namespace RemoteNetSpy.Models
             Runtime = runtime;
             IsMonitoringAllocation = false;
             AnyTypes = anyTypes;
+            _types = new ObservableCollection<DumpedTypeModel>();
         }
 
         public AssemblyModel(string name, string runtime, bool anyTypes) : this(name, Enum.Parse<RuntimeType>(runtime), anyTypes)

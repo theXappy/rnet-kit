@@ -1,0 +1,169 @@
+﻿<UserControl x:Class="RemoteNetSpy.Controls.StoreProductTreeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:RemoteNetSpy.Converters" xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
+             mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="300">
+    <UserControl.Resources>
+        <converters:MemberToIconConverter x:Key="memToIconConverter"/>
+        <converters:ModuleToIconConverter x:Key="moduleToIconConverter"/>
+        <converters:BoolToWatchIconConverter x:Key="moduleToWatchIconConverter"/>
+        <converters:BoolToFreezeButtonText x:Key="boolToFreezeButtonText"/>
+        <converters:BoolToFreezeIconConverter x:Key="boolToFreezeIcon"/>
+        <converters:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
+        <converters:BoolToCollapsabilityConverter x:Key="boolToCollapsabilityConverter"/>
+        <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
+        <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
+        <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
+        <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
+        <Style TargetType="ToolBar">
+            <!-- Not Dropdown Button -->
+            <Setter Property="ToolBarTray.IsLocked" Value="True"/>
+            <!-- Not Overflow Button -->
+            <Setter Property="OverflowMode" Value="Never"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <ToolBarPanel IsItemsHost="True" Background="{x:Null}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Style for ToolBarTrays -->
+        <Style TargetType="ToolBarTray">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+        <!-- Style for Buttons -->
+        <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}">
+            <Setter Property="Background" Value="{x:Null}"/>
+            <Setter Property="BorderBrush" Value="{x:Null}"/>
+        </Style>
+        <!-- Style for Tree View -->
+        <Style TargetType="TreeView" BasedOn="{StaticResource darkThemeTreeViewStyleKey}">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+
+        <!-- TextBox -->
+        <DockPanel Grid.Row="0" x:Name="AssembliesAreaHeader" Dock="Top" Background="#07ffffff">
+            <Label DockPanel.Dock="Top">Types</Label>
+            <ToolBarTray DockPanel.Dock="Top" IsLocked="True" ClipToBounds="True" Height="26">
+                <ToolBar ToolBarTray.IsLocked="True">
+                    <DockPanel>
+                        <Button x:Name="assembliesRefreshButton" Click="AssembliesRefreshButton_OnClick" ToolTip="Refresh assemblies list" Padding="0">
+                            <Grid Width="24" Height="24">
+                                <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                <TextBlock/>
+                                <Image x:Name="modulesRefreshImage" Source="../icons/Modules_Refresh.png" Stretch="None"/>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="injectDllButton" ToolTip="Inject a .dll" Click="injectDllButton_Click" Padding="0">
+                            <Grid Width="24" Height="24">
+                                <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
+                                <TextBlock/>
+                                <Image Source="../icons/AddModule.png" Stretch="None"/>
+                            </Grid>
+                        </Button>
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
+                        <Button x:Name="countButton" MinHeight="22" Margin="2,0" Click="CountButton_Click">
+                            <Button.Content>
+                                <Grid>
+                                    <TextBlock/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Image Source="../icons/SearchClass.png" Height="16" Margin="2,0,0,0"/>
+                                        <TextBlock x:Name="countLabel" Margin="4,0">Count</TextBlock>
+                                    </StackPanel>
+                                    <remoteNetSpy:Spinner x:Name="spinner1" Visibility="Collapsed" Height="16" HideBackground="True"/>
+                                </Grid>
+                            </Button.Content>
+                        </Button>
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
+                        <Button x:Name="traceClassButton" MinHeight="22" Margin="2,0" Click="TraceTypeOptimal_OnClick" Padding="0">
+                            <Button.Content>
+                                <Grid Height="24">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.ColumnSpan="2"/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Image Source="../icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
+                                        <TextBlock Margin="4,0">Trace Type</TextBlock>
+                                    </StackPanel>
+                                    <Grid Grid.Column="1">
+                                        <Button x:Name="traceTypeExtraButton" Grid.Column="1" FontFamily="Marlett" Content="6" Click="ShowTraceTypeContextMenu">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem
+                                                           Header="Trace Type (Full)"
+                                                           ToolTip="Traces all methods of the type, including ones that might be problematic like Equals, Finalize, ..."
+                                                           Click="TraceTypeFull_OnClick" 
+                                                           >
+                                                        <MenuItem.Icon>
+                                                            <Image Source="../icons/TraceClass.png"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
+                                        <TextBlock x:Name="traceTypeExtraButtonHoverHack" Background="#11ffffff" IsHitTestVisible="False"
+                                                      Visibility="{Binding IsMouseOver, ElementName=traceTypeExtraButton, Converter={StaticResource boolToCollapsabilityConverter}, FallbackValue=Hidden}"
+                                                      />
+                                    </Grid>
+                                </Grid>
+                            </Button.Content>
+                        </Button>
+                    </DockPanel>
+                </ToolBar>
+            </ToolBarTray>
+            <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
+                <TextBox x:Name="assembliesFilterBox" TextChanged="filterBox_TextChanged"
+                  Height="26"
+                  VerticalContentAlignment="Center" 
+                  Background="#07ffffff"/>
+                <Button x:Name="clearAssembliesFilterButton" 
+                 DockPanel.Dock="Right" 
+                 Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">
+                    <Button.Content>X</Button.Content>
+                </Button>
+            </Grid>
+        </DockPanel>
+
+        <!--<TextBox x:Name="SearchTextBox" Grid.Row="0" Text="Search stores or products..."/>-->
+
+        <!-- TreeView -->
+        <TreeView Grid.Row="1" Margin="0,5,0,0" ItemsSource="{Binding Assemblies}" SelectedItemChanged="TreeView_SelectedItemChanged">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource darkThemeTreeViewItemStyleKey}">
+                    <EventSetter Event="RequestBringIntoView" Handler="TreeViewItem_RequestBringIntoView"/>
+                </Style>
+            </TreeView.ItemContainerStyle>
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Types}">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
+                        <TextBlock Text="{Binding Name}" Margin="2,0,5,0"/>
+                    </StackPanel>
+                    <HierarchicalDataTemplate.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="../icons/Class.png" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding FullTypeName}"  Margin="2,0,5,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </HierarchicalDataTemplate.ItemTemplate>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+    </Grid>
+</UserControl>
