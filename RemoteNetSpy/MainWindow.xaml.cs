@@ -19,6 +19,7 @@ using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNetSpy.Converters;
@@ -185,6 +186,9 @@ namespace RemoteNetSpy
             await connectorTask;
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
 
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
+            await InteractiveWindow_Init();
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] << Initializing Interactive Window");
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
@@ -799,15 +803,18 @@ namespace RemoteNetSpy
             dPanel.Visibility = Visibility.Collapsed;
             loadingImage.Visibility = Visibility.Visible;
 
+            HeapObject ho = senderButton.DataContext as HeapObject;
             try
             {
-                await FreezeUnfreeze(senderButton.DataContext as HeapObject);
+                await FreezeUnfreeze(ho);
             }
             finally
             {
                 dPanel.Visibility = Visibility.Visible;
                 loadingImage.Visibility = Visibility.Collapsed;
             }
+
+            InterativeWindow_AddVar(ho);
         }
 
         private async Task FreezeUnfreeze(HeapObject dataContext)
@@ -1004,15 +1011,19 @@ namespace RemoteNetSpy
             }
         }
 
+        int _remoteObjectIndex = 0;
+
         private void ExploreButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
             HeapObject dataContext = senderButton.DataContext as HeapObject;
-            if (!dataContext.Frozen || dataContext.RemoteObject == null)
-            {
-                MessageBox.Show("ERROR: Object must be frozed.");
+            InterativeWindow_AddVar(dataContext);
+        }
+
+        private async Task InteractiveWindow_Init()
+        {
+            if (interactivePanel.IsStarted)
                 return;
-            }
 
             RuntimeType runtime = RuntimeType.Managed;
             if (_app is UnmanagedRemoteApp)
@@ -1020,17 +1031,66 @@ namespace RemoteNetSpy
 
             string RuntimeTypeFullTypeName = typeof(RuntimeType).FullName;
 
-            string script =
-                @$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});
-var ro = app.GetRemoteObject(0x{dataContext.Address:X16}, ""{dataContext.FullTypeName}"");
-dynamic dro = ro.Dynamify();
-";
-
-            string path = Path.GetTempFileName();
-            File.WriteAllText(path, script);
-
-            Process.Start("rnet-repl.exe", new string[] { "--statementsFile", path });
+            await interactivePanel.StartAsync("rnet-repl.exe");
+            string connectionScript =
+@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({TargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
+            await interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n");
+            return;
         }
+        private void InterativeWindow_AddVar(HeapObject dataContext)
+        {
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozen.");
+                return;
+            }
+
+            Task initTask = InteractiveWindow_Init();
+
+            _remoteObjectIndex++;
+            string roVarName = $"ro{_remoteObjectIndex}";
+            string droVarName = $"dro{_remoteObjectIndex}";
+            string objectScript =
+$"var {roVarName} = app.GetRemoteObject(0x{dataContext.Address:X16}, \"{dataContext.FullTypeName}\");\r\n" +
+$"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
+
+            initTask.ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(async () =>
+                {
+                    await interactivePanel.WriteInputTextAsync(objectScript);
+                    dataContext.InteractiveRoVarName = roVarName;
+                    dataContext.InteractiveDroVarName = droVarName;
+                });
+            });
+        }
+
+        private void InterativeWindow_CastVar(HeapObject dataContext, string fullTypeName)
+        {
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozen.");
+                return;
+            }
+
+            Task initTask = InteractiveWindow_Init();
+
+            string roVarName = dataContext.InteractiveRoVarName;
+            string droVarName = dataContext.InteractiveDroVarName;
+            string objectScript =
+$"{roVarName} = {roVarName}.Cast(app.GetRemoteType(\"{fullTypeName}\"));\r\n" +
+$"{droVarName} = {roVarName}.Dynamify();\r\n";
+
+            initTask.ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(async () =>
+                {
+                    await interactivePanel.WriteInputTextAsync(objectScript);
+                });
+            });
+        }
+
+
 
         private object _scalingLock = new object();
         private int _scalingFactor = 0;
@@ -1379,6 +1439,7 @@ dynamic dro = ro.Dynamify();
                 var newRemoteObject = heapObject.RemoteObject.Cast(newType);
                 heapObject.RemoteObject = newRemoteObject;
                 heapObject.FullTypeName = selectedType.FullTypeName;
+                InterativeWindow_CastVar(heapObject, selectedType.FullTypeName);
             }
             catch (Exception ex)
             {
