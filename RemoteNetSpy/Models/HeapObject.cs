@@ -11,6 +11,8 @@ public class HeapObject : INotifyPropertyChanged, IComparable
     private ulong _address;
     private RemoteObject remoteObject;
     private string _fullTypeName;
+    private string _interactiveRoVarName;
+    private string _interactiveDroVarName;
 
     public ulong Address
     {
@@ -39,6 +41,28 @@ public class HeapObject : INotifyPropertyChanged, IComparable
             _fullTypeName = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(Description));
+        }
+    }
+    public string InteractiveRoVarName
+    {
+        get => _interactiveRoVarName;
+        set
+        {
+            if (value == _interactiveRoVarName) return;
+            _interactiveRoVarName = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(InteractiveRoVarName));
+        }
+    }
+    public string InteractiveDroVarName
+    {
+        get => _interactiveDroVarName;
+        set
+        {
+            if (value == _interactiveDroVarName) return;
+            _interactiveDroVarName = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(InteractiveDroVarName));
         }
     }
 

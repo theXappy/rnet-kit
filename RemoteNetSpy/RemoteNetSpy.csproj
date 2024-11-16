@@ -186,6 +186,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\Users\Shai\source\repos\conemu-inside-net8-CLEAN\ConEmuWpf\ConEmuWpf.csproj" />
 		<ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
 		<ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
 		<ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
