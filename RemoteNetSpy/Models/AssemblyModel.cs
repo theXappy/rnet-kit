@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 
 namespace RemoteNetSpy.Models
 {
@@ -12,6 +13,8 @@ namespace RemoteNetSpy.Models
     {
         private bool _isMonitoringAllocation;
         private bool anyTypes;
+        private ObservableCollection<DumpedTypeModel> _fullTypesList;
+        private ObservableCollection<DumpedTypeModel> _filteredTypesList;
 
         public string Name { get; private set; }
         public RuntimeType Runtime { get; private set; }
@@ -31,6 +34,17 @@ namespace RemoteNetSpy.Models
             set => SetField(ref anyTypes, value);
         }
 
+        public ObservableCollection<DumpedTypeModel> FullTypesList
+        {
+            get => _fullTypesList;
+            set => SetField(ref _fullTypesList, value);
+        }
+
+        public ObservableCollection<DumpedTypeModel> FilteredTypesList
+        {
+            get => _filteredTypesList;
+            set => SetField(ref _filteredTypesList, value);
+        }
 
         public AssemblyModel(string name, RuntimeType runtime, bool anyTypes)
         {
@@ -38,10 +52,24 @@ namespace RemoteNetSpy.Models
             Runtime = runtime;
             IsMonitoringAllocation = false;
             AnyTypes = anyTypes;
+            FullTypesList = new ObservableCollection<DumpedTypeModel>();
+            FilteredTypesList = new ObservableCollection<DumpedTypeModel>();
         }
 
         public AssemblyModel(string name, string runtime, bool anyTypes) : this(name, Enum.Parse<RuntimeType>(runtime), anyTypes)
         {
+        }
+
+        public void UpdateFilteredTypesList(Func<DumpedTypeModel, bool> filterCriteria)
+        {
+            FilteredTypesList.Clear();
+            foreach (var type in FullTypesList)
+            {
+                if (filterCriteria(type))
+                {
+                    FilteredTypesList.Add(type);
+                }
+            }
         }
 
         public override bool Equals(object obj)

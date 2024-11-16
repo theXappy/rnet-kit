@@ -233,27 +233,7 @@
                     </Grid>
                 </DockPanel>
                 <Grid x:Name="AssembliesValuesArea">
-                    <ListBox DockPanel.Dock="Top" x:Name="assembliesListBox" SelectionChanged="assembliesListBox_SelectionChanged">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate  DataType="{x:Type models:AssemblyModel}">
-                                <DockPanel>
-                                    <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
-                                    <TextBlock Text="{Binding Path=Name}" 
-                                           Foreground="{Binding Path=AnyTypes, Converter={StaticResource boolToForegroundColor}}" 
-                                >
-                                        <TextBlock.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Copy Assembly Name" Click="AssemblyMenuItem_OnClick"/>
-                                            </ContextMenu>
-                                        </TextBlock.ContextMenu>
-                                    </TextBlock>
-                                    <!-- Optional 'Watch' icon, for allocation-monitored modules -->
-                                    <Image Source="{Binding Path=IsMonitoringAllocation, Converter={StaticResource moduleToWatchIconConverter}}" Margin="5,0,3,0"/>
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                    <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
+                    <controls:TypesTreeControl x:Name="TypesTreeControl" GoToAssemblyInvoked="TypesTreeControl_GoToAssemblyInvoked" />
                 </Grid>
             </DockPanel>
             <DockPanel Grid.Column="1" Grid.Row="1"  Margin="5,5,0,5">
@@ -317,7 +297,6 @@
                     </ToolBarTray>
 
                 </DockPanel>
-                <controls:TypesControl x:Name="TypesControl" GoToAssemblyInvoked="TypesControl_GoToAssemblyInvoked" />
             </DockPanel>
 
 

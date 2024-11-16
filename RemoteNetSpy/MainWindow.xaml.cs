@@ -35,11 +35,11 @@ namespace RemoteNetSpy
         RemoteApp _app = null;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
         private Dictionary<string, DumpedTypeModel> _dumpedTypesCache = new Dictionary<string, DumpedTypeModel>();
-        private TypesModel _typesModel;
+        private TypesTreeModel _typesTreeModel;
         public InjectableProcess _procBoxCurrItem;
         public int TargetPid => _procBoxCurrItem?.Pid ?? 0;
 
-        private DumpedTypeModel _currSelectedType => _typesModel.SelectedType;
+        private DumpedTypeModel _currSelectedType => _typesTreeModel.SelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
 
         private AssemblyModel _allAssembliescModel;
@@ -58,10 +58,10 @@ namespace RemoteNetSpy
                 new System.ComponentModel.SortDescription("",
                     System.ComponentModel.ListSortDirection.Ascending));
 
-            // Set the data context of the TypesControl to an instance of the TypesModel class
-            _typesModel = TypesControl.DataContext as TypesModel;
-            // Subscribe to the PropertyChanged event of the TypesModel
-            _typesModel.PropertyChanged += TypesModel_PropertyChanged;
+            // Set the data context of the TypesTreeControl to an instance of the TypesTreeModel class
+            _typesTreeModel = TypesTreeControl.DataContext as TypesTreeModel;
+            // Subscribe to the PropertyChanged event of the TypesTreeModel
+            _typesTreeModel.PropertyChanged += TypesTreeModel_PropertyChanged;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
@@ -313,7 +313,7 @@ namespace RemoteNetSpy
 
                 Dispatcher.Invoke(() =>
                 {
-                    assembliesListBox.ItemsSource = assemblies;
+                    TypesTreeControl.DataContext = new TypesTreeModel { Assemblies = new ObservableCollection<AssemblyModel>(assemblies) };
                     assembliesSpinner.Visibility = Visibility.Collapsed;
                 });
             })
@@ -331,104 +331,6 @@ namespace RemoteNetSpy
                 return "-u";
             return string.Empty;
         }
-
-        private async void assembliesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            membersListBox.ItemsSource = null;
-
-            List<DumpedTypeModel> dumpedTypes = await GetTypesListAsync();
-            TypesControl.UpdateTypesList(dumpedTypes);
-        }
-
-        private async Task<List<DumpedTypeModel>> GetTypesListAsync()
-        {
-            AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
-            return await GetTypesListAsync(assembly);
-        }
-
-        private async Task<List<DumpedTypeModel>> GetTypesListAsync(AssemblyModel assembly)
-        {
-            IEnumerable<DumpedTypeModel> types = null;
-            if (assembly == null)
-                return new List<DumpedTypeModel>();
-            if (assembly.Name == "* All")
-            {
-                await Task.Run(() =>
-                {
-                    types = _assembliesToTypes.SelectMany(kvp => kvp.Value.Select(type => new DumpedTypeModel(kvp.Key.Name, type, null)));
-                });
-            }
-            else
-            {
-                await Task.Run(() =>
-                {
-                    types = _assembliesToTypes[assembly].Select(str => new DumpedTypeModel(assembly.Name, str, null));
-                });
-            }
-
-            var tempList = types.ToHashSet().ToList();
-            tempList.Sort((dt1, dt2) => dt1.FullTypeName.CompareTo(dt2.FullTypeName));
-            return tempList;
-        }
-
-        //private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        //{
-        //    _currSelectedType = (_currSelectedType);
-        //    string type = _currSelectedType?.FullTypeName;
-        //    if (type == null)
-        //    {
-        //        membersListBox.ItemsSource = null;
-        //        return;
-        //    }
-
-
-        //    var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-        //        .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
-        //        .WithValidation(CommandResultValidation.None)
-        //        .ExecuteBufferedAsync();
-        //    var res = await x.Task;
-        //    var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-        //        .SkipWhile(line => !line.Contains("Members of "))
-        //        .Skip(1)
-        //        .Select(str => str.Trim());
-
-        //    List<string> rawLinesList = xx.ToList();
-        //    List<DumpedMember> dumpedMembers = new List<DumpedMember>();
-        //    for (int i = 0; i < rawLinesList.Count; i += 2)
-        //    {
-        //        DumpedMember dumpedMember = new DumpedMember()
-        //        {
-        //            RawName = rawLinesList[i],
-        //            NormalizedName = rawLinesList[i + 1]
-        //        };
-        //        dumpedMembers.Add(dumpedMember);
-        //    }
-
-        //    dumpedMembers.Sort(CompareDumperMembers);
-
-        //    membersListBox.ItemsSource = dumpedMembers;
-
-        //    filterBox_TextChanged(membersFilterBox, null);
-        //}
-
-        private int CompareDumperMembers(DumpedMember member1, DumpedMember member2)
-        {
-            var res = member1.MemberType.CompareTo(member2.MemberType);
-            if (res != 0)
-            {
-                // Member types mismatched.
-                // Order is mostly alphabetic except Method Tables, which go first.
-                if (member1.MemberType == "MethodTable")
-                    return -1;
-                if (member2.MemberType == "MethodTable")
-                    return 1;
-                return res;
-            }
-
-            // Same member type, sub-sort alphabetically (the member names).
-            return member1.RawName.CompareTo(member2.RawName);
-        }
-
 
         private async void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -628,8 +530,8 @@ namespace RemoteNetSpy
         private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
         {
             membersListBox.ItemsSource = null;
-            _typesModel.SelectedType = null;
-            _typesModel.Types = null;
+            _typesTreeModel.SelectedType = null;
+            _typesTreeModel.Types = null;
             assembliesListBox.ItemsSource = null;
             heapInstancesListBox.ItemsSource = null;
             _traceList.Clear();
@@ -938,7 +840,7 @@ namespace RemoteNetSpy
                 dumpedTypes.Add(dt);
             }
 
-            TypesControl.UpdateTypesList(dumpedTypes);
+            TypesTreeControl.UpdateTypesList(dumpedTypes);
 
             spinner1.Visibility = Visibility.Collapsed;
             countLabel.Foreground = originalBrush;
@@ -1339,12 +1241,12 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
 
-        private async void TypesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private async void TypesTreeModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(TypesModel.SelectedType))
+            if (e.PropertyName != nameof(TypesTreeModel.SelectedType))
                 return;
 
-            DumpedTypeModel selectedType = (sender as TypesModel).SelectedType;
+            DumpedTypeModel selectedType = (sender as TypesTreeModel).SelectedType;
             if (selectedType == null)
                 return;
 
@@ -1405,7 +1307,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
             // Helper dict of dumped types from the LAST heap "objects count" so we can propogate
             // the num of instances into the types list in the sub-window
-            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = (this.TypesControl.DataContext as TypesModel).Types;
+            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = (this.TypesTreeControl.DataContext as TypesTreeModel).Types;
             Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
             var typesModel = new TypesModel();
             List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(_allAssembliescModel).ContinueWith((task) =>
@@ -1469,17 +1371,17 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
         }
 
 #pragma warning disable IDE0051 // Remove unused private members
-        private void TypesControl_GoToAssemblyInvoked(string assembly)
+        private void TypesTreeControl_GoToAssemblyInvoked(string assembly)
         {
-            AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
-            int index = assembliesListBox.Items.IndexOf(matchingAssembly);
+            AssemblyModel matchingAssembly = (TypesTreeControl.DataContext as TypesTreeModel).Assemblies.FirstOrDefault(x => x.Name == assembly);
+            int index = TypesTreeControl.DataContext.Assemblies.IndexOf(matchingAssembly);
 
             //Trick to scroll to our selected item from the BOTTOM
-            double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
-            double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
-            var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
-            assembliesListBox.SelectedItem = matchingAssembly;
-            assembliesListBox.ScrollIntoView(furtherDownItem);
+            double singleListItemHeight = TypesTreeControl.FindVisualChildren<TreeViewItem>().First().ActualHeight;
+            double numItemsShown = TypesTreeControl.ActualHeight / singleListItemHeight;
+            var furtherDownItem = TypesTreeControl.DataContext.Assemblies[Math.Min(index + (int)numItemsShown - 2, TypesTreeControl.DataContext.Assemblies.Count - 1)];
+            TypesTreeControl.SelectedItem = matchingAssembly;
+            TypesTreeControl.ScrollIntoView(furtherDownItem);
         }
 #pragma warning restore IDE0051 // Remove unused private members
     }
