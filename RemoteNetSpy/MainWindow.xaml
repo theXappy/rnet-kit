@@ -198,11 +198,8 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
                         <TabControl x:Name="tabControl" Margin="0" SelectedIndex="0" MinHeight="280" Grid.ColumnSpan="2">
                             <TabControl.Resources>
                                 <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}"/>
@@ -382,7 +379,7 @@
                       Width="5" Background="#00112233" 
                       />
                         
-                        <DockPanel Grid.Row="1" Grid.Column="1" LastChildFill="True" Margin="5,0,0,0">
+                        <DockPanel Grid.Row="2" LastChildFill="True">
                             <TextBlock DockPanel.Dock="Top" Background="#07ffffff" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="4,2,5,2" Margin="0,2" MinHeight="21">Immediate Window</TextBlock>
                             <Border BorderBrush="#FF3C3C3C" BorderThickness="1" DockPanel.Dock="Right">
                                 <Grid>
