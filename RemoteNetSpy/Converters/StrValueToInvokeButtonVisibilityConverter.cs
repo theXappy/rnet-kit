@@ -12,7 +12,7 @@ public class StrValueToInvokeButtonVisibilityConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value == null)
-            return Visibility.Hidden;
+            return Visibility.Collapsed;
 
         if (value is ObjectViewer.MembersGridItem mgi)
         {
@@ -24,7 +24,7 @@ public class StrValueToInvokeButtonVisibilityConverter : IValueConverter
                     return Visibility.Visible;
             }
         }
-        return Visibility.Hidden;
+        return Visibility.Collapsed;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -37,7 +37,6 @@ namespace RemoteNetSpy
         RemoteApp _app => _remoteAppModel.App;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
         private Dictionary<string, DumpedTypeModel> _dumpedTypesCache = new Dictionary<string, DumpedTypeModel>();
-        private TypesModel _typesModel;
         public InjectableProcess _procBoxCurrItem;
         public int ProcBoxTargetPid => _procBoxCurrItem?.Pid ?? 0;
 
@@ -502,8 +501,6 @@ namespace RemoteNetSpy
         private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
         {
             membersListBox.ItemsSource = null;
-            _typesModel.SelectedType = null;
-            _typesModel.Types = null;
             //assembliesListBox.ItemsSource = null;
             heapInstancesListBox.ItemsSource = null;
             _traceList.Clear();

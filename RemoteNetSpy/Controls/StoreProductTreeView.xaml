@@ -87,42 +87,6 @@
                                 </Grid>
                             </Button.Content>
                         </Button>
-                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FF292929" />
-                        <Button x:Name="traceClassButton" MinHeight="22" Margin="2,0" Click="TraceTypeOptimal_OnClick" Padding="0">
-                            <Button.Content>
-                                <Grid Height="24">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition/>
-                                        <ColumnDefinition/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.ColumnSpan="2"/>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Image Source="../icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
-                                        <TextBlock Margin="4,0">Trace Type</TextBlock>
-                                    </StackPanel>
-                                    <Grid Grid.Column="1">
-                                        <Button x:Name="traceTypeExtraButton" Grid.Column="1" FontFamily="Marlett" Content="6" Click="ShowTraceTypeContextMenu">
-                                            <Button.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem
-                                                           Header="Trace Type (Full)"
-                                                           ToolTip="Traces all methods of the type, including ones that might be problematic like Equals, Finalize, ..."
-                                                           Click="TraceTypeFull_OnClick" 
-                                                           >
-                                                        <MenuItem.Icon>
-                                                            <Image Source="../icons/TraceClass.png"/>
-                                                        </MenuItem.Icon>
-                                                    </MenuItem>
-                                                </ContextMenu>
-                                            </Button.ContextMenu>
-                                        </Button>
-                                        <TextBlock x:Name="traceTypeExtraButtonHoverHack" Background="#11ffffff" IsHitTestVisible="False"
-                                                      Visibility="{Binding IsMouseOver, ElementName=traceTypeExtraButton, Converter={StaticResource boolToCollapsabilityConverter}, FallbackValue=Hidden}"
-                                                      />
-                                    </Grid>
-                                </Grid>
-                            </Button.Content>
-                        </Button>
                     </DockPanel>
                 </ToolBar>
             </ToolBarTray>
