@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:converters="clr-namespace:RemoteNetSpy.Converters" 
              xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
-             xmlns:models="clr-namespace:RemoteNetSpy.Models"
+             xmlns:models="clr-namespace:RemoteNetSpy.Models" xmlns:stretchingtree="clr-namespace:RemoteNetSpy.Controls.StretchingTree"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="300"
              >
@@ -49,7 +49,6 @@
             <Setter Property="Background" Value="{x:Null}"/>
         </Style>
     </UserControl.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -109,13 +108,15 @@
         <!--<TextBox x:Name="SearchTextBox" Grid.Row="0" Text="Search stores or products..."/>-->
 
         <!-- TreeView -->
-        <TreeView x:Name="assembliesTreeView" Grid.Row="1" Margin="0,2,0,0" ItemsSource="{Binding Assemblies}" SelectedItemChanged="TreeView_SelectedItemChanged">
-            <TreeView.ItemContainerStyle>
+        <stretchingtree:StretchingTreeView x:Name="assembliesTreeView" Grid.Row="1" Margin="0,2,0,0" ItemsSource="{Binding Assemblies}" SelectedItemChanged="TreeView_SelectedItemChanged"
+                                           Background="{x:Null}"
+                                           BorderBrush="{StaticResource ContainerBorder}">
+            <stretchingtree:StretchingTreeView.ItemContainerStyle>
                 <Style TargetType="TreeViewItem" BasedOn="{StaticResource darkThemeTreeViewItemStyleKey}">
                     <EventSetter Event="RequestBringIntoView" Handler="TreeViewItem_RequestBringIntoView"/>
                 </Style>
-            </TreeView.ItemContainerStyle>
-            <TreeView.ItemTemplate>
+            </stretchingtree:StretchingTreeView.ItemContainerStyle>
+            <stretchingtree:StretchingTreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding FilteredTypes}">
                     <StackPanel Orientation="Horizontal">
                         <Image Source="{Binding Path=., Converter={StaticResource moduleToIconConverter}}" Margin="0,0,3,0"/>
@@ -135,7 +136,7 @@
                         </DataTemplate>
                     </HierarchicalDataTemplate.ItemTemplate>
                 </HierarchicalDataTemplate>
-            </TreeView.ItemTemplate>
-        </TreeView>
+            </stretchingtree:StretchingTreeView.ItemTemplate>
+        </stretchingtree:StretchingTreeView>
     </Grid>
 </UserControl>
