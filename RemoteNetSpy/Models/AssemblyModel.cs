@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace RemoteNetSpy.Models
@@ -14,6 +15,7 @@ namespace RemoteNetSpy.Models
         private bool _isMonitoringAllocation;
         private bool anyTypes;
         private ObservableCollection<DumpedTypeModel> _types;
+        private ObservableCollection<DumpedTypeModel> _filteredTypes;
 
         public string Name { get; private set; }
         public RuntimeType Runtime { get; private set; }
@@ -32,10 +34,35 @@ namespace RemoteNetSpy.Models
             get => anyTypes;
             set => SetField(ref anyTypes, value);
         }
-        public ObservableCollection<DumpedTypeModel> Types 
+        public ObservableCollection<DumpedTypeModel> Types
         {
-            get => _types; 
-            set => SetField(ref _types, value); 
+            get => _types;
+            set
+            {
+                SetField(ref _types, value);
+                ApplyFilter();
+            }
+        }
+
+        private Func<DumpedTypeModel, bool> _filter;
+        public Func<DumpedTypeModel, bool> Filter
+        {
+            set
+            {
+                SetField(ref _filter, value);
+                ApplyFilter();
+            }
+        }
+
+        public ObservableCollection<DumpedTypeModel> AllTypes
+        {
+            get => _types;
+            set => SetField(ref _types, value);
+        }
+
+        public ObservableCollection<DumpedTypeModel> FilteredTypes
+        {
+            get => _filteredTypes;
         }
 
         public AssemblyModel(string name, RuntimeType runtime, bool anyTypes)
@@ -49,6 +76,14 @@ namespace RemoteNetSpy.Models
 
         public AssemblyModel(string name, string runtime, bool anyTypes) : this(name, Enum.Parse<RuntimeType>(runtime), anyTypes)
         {
+        }
+
+        private void ApplyFilter()
+        {
+            IEnumerable<DumpedTypeModel> filteredTypes = _types;
+            if (_filter != null)
+                filteredTypes = _types.Where(_filter);
+            SetField(ref _filteredTypes, new ObservableCollection<DumpedTypeModel>(filteredTypes), propertyName: nameof(FilteredTypes));
         }
 
         public override bool Equals(object obj)

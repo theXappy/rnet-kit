@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Input;
+using System.Linq;
 
 namespace RemoteNetSpy.Controls
 {
@@ -28,6 +29,7 @@ namespace RemoteNetSpy.Controls
         {
             InitializeComponent();
         }
+
         private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => throw new NotImplementedException();
 
         private void injectDllButton_Click(object sender, RoutedEventArgs e)
@@ -50,7 +52,7 @@ namespace RemoteNetSpy.Controls
             ListBox associatedBox = null;
 
             string filter = (sender as TextBox)?.Text;
-            ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
+            ICollectionView view = CollectionViewSource.GetDefaultView(assembliesTreeView.ItemsSource);
             if (view == null) return;
             if (string.IsNullOrWhiteSpace(filter) && !onlyTypesInHeap)
             {
@@ -68,7 +70,14 @@ namespace RemoteNetSpy.Controls
                 {
                     if (sender == assembliesFilterBox)
                     {
-                        return (o as AssemblyModel)?.Name?.Contains(filter, comp) == true;
+                        var assembly = o as AssemblyModel;
+                        assembly.Filter = (typeModel) => typeModel?.FullTypeName?.Contains(filter) == true;
+
+                        if (assembly?.Name?.Contains(filter, comp) == true)
+                            return true;
+                        if (assembly.Types.Any(t => t.FullTypeName.Contains(filter, comp)))
+                            return true;
+                        return false;
                     }
 
                     return (o as string)?.Contains(filter) == true;
@@ -111,81 +120,23 @@ namespace RemoteNetSpy.Controls
             throw new NotImplementedException();
         }
 
-        private void CountButton_Click(object sender, RoutedEventArgs e)
+        private async void CountButton_Click(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
-            //countButton.IsEnabled = false;
+            countButton.IsEnabled = false;
 
-            //var originalBrush = countLabel.Foreground;
-            //Brush transparentColor = originalBrush.Clone();
-            //transparentColor.Opacity = 0;
-            //countLabel.Foreground = transparentColor;
-            //spinner1.Visibility = Visibility.Visible;
+            var originalBrush = countLabel.Foreground;
+            Brush transparentColor = originalBrush.Clone();
+            transparentColor.Opacity = 0;
+            countLabel.Foreground = transparentColor;
+            spinner1.Visibility = Visibility.Visible;
 
-
-            //AssemblyModel assembly = null; // assembliesListBox.SelectedItem as AssemblyModel;
-            //if (assembly == null)
-            //{
-            //    MessageBox.Show("You must select an assembly first.", "Error", MessageBoxButton.OK,
-            //        MessageBoxImage.Error);
-            //    return;
-            //}
-
-            //string assemblyFilter = assembly.Name;
-            //if (assembly.Name == "* All")
-            //    assemblyFilter = "*"; // Wildcard
-
-            //if (_app is UnmanagedRemoteApp)
-            //    assemblyFilter += "!*"; // Indicate we want any type within the module
-            //else if (_app is ManagedRemoteApp)
-            //    assemblyFilter += ".*"; // Indicate we want any type within the assembly
-
-            //var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-            //    .WithArguments($"heap -t {ProcBoxTargetPid} -q {assemblyFilter} {UnmanagedFlagIfNeeded()}")
-            //    .WithValidation(CommandResultValidation.None)
-            //    .ExecuteBufferedAsync();
-            //BufferedCommandResult res = await x.Task;
-            //IEnumerable<string> rnetDumpStdOutLines = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            //    .SkipWhile(line => !line.Contains("Found "))
-            //    .Skip(1)
-            //    .Select(str => str.Trim())
-            //    .Select(str => str.Split(' ')[1]);
-
-            //List<DumpedTypeModel> types = await GetTypesListAsync();
-            //// Like `Distinct` without an IEqualityComparer
-            //var uniqueTypes = types.GroupBy(x => x.FullTypeName).Select(grp => grp.First());
-            //Dictionary<string, DumpedTypeModel> typeNamesToTypes = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName);
-            //Dictionary<string, int> typesAndInstancesCount = uniqueTypes.ToDictionary(dumpedType => dumpedType.FullTypeName, _ => 0);
-            //foreach (string heapObjectType in rnetDumpStdOutLines)
-            //{
-            //    if (typesAndInstancesCount.ContainsKey(heapObjectType))
-            //        typesAndInstancesCount[heapObjectType]++;
-            //}
-
-
-            //List<DumpedTypeModel> dumpedTypes = new List<DumpedTypeModel>();
-            //foreach (KeyValuePair<string, int> kvp in typesAndInstancesCount)
-            //{
-            //    int? numInstances = kvp.Value != 0 ? kvp.Value : null;
-            //    DumpedTypeModel dt;
-            //    if (_dumpedTypesCache.TryGetValue(kvp.Key, out dt))
-            //    {
-            //        dt.NumInstances = numInstances;
-            //    }
-            //    else
-            //    {
-            //        dt = typeNamesToTypes[kvp.Key];
-            //        dt.NumInstances = numInstances;
-            //        _dumpedTypesCache[kvp.Key] = dt;
-            //    }
-            //    dumpedTypes.Add(dt);
-            //}
+            await Model.CountInstancesAsync();
 
             //TypesControl.UpdateTypesList(dumpedTypes);
 
-            //spinner1.Visibility = Visibility.Collapsed;
-            //countLabel.Foreground = originalBrush;
-            //countButton.IsEnabled = true;
+            spinner1.Visibility = Visibility.Collapsed;
+            countLabel.Foreground = originalBrush;
+            countButton.IsEnabled = true;
         }
     }
 }

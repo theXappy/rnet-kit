@@ -3,6 +3,9 @@ using CliWrap.Buffered;
 using HostingWfInWPF;
 using ICSharpCode.Decompiler.Metadata;
 using RemoteNET;
+using RemoteNetSpy.Controls;
+using Spectre.Console;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -11,6 +14,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 
 namespace RemoteNetSpy.Models;
@@ -28,6 +32,7 @@ public class ClassesModel : INotifyPropertyChanged
     private ObservableCollection<AssemblyModel> _assemblies = new ObservableCollection<AssemblyModel>();
     private ObservableCollection<AssemblyModel> _filteredAssemblies = new ObservableCollection<AssemblyModel>();
 
+    public RemoteAppModel Parent => _parent;
 
     public ObservableCollection<AssemblyModel> Assemblies
     {
@@ -55,20 +60,13 @@ public class ClassesModel : INotifyPropertyChanged
         set => SetField(ref selectedType, value);
     }
 
-    static int lol = 0;
-    public ClassesModel()
-    {
-        Debug.WriteLine($"############## ClassesModel === {lol++}");
-    }
-
-
-    private IEnumerable<string> RnetDump(string command)
+    private async Task<IEnumerable<string>> RnetDumpAsync(string command)
     {
         var commandTask = CliWrap.Cli.Wrap("rnet-dump.exe")
             .WithArguments(command)
             .WithValidation(CommandResultValidation.None)
             .ExecuteBufferedAsync();
-        var domainsResults = commandTask.Task.Result;
+        var domainsResults = await commandTask.Task;
         var domainDumpsLines = domainsResults.StandardOutput.Split('\n')
             .Skip(2)
             .Select(str => str.Trim());
@@ -94,7 +92,7 @@ public class ClassesModel : INotifyPropertyChanged
         var assemblyModels = new Dictionary<string, AssemblyModel>();
         var assemblyToTypes = new Dictionary<string, List<DumpedTypeModel>>();
 
-        IEnumerable<string> dumpedTypesLines = RnetDump($"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}");
+        IEnumerable<string> dumpedTypesLines = RnetDumpAsync($"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}").Result;
         foreach (string dumpedTypeLine in dumpedTypesLines)
         {
             var match = r.Match(dumpedTypeLine);
@@ -128,7 +126,7 @@ public class ClassesModel : INotifyPropertyChanged
         }
 
         // Also look for types-less assemblies
-        IEnumerable<string> domainDumpsLines = RnetDump($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}");
+        IEnumerable<string> domainDumpsLines = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}").Result;
         foreach (string domainDumpsLine in domainDumpsLines)
         {
             if (!domainDumpsLine.StartsWith("[module] "))
@@ -147,6 +145,47 @@ public class ClassesModel : INotifyPropertyChanged
 
         return new ObservableCollection<AssemblyModel>(assembliesList);
     }
+
+    public async Task CountInstancesAsync()
+    {
+        string assemblyFilter = "*"; // Wildcard
+
+        RemoteApp app = Parent.App;
+        if (app is UnmanagedRemoteApp)
+            assemblyFilter += "!*"; // Indicate we want any type within the module
+        else if (app is ManagedRemoteApp)
+            assemblyFilter += ".*"; // Indicate we want any type within the assembly
+
+        Task<IEnumerable<string>> task = RnetDumpAsync($"heap -t {_parent.TargetPid} -q {assemblyFilter} {UnmanagedFlagIfNeeded()}");
+        IEnumerable<string> rnetDumpStdOutLines = await task;
+
+        foreach (AssemblyModel assembly in Assemblies)
+        {
+            foreach (DumpedTypeModel type in assembly.Types)
+            {
+                type.PreviousNumInstances = type.NumInstances;
+                type.NumInstances = 0;
+            }
+        }
+
+        // Temporary working dict & reset instance counts
+        Dictionary<string, DumpedTypeModel> fullTypeNamesToTypes = new Dictionary<string, DumpedTypeModel>();
+        foreach (DumpedTypeModel typeModel in Assemblies.SelectMany(assm => assm.Types))
+        {
+            fullTypeNamesToTypes[typeModel.FullTypeName] = typeModel;
+        }
+
+        foreach (string addrAndType in rnetDumpStdOutLines)
+        {
+            // Get rid of the address:
+            // 0x00aabbcc System.Int32 => System.Int32
+            string fullTypeName = addrAndType.Substring(addrAndType.IndexOf(' ') + 1);
+
+            if (fullTypeNamesToTypes.ContainsKey(fullTypeName))
+                fullTypeNamesToTypes[fullTypeName].NumInstances++;
+        }
+    }
+
 
     #region INotifyPropertyChanged
 
@@ -227,4 +266,11 @@ public class RemoteAppModel : INotifyPropertyChanged
     }
 
     #endregion
+}
+
+public class DebugClassesModel : ClassesModel
+{
+    public DebugClassesModel() : base(null)
+    {
+    }
 }
