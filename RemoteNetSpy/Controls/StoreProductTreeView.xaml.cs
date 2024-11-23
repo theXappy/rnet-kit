@@ -57,6 +57,10 @@ namespace RemoteNetSpy.Controls
             if (string.IsNullOrWhiteSpace(filter) && !onlyTypesInHeap)
             {
                 view.Filter = null;
+                foreach (AssemblyModel assembly in Model.Assemblies)
+                {
+                    assembly.Filter = null;
+                }
             }
             else
             {
