@@ -385,17 +385,26 @@ namespace RemoteNetSpy
         }
 
         private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
+            => await FindHeapInstances();
+
+        private async Task FindHeapInstances()
         {
             if (_currSelectedType == null)
             {
-                MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                });
                 return;
             }
 
-            findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
-            findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
-            findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
+            Dispatcher.Invoke(() =>
+            {
+                findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
+                findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
+                findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
+            });
 
             string type = (_currSelectedType)?.FullTypeName;
 
@@ -431,17 +440,20 @@ namespace RemoteNetSpy
 
         private void RefreshSearchAndWatchedLists()
         {
-            ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-            unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
-            heapInstancesListBox.ItemsSource = unfrozens;
+            Dispatcher.Invoke(() =>
+            {
+                ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
+                unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
+                heapInstancesListBox.ItemsSource = unfrozens;
 
-            var instancesListCopy = _instancesList.ToList();
-            ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
-            frozens.Filter = (item) => (item as HeapObject).Frozen;
-            watchedObjectsListBox.ItemsSource = frozens;
+                var instancesListCopy = _instancesList.ToList();
+                ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
+                frozens.Filter = (item) => (item as HeapObject).Frozen;
+                watchedObjectsListBox.ItemsSource = frozens;
 
-            findHeapInstancesButtonSpinner.Visibility = Visibility.Collapsed;
-            findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
+                findHeapInstancesButtonSpinner.Visibility = Visibility.Collapsed;
+                findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
+            });
         }
 
         private List<HeapObject> _instancesList;
@@ -1140,6 +1152,21 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 return;
             }
 
+            //
+            // (1)
+            // Dump members into the "Tracing" tab
+            //
+            Task loadMembersTask = LoadTypeMembers(type);
+
+            // 
+            // (2)
+            // heap Search instances in "Interactive" tab
+            //
+            FindHeapInstancesButtonClicked(null, null);
+        }
+
+        private async Task LoadTypeMembers(string type)
+        {
             var x = CliWrap.Cli.Wrap("rnet-dump.exe")
                 .WithArguments($"members -t {ProcBoxTargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
                 .WithValidation(CommandResultValidation.None)
@@ -1161,11 +1188,8 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 };
                 dumpedMembers.Add(dumpedMember);
             }
-
             dumpedMembers.Sort(CompareDumperMembers);
-
             membersListBox.ItemsSource = dumpedMembers;
-
             filterBox_TextChanged(membersFilterBox, null);
         }
 
