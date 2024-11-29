@@ -851,7 +851,7 @@ namespace RemoteNetSpy
 
             await interactivePanel.StartAsync("rnet-repl.exe");
             string connectionScript =
-@$";var app = RemoteAppFactory.Connect(Process.GetProcessById({ProcBoxTargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
+@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({ProcBoxTargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
             await interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n");
             return;
         }
@@ -869,7 +869,7 @@ namespace RemoteNetSpy
             string roVarName = $"ro{_remoteObjectIndex}";
             string droVarName = $"dro{_remoteObjectIndex}";
             string objectScript =
-$";var {roVarName} = app.GetRemoteObject(0x{dataContext.Address:X16}, \"{dataContext.FullTypeName}\");\r\n" +
+$"var {roVarName} = app.GetRemoteObject(0x{dataContext.Address:X16}, \"{dataContext.FullTypeName}\");\r\n" +
 $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
 
             initTask.ContinueWith(_ =>
@@ -888,7 +888,7 @@ $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
             string roVarName = dataContext.InteractiveRoVarName;
             string droVarName = dataContext.InteractiveDroVarName;
             string objectScript =
-$";{roVarName} = null;\r\n" +
+$"{roVarName} = null;\r\n" +
 $"{droVarName} = null;\r\n";
             Dispatcher.Invoke(async () =>
             {
@@ -911,7 +911,7 @@ $"{droVarName} = null;\r\n";
             string roVarName = dataContext.InteractiveRoVarName;
             string droVarName = dataContext.InteractiveDroVarName;
             string objectScript =
-$";{roVarName} = {roVarName}.Cast(app.GetRemoteType(\"{fullTypeName}\"));\r\n" +
+$"{roVarName} = {roVarName}.Cast(app.GetRemoteType(\"{fullTypeName}\"));\r\n" +
 $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
             initTask.ContinueWith(_ =>
