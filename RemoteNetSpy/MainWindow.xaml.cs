@@ -666,7 +666,7 @@ namespace RemoteNetSpy
                 MessageBox.Show("Invalid file name.");
                 return;
             }
-            f = File.Open(path, FileMode.OpenOrCreate);
+            f = File.Open(path, FileMode.Create);
             sw = new StreamWriter(f);
             foreach (string traceFunction in _traceList)
             {
