@@ -11,6 +11,7 @@ public class DumpedTypeModel : INotifyPropertyChanged
 {
     public string Assembly { get; private set; }
     public string FullTypeName { get; private set; }
+    public ulong? MethodTable { get; private set; }
     private int? _numInstances;
     public bool HaveInstances => _numInstances != null && _numInstances > 0;
     public int? NumInstances

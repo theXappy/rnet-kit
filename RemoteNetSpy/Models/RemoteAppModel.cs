@@ -85,7 +85,7 @@ public class ClassesModel : INotifyPropertyChanged
         Assemblies = await Task.Run(FetchAssemblies);
     }
 
-    private Regex r = new Regex(@"\[(.*?)\]\[(.*?)\](.*)");
+    private Regex r = new Regex(@"\[(?<runtime>.*?)\]\[(?<assembly>.*?)\]\[(?<methodTable>.*?)\](?<type>.*)");
 
     private ObservableCollection<AssemblyModel> FetchAssemblies()
     {
@@ -96,11 +96,10 @@ public class ClassesModel : INotifyPropertyChanged
         foreach (string dumpedTypeLine in dumpedTypesLines)
         {
             var match = r.Match(dumpedTypeLine);
-            string[] parts = match.Groups.Values.Select(g => g.Value).Skip(1).ToArray();
-            if (parts.Length < 3)
+            if (!match.Success)
                 continue;
-            string runtime = parts[0].Trim();
-            string assemblyName = parts[1].Trim();
+            string runtime = match.Groups["runtime"].Value.Trim();
+            string assemblyName = match.Groups["assembly"].Value.Trim();
 
             if (!assemblyModels.TryGetValue(assemblyName, out AssemblyModel assembly))
             {
@@ -108,8 +107,12 @@ public class ClassesModel : INotifyPropertyChanged
                 assemblyModels[assemblyName] = assembly;
             }
 
-            string typeName = parts[2].Trim();
-            DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, numInstances: null);
+            string methodTableStr = match.Groups["methodTable"].Value.Trim();
+            ulong? methodTable = null;
+            if (methodTableStr != "null")
+                methodTable = Convert.ToUInt64(methodTableStr, 16);
+            string typeName = match.Groups["type"].Value.Trim();
+            DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, methodTable, numInstances: null);
 
             if (!assemblyToTypes.TryGetValue(assemblyName, out List<DumpedTypeModel> typesList))
             {
