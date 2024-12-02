@@ -41,13 +41,18 @@ public static class TypesDumper
 
         StringBuilder sb = new StringBuilder();
         Console.WriteLine($"Matches:");
-        foreach (var type in candidates)
+        foreach (CandidateType type in candidates)
         {
             // Skip types with unreasonable names. Our unmanaged types discovery logic is *very* permissive.
             if (type.Runtime == RuntimeType.Unmanaged && !IsReasonableUnmanagedTypeName(type.TypeFullName))
                 continue;
 
-            sb.AppendLine($"[{type.Runtime}][{type.Assembly}] {type.TypeFullName}");
+            string methodTableStr = "null";
+            if (type.MethodTable.HasValue)
+            {
+                methodTableStr = $"0x{type.MethodTable.Value.ToString("x16")}";
+            }
+            sb.AppendLine($"[{type.Runtime}][{type.Assembly}][{methodTableStr}] {type.TypeFullName}");
         }
 
         Console.WriteLine(sb.ToString());
