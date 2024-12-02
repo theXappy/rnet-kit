@@ -1,19 +1,12 @@
-﻿using CliWrap.Buffered;
-using CliWrap;
-using HostingWfInWPF;
-using Microsoft.Win32;
-using RemoteNET;
+﻿using Microsoft.Win32;
 using RemoteNetSpy.Models;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
-using System.Windows.Input;
 using System.Linq;
 
 namespace RemoteNetSpy.Controls
@@ -67,20 +60,44 @@ namespace RemoteNetSpy.Controls
                 // For when we're only filtering with the `_onlyTypesInHeap` flag
                 if (filter == null)
                     filter = string.Empty;
+                StringComparison comp = matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
 
-                StringComparison comp =
-                    matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
+                ulong? methodTableFilter = null;
+                if (filter.StartsWith("0x"))
+                {
+                    if (ulong.TryParse(filter.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out ulong tempUlong))
+                    {
+                        methodTableFilter = tempUlong;
+                    }
+                }
+
+                Func<DumpedTypeModel, bool> typesFilterFunc = (typeModel) =>
+                {
+                    if (typeModel?.FullTypeName?.Contains(filter, comp) == true)
+                        return true;
+                    if (methodTableFilter != null && typeModel?.MethodTable == methodTableFilter)
+                        return true;
+                    return false;
+                };
+
                 view.Filter = (o) =>
                 {
                     if (sender == assembliesFilterBox)
                     {
                         var assembly = o as AssemblyModel;
-                        assembly.Filter = (typeModel) => typeModel?.FullTypeName?.Contains(filter) == true;
+                        assembly.Filter = typesFilterFunc;
 
                         if (assembly?.Name?.Contains(filter, comp) == true)
                             return true;
                         if (assembly.Types.Any(t => t.FullTypeName.Contains(filter, comp)))
                             return true;
+
+                        if (methodTableFilter.HasValue)
+                        {
+                            if (assembly.Types.Any(t => t.MethodTable == methodTableFilter))
+                                return true;
+                        }
+
                         return false;
                     }
 

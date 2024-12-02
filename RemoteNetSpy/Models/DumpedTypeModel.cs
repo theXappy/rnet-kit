@@ -29,10 +29,11 @@ public class DumpedTypeModel : INotifyPropertyChanged
 
     public int? PreviousNumInstances { get; set; }
 
-    public DumpedTypeModel(string assembly, string fullTypeName, int? numInstances)
+    public DumpedTypeModel(string assembly, string fullTypeName, ulong? methodTable, int? numInstances)
     {
         Assembly = assembly;
         FullTypeName = fullTypeName;
+        MethodTable = methodTable;
         _numInstances = numInstances;
         PreviousNumInstances = null;
     }
