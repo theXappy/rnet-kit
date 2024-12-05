@@ -76,6 +76,15 @@ namespace RemotenetTrace
                 script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));\r\n";
                 script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
                 script += "Output.AppendLine($\"({Context.PrettyParametersList()})\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
+                // Print instance (this/self)
+                script += "Output.AppendLine($\"\\tInstance:\");\r\n";
+                script += $"Output.Append($\"\\t\\t [-] this = \");\r\n";
+                script +=  "try {\r\n";
+                script += $"\tOutput.AppendLine((Instance?.ToString() ?? \"null\"));\r\n";
+                script +=  "} catch (Exception ex) {\r\n";
+                script +=  "\tOutput.AppendLine($\"(!) Error reading instance: {ex}\");\r\n";
+                script +=  "}\r\n";
+                // Print arguments
                 if (numArgs != 0)
                     script += "Output.AppendLine($\"\\tArguments:\");\r\n";
                 for (int i = 0; i < numArgs; i++)
