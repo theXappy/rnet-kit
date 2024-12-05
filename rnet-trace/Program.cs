@@ -22,7 +22,7 @@ namespace QuickStart
         {
             [Option('t', "target", Required = true, HelpText = "Target process name. Partial names area allowed but a single match is expected. " +
                 "e.g. \"notep\" for notepad")]
-            public string? TargetProcess { get; set; }
+            public string TargetProcess { get; set; }
             [Option('i', "include", Required = false, HelpText = "Included Method: Query for a full type identifier of class + method name to include in trace. " +
                 "e.g. \"System.Text.StringBuilder.Append\", " +
                 "     \"System.Text.StringBuilder.Append(String)\". " +
@@ -105,7 +105,6 @@ namespace QuickStart
 
             foreach (var methodQuery in methodQueries)
             {
-                bool anyFound = false;
                 string fullTypeNameQuery, methodNameQuery, encodedParametersQuery;
                 ParseMethodIdentifier(methodQuery, out fullTypeNameQuery, out methodNameQuery, out encodedParametersQuery);
 
@@ -131,7 +130,7 @@ namespace QuickStart
                 }
 
                 // Get all matching methods of all types
-                foreach (Type? remoteType in remoteTypes)
+                foreach (Type remoteType in remoteTypes)
                 {
                     // Search Methods
                     var allMethods = remoteType.GetMethods();
@@ -192,7 +191,7 @@ namespace QuickStart
             // Prepare clean-up code for when our program closes (gracefully)
             ManualResetEvent mre = new ManualResetEvent(false);
             bool unhooked = false;
-            void Unhook(object? o, EventArgs e)
+            void Unhook(object o, EventArgs e)
             {
                 if (unhooked)
                     return;
@@ -468,13 +467,13 @@ namespace QuickStart
         }
 
 
-        private static List<MethodBase> FindMethods(IEnumerable<MethodBase> allMethods, string fullTypeNameQuery, string nameQuery, string? encodedParametersQuery)
+        private static List<MethodBase> FindMethods(IEnumerable<MethodBase> allMethods, string fullTypeNameQuery, string nameQuery, string encodedParametersQuery)
         {
             // First we'll find all overloads based on the requested method name
             Regex typeRegex = SimpleFilterToRegex(fullTypeNameQuery);
             Regex methodNameRegex = SimpleFilterToRegex(nameQuery);
 
-            MethodBase[]? matchingMethods;
+            MethodBase[] matchingMethods;
             if (allMethods.Any(mi => mi is RemoteRttiMethodInfo))
             {
                 var allRttiMethods = allMethods.Cast<RemoteRttiMethodInfo>();
@@ -501,7 +500,7 @@ namespace QuickStart
 
             // No we will filter only the overloads matching the parameters query
             encodedParametersQuery = encodedParametersQuery?.TrimStart('(').TrimEnd(')');
-            List<MethodBase>? output = new List<MethodBase>();
+            List<MethodBase> output = new List<MethodBase>();
             if (string.IsNullOrEmpty(encodedParametersQuery))
             {
                 // No paramters sepcified, return all overloads
