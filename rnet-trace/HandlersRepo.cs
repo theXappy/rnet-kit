@@ -55,6 +55,23 @@ namespace RemotenetTrace
             }
             else
             {
+                // Add comment section indicating available globals
+                script += "// Available globals:\n";
+                script += "// App: RemoteApp instance\n";
+                script += "// Context: TraceContext instance\n";
+                script += "// Instance: dynamic instance of the hooked class\n";
+                script += "// Args: dynamic array of method arguments\n";
+                script += "// Output: StringBuilder for appending output\n";
+                script += "// TraceContext fields and properties:\n";
+                script += "// - StackTrace: string\n";
+                script += "// - StartTime: DateTime\n";
+                script += "// - ClassName: string\n";
+                script += "// - MethodName: string\n";
+                script += "// - Parameters: array of MethodParameter\n";
+                script += "// MethodParameter fields:\n";
+                script += "// - Type: string\n";
+                script += "// - Name: string\n\n";
+
                 script += "Output.Append($\"{Convert.ToInt32((DateTime.Now - Context.StartTime).TotalMilliseconds)} ms  \");\r\n";
                 script += "Output.Append($\"[Class: {Context.ClassName}] \".Pastel(Color.FromArgb(78, 201, 176)));\r\n";
                 script += "Output.Append($\"{Context.MethodName}\".Pastel(Color.FromArgb(220, 220, 170)));\r\n";
