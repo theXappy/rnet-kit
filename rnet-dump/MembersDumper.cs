@@ -69,7 +69,7 @@ namespace remotenet_dump
                     {
                         memberString = TypeNameUtils.Normalize(member);
                     }
-                    catch(Exception e) 
+                    catch (Exception e)
                     {
                         Debug.WriteLine($"ERROR when normalizing this member: {member}. Exception:\n{e}");
                         memberString = member.ToString();
@@ -113,11 +113,35 @@ namespace remotenet_dump
 
                     if (opts.PrintNormalizedGenerics)
                     {
-                        string undecoratedMethodTable = UnDecorateSymbolNameWrapper(kvp.Key);
+                        string decoratedMethodTable = kvp.Key;
+                        string undecoratedMethodTable = UndecorateMethodTableName(decoratedMethodTable);
+
                         Console.WriteLine($"[MethodTable] {undecoratedMethodTable} = 0x{kvp.Value:x16}");
                     }
                 }
             }
+        }
+
+        private static string UndecorateMethodTableName(string decoratedMethodTable)
+        {
+            string undecoratedMethodTable = UnDecorateSymbolNameWrapper(decoratedMethodTable);
+            // If it's a vftable of a parent class, we need use this hack to parse the parent's name.
+            // Example input: ??_7ObjectAbcde@SomNamespace@@6BParentComponent@1@@
+            // Expected parent name: "ParentComponent"
+            int parentNameStart = decoratedMethodTable.LastIndexOf("@@6B");
+            if (parentNameStart != -1)
+            {
+                parentNameStart += "@@6B".Length;
+                int parentNameEnd = decoratedMethodTable.IndexOf("@", parentNameStart);
+                int length = parentNameEnd - parentNameStart;
+                if (parentNameEnd != -1 && length > 0)
+                {
+                    string parent = decoratedMethodTable.Substring(parentNameStart, length);
+                    undecoratedMethodTable += $"{{for {parent}}}";
+                }
+            }
+
+            return undecoratedMethodTable;
         }
 
         private const int BUFFER_SIZE = 256;
@@ -132,8 +156,8 @@ namespace remotenet_dump
         }
         public static string UnDecorateSymbolNameWrapper(MemberInfo info)
         {
-            if(info is IRttiMethodBase mi)
-                    return mi.UndecoratedSignature;
+            if (info is IRttiMethodBase mi)
+                return mi.UndecoratedSignature;
 
             return UnDecorateSymbolNameWrapper(info.Name);
         }
