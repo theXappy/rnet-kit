@@ -12,11 +12,12 @@ public class DotnetVersionToForegroundColor : IValueConverter
 
     static DotnetVersionToForegroundColor()
     {
-        _cache["native"] = new SolidColorBrush(Color.FromArgb(0xFF, 0xD2, 0xAE, 0xD8));
-        _cache["net451"] = new SolidColorBrush(Color.FromArgb(0xFF, 0x6A, 0x99, 0xC9));
-        _cache["net6.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0xB7, 0x81, 0x1F));
-        _cache["net7.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0xEF, 0x71, 0xD3));
-        _cache["net8.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0x2F, 0x71, 0xe3));
+        _cache["native"] = new SolidColorBrush(Color.FromArgb(0xFF, 0x3A, 0x9D , 0xC5));
+        _cache["net451"] = new SolidColorBrush(Color.FromArgb(0xFF, 0x57, 0xC5, 0x3A));
+        _cache["net6.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0xA8, 0x3A, 0xC5));
+        _cache["net7.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0xC4, 0x3B, 0x9B));
+        _cache["net8.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0xA8, 0x3B, 0xC4));
+        _cache["net9.0-windows"] = new SolidColorBrush(Color.FromArgb(0xFF, 0x64, 0x3B, 0xC4));
     }
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
