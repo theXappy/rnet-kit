@@ -11,6 +11,7 @@
         Title="RemoteNET Spy"
         Height="820" Width="1450"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Style="{DynamicResource CustomWindowStyle}"
         Initialized="MainWindow_OnInitialized"
         d:Background="#1e1e1e"
@@ -356,16 +357,6 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </DockPanel>
-
-
-                        <GridSplitter Grid.Column="1" 
-                      Grid.Row="1"
-                      HorizontalAlignment="Left" 
-                      VerticalAlignment="Stretch"
-                      ShowsPreview="true"
-                      Width="5" Background="#00112233" 
-                      />
-
                         <DockPanel Grid.Row="2" LastChildFill="True">
                             <StackPanel DockPanel.Dock="Top" Background="#07ffffff">
                                 <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="4,2,5,2" Margin="0,2" MinHeight="21">Immediate Window</TextBlock>
