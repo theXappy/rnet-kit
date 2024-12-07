@@ -21,7 +21,16 @@ foreach (var proc in allProcs.OrderBy(proc => proc.ProcessName))
         continue;
     }
 
-    string dotNetVer = proc.GetSupportedTargetFramework();
+    string dotNetVer;
+    try
+    {
+        dotNetVer = proc.GetSupportedTargetFramework();
+    }
+    catch
+    {
+        dotNetVer = "<error>";
+    }
+
 
     if (!usedPorts.Contains(proc.Id))
     {
