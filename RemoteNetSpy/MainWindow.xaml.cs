@@ -69,18 +69,35 @@ namespace RemoteNetSpy
             procsBox.IsEnabled = false;
             procsBoxLoadingOverlay.Visibility = Visibility.Visible;
 
-            var x = CliWrap.Cli.Wrap("rnet-ps.exe").ExecuteBufferedAsync();
-            var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n')
-                .Skip(1)
-                .ToList()
-                .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
-                .Where(arr => arr.Length > 2)
-                .Select(arr => new InjectableProcess(int.Parse(arr[0]), arr[1], arr[2], arr[3]))
-                .ToList();
-            procsBox.ItemsSource = xx;
-            procsBox.IsEnabled = true;
-            procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
+            try
+            {
+                CommandTask<BufferedCommandResult> commandTask = CliWrap.Cli.Wrap("rnet-ps.exe").ExecuteBufferedAsync();
+                BufferedCommandResult runResults = await commandTask.Task;
+                IEnumerable<string[]> splitLines = runResults.StandardOutput.Split('\n')
+                    .Skip(1)
+                    .ToList()
+                    .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
+                    .Where(arr => arr.Length > 2);
+
+                List<InjectableProcess> procs = new();
+                foreach (string[] splitLine in splitLines)
+                {
+                    int pid = int.Parse(splitLine[0]);
+                    string name = splitLine[1];
+                    string runtimeVersion = splitLine[2]; // .NET version or "native" for C/C++/Unknown
+                    string diverState = splitLine[3];
+                    InjectableProcess proc = new(pid, name, runtimeVersion, diverState);
+
+                    procs.Add(proc);
+                }
+                procsBox.ItemsSource = procs;
+                procsBox.IsEnabled = true;
+                procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Failed to refresh processes list.\nException: " + ex,this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
 
             t = new Timer(UpdateGlowEffect, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
             _glowActive = true;
