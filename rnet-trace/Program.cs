@@ -478,7 +478,11 @@ namespace QuickStart
             {
                 var allRttiMethods = allMethods.Cast<RemoteRttiMethodInfo>();
                 matchingMethods = allRttiMethods
-                    .Where(rttiMethod => methodNameRegex.IsMatch(rttiMethod.MangledName))
+                    .Where(rttiMethod =>
+                    {
+                        return methodNameRegex.IsMatch(rttiMethod.MangledName) ||
+                                methodNameRegex.IsMatch(rttiMethod.Name);
+                    })
                     .Where(rttiMethod =>
                     {
                         return typeRegex.IsMatch(rttiMethod.LazyDeclaringType.TypeFullName);
