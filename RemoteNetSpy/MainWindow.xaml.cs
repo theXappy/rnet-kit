@@ -5,11 +5,13 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -45,6 +47,8 @@ namespace RemoteNetSpy
 
         private RemoteAppModel _remoteAppModel;
 
+        private System.Timers.Timer _aliveCheckTimer;
+
         public MainWindow()
         {
             _remoteAppModel = new RemoteAppModel();
@@ -57,6 +61,9 @@ namespace RemoteNetSpy
 
             storeProductTreeView.DataContext = _remoteAppModel.ClassesModel;
             _remoteAppModel.ClassesModel.PropertyChanged += ClassesModel_PropertyChanged;
+
+            _aliveCheckTimer = new System.Timers.Timer(500);
+            _aliveCheckTimer.Elapsed += OnAliveCheckTimerElapsed;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
@@ -204,6 +211,42 @@ namespace RemoteNetSpy
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RefreshAssembliesAsync");
             Task assembliesListRefresh = RefreshAssembliesViewAsync();
+
+            _aliveCheckTimer.Stop();
+            _aliveCheckTimer.Start();
+        }
+
+        private async void OnAliveCheckTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            if (_app == null)
+            {
+                _aliveCheckTimer.Stop();
+                return;
+            }
+
+            try
+            {
+                using (Ping ping = new Ping())
+                {
+                    PingReply reply = await ping.SendPingAsync("localhost");
+                    if (reply.Status != IPStatus.Success)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show("The target app is not alive.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        });
+                        _aliveCheckTimer.Stop();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show($"Error checking target app alive state: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+                _aliveCheckTimer.Stop();
+            }
         }
 
         private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
