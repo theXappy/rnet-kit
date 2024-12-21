@@ -226,7 +226,16 @@ namespace RemoteNetSpy
         private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
         {
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid})");
-            Process proc = Process.GetProcessById(ProcBoxTargetPid);
+            Process proc;
+            try
+            {
+                proc = Process.GetProcessById(ProcBoxTargetPid);
+            }
+            catch(Exception ex)
+            {
+                return Task.FromException<RemoteApp>(ex);
+            }
+
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid}), returned: {proc}");
             try
             {
