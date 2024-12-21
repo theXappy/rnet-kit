@@ -245,11 +245,18 @@ namespace QuickStart
 
 
                 Console.Write($"Hooking Method: (Class: {method.DeclaringType.FullName}) {method.Name}... (Pre) ");
-                app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value.Pre);
-                Console.WriteLine($"OK!");
-                Console.Write($"Hooking Method: (Class: {method.DeclaringType.FullName}) {method.Name}... (Post) ");
-                app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Postfix, methodAndHook.Value.Post);
-                Console.WriteLine($"OK!");
+                try
+                {
+                    app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Prefix, methodAndHook.Value.Pre);
+                    Console.WriteLine($"OK!");
+                    Console.Write($"Hooking Method: (Class: {method.DeclaringType.FullName}) {method.Name}... (Post) ");
+                    app.HookingManager.HookMethod(methodAndHook.Key, HarmonyPatchPosition.Postfix, methodAndHook.Value.Post);
+                    Console.WriteLine($"OK!");
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine($"Oops! Ex:\n{ex}");
+                }
             }
 
             mre.WaitOne();
