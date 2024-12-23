@@ -106,12 +106,12 @@ namespace RemoteNetSpy
                 MessageBox.Show("Failed to refresh processes list.\nException: " + ex,this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
-            t = new Timer(UpdateGlowEffect, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
+            t = new System.Threading.Timer(UpdateGlowEffect, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
             _glowActive = true;
         }
 
 
-        private Timer t;
+        private System.Threading.Timer t;
         private bool _glowActive = false;
         private int step = 0;
 
