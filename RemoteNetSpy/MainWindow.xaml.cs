@@ -48,6 +48,7 @@ namespace RemoteNetSpy
         private RemoteAppModel _remoteAppModel;
 
         private System.Timers.Timer _aliveCheckTimer;
+        private object _aliveCheckLock;
 
         public MainWindow()
         {
@@ -62,6 +63,7 @@ namespace RemoteNetSpy
             storeProductTreeView.DataContext = _remoteAppModel.ClassesModel;
             _remoteAppModel.ClassesModel.PropertyChanged += ClassesModel_PropertyChanged;
 
+            _aliveCheckLock = new object();
             _aliveCheckTimer = new System.Timers.Timer(500);
             _aliveCheckTimer.Elapsed += OnAliveCheckTimerElapsed;
         }
@@ -101,9 +103,9 @@ namespace RemoteNetSpy
                 procsBox.IsEnabled = true;
                 procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                MessageBox.Show("Failed to refresh processes list.\nException: " + ex,this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Failed to refresh processes list.\nException: " + ex, this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             t = new System.Threading.Timer(UpdateGlowEffect, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
@@ -245,19 +247,19 @@ namespace RemoteNetSpy
                 return;
             }
 
+            if (!Monitor.TryEnter(_aliveCheckLock))
+                return;
+
             try
             {
-                using (Ping ping = new Ping())
+                bool alive = _app.Communicator.CheckAliveness();
+                if (!alive)
                 {
-                    PingReply reply = await ping.SendPingAsync("localhost");
-                    if (reply.Status != IPStatus.Success)
+                    Dispatcher.Invoke(() =>
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show("The target app is not alive.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        });
-                        _aliveCheckTimer.Stop();
-                    }
+                        _procBoxCurrItem.IsProcessDead = true;
+                    });
+                    _aliveCheckTimer.Stop();
                 }
             }
             catch (Exception ex)
@@ -267,6 +269,10 @@ namespace RemoteNetSpy
                     MessageBox.Show($"Error checking target app alive state: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
                 _aliveCheckTimer.Stop();
+            }
+            finally
+            {
+                Monitor.Exit(_aliveCheckLock);
             }
         }
 
@@ -278,7 +284,7 @@ namespace RemoteNetSpy
             {
                 proc = Process.GetProcessById(ProcBoxTargetPid);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return Task.FromException<RemoteApp>(ex);
             }
@@ -827,7 +833,7 @@ namespace RemoteNetSpy
 
         private async void CountButton_Click(object sender, RoutedEventArgs e)
         {
-         
+
         }
 
         private void ManualTraceClicked(object sender, RoutedEventArgs e)
