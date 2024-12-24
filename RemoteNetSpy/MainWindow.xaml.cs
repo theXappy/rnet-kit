@@ -204,6 +204,16 @@ namespace RemoteNetSpy
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RefreshAssembliesAsync");
             Task assembliesListRefresh = RefreshAssembliesViewAsync();
+
+            // Disable the Frida tracing button for managed apps
+            if (_remoteAppModel.TargetRuntime == RuntimeType.Managed)
+            {
+                RunFridaTracesButton.IsEnabled = false;
+            }
+            else
+            {
+                RunFridaTracesButton.IsEnabled = true;
+            }
         }
 
         private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
@@ -559,7 +569,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private ObservableCollection<string> _traceList = new ObservableCollection<string>();
+        private ObservableCollection<TraceFunction> _traceList = new ObservableCollection<TraceFunction>();
 
         private void MemberListItemMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -610,8 +620,8 @@ namespace RemoteNetSpy
                 newItem = $"{targetClass}.{justSignature}";
             }
 
-            if (!_traceList.Contains(newItem))
-                _traceList.Add(newItem);
+            if (!_traceList.Any(tf => tf.DemangledName == newItem))
+                _traceList.Add(new TraceFunction(newItem, justSignature));
 
             tabControl.SelectedItem = tracingTabItem;
         }
@@ -639,7 +649,7 @@ namespace RemoteNetSpy
                 string[] functions = File.ReadAllText(path).Split("\n", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 foreach (var func in functions)
                 {
-                    _traceList.Add(func);
+                    _traceList.Add(TraceFunction.FromJson(func));
                 }
             }
         }
@@ -668,9 +678,9 @@ namespace RemoteNetSpy
             }
             f = File.Open(path, FileMode.Create);
             sw = new StreamWriter(f);
-            foreach (string traceFunction in _traceList)
+            foreach (TraceFunction traceFunction in _traceList)
             {
-                sw.WriteLine(traceFunction);
+                sw.WriteLine(traceFunction.ToJson());
             }
 
             sw.Flush();
@@ -822,7 +832,7 @@ namespace RemoteNetSpy
 
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
         {
-            string trace = (sender as FrameworkElement)?.DataContext as string;
+            TraceFunction trace = (sender as FrameworkElement)?.DataContext as TraceFunction;
             if (trace != null)
             {
                 _traceList.Remove(trace);
@@ -1292,6 +1302,46 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             //assembliesListBox.ScrollIntoView(furtherDownItem);
         }
 #pragma warning restore IDE0051 // Remove unused private members
+
+        private void RunFridaTracesButtonClicked(object sender, RoutedEventArgs e)
+        {
+            if (!_traceList.Any())
+            {
+                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            if (_procBoxCurrItem == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                List<string> args = new List<string>() { "-t", ProcBoxTargetPid.ToString() };
+
+                foreach (var traceFunction in _traceList)
+                {
+                    args.Add("-i");
+                    args.Add($"\"{traceFunction.MangledName}\"");
+                }
+
+                string argsLine = string.Join(' ', args);
+                ProcessStartInfo psi = new ProcessStartInfo("frida-trace", argsLine)
+                {
+                    UseShellExecute = true
+                };
+
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to start Frida trace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     public static class VisualTreeHelperExtensions
