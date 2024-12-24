@@ -135,6 +135,10 @@ namespace RemoteNetSpy
 
             Dispatcher.BeginInvoke(() =>
             {
+                if (!_glowActive)
+                {
+                    return;
+                }
                 procsBoxBorder.Effect = new DropShadowEffect()
                 { BlurRadius = 10, Color = Colors.Yellow, Opacity = opacity, ShadowDepth = 0 };
             });
