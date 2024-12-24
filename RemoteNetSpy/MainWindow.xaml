@@ -485,6 +485,12 @@
                                                 <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace</TextBlock>
                                             </StackPanel>
                                         </Button>
+                                        <Button x:Name="RunFridaTracesButton" Click="RunFridaTracesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Image Source="icons/Run.png" Height="16"/>
+                                                <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Trace with Frida</TextBlock>
+                                            </StackPanel>
+                                        </Button>
                                         <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="OpenTraceListClicked">
                                             <Image Source="icons/OpenFolder.png" Height="16"/>
                                         </Button>
@@ -506,7 +512,7 @@
                                                         </ContextMenu>
                                                     </DockPanel.ContextMenu>
                                                     <Image Source="/icons/NewMethod.png" Margin="0,0,3,0"/>
-                                                    <TextBlock Text="{Binding Path=.}" />
+                                                    <TextBlock Text="{Binding Path=DemangledName}" />
                                                 </DockPanel>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>

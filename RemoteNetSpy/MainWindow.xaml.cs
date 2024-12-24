@@ -28,6 +28,7 @@ using Microsoft.Win32;
 using RemoteNET;
 using RemoteNetSpy.Converters;
 using RemoteNetSpy.Models;
+using RnetKit.Common;
 
 namespace RemoteNetSpy
 {
@@ -237,6 +238,9 @@ namespace RemoteNetSpy
 
             _aliveCheckTimer.Stop();
             _aliveCheckTimer.Start();
+
+            // Disable the Frida tracing button for managed apps
+            RunFridaTracesButton.IsEnabled = _remoteAppModel.TargetRuntime == RuntimeType.Unmanaged;
         }
 
         private async void OnAliveCheckTimerElapsed(object sender, ElapsedEventArgs e)
@@ -638,7 +642,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private ObservableCollection<string> _traceList = new ObservableCollection<string>();
+        private ObservableCollection<TraceFunction> _traceList = new ObservableCollection<TraceFunction>();
 
         private void MemberListItemMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -651,7 +655,7 @@ namespace RemoteNetSpy
 
         private void TraceMember(DumpedMember sender)
         {
-            string newItem;
+            string fullDemangledName;
             string member = sender?.RawName;
             if (member == null)
                 return;
@@ -681,16 +685,22 @@ namespace RemoteNetSpy
 
                 string sigWithoutReturnType = methodName + parametrs;
 
-                newItem = $"{targetClass}.{sigWithoutReturnType}";
+                fullDemangledName = $"{targetClass}.{sigWithoutReturnType}";
             }
             else
             {
                 // Unmanaged
-                newItem = $"{targetClass}.{justSignature}";
+                fullDemangledName = $"{targetClass}.{justSignature}";
             }
 
-            if (!_traceList.Contains(newItem))
-                _traceList.Add(newItem);
+            if (!_traceList.Any(tf => tf.DemangledName == fullDemangledName))
+            {
+                string module = _currSelectedType.Assembly;
+                if (!module.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                    module += ".dll";
+                string fullMangledName = $"{module}!{justSignature}";
+                _traceList.Add(new TraceFunction(fullDemangledName, fullMangledName));
+            }
 
             tabControl.SelectedItem = tracingTabItem;
         }
@@ -718,7 +728,7 @@ namespace RemoteNetSpy
                 string[] functions = File.ReadAllText(path).Split("\n", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 foreach (var func in functions)
                 {
-                    _traceList.Add(func);
+                    _traceList.Add(TraceFunction.FromJson(func));
                 }
             }
         }
@@ -747,9 +757,9 @@ namespace RemoteNetSpy
             }
             f = File.Open(path, FileMode.Create);
             sw = new StreamWriter(f);
-            foreach (string traceFunction in _traceList)
+            foreach (TraceFunction traceFunction in _traceList)
             {
-                sw.WriteLine(traceFunction);
+                sw.WriteLine(traceFunction.ToJson());
             }
 
             sw.Flush();
@@ -901,7 +911,7 @@ namespace RemoteNetSpy
 
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
         {
-            string trace = (sender as FrameworkElement)?.DataContext as string;
+            TraceFunction trace = (sender as FrameworkElement)?.DataContext as TraceFunction;
             if (trace != null)
             {
                 _traceList.Remove(trace);
@@ -1371,6 +1381,46 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             //assembliesListBox.ScrollIntoView(furtherDownItem);
         }
 #pragma warning restore IDE0051 // Remove unused private members
+
+        private void RunFridaTracesButtonClicked(object sender, RoutedEventArgs e)
+        {
+            if (!_traceList.Any())
+            {
+                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            if (_procBoxCurrItem == null)
+            {
+                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                List<string> args = new List<string>() { "-p", ProcBoxTargetPid.ToString() };
+
+                foreach (var traceFunction in _traceList)
+                {
+                    args.Add("-i");
+                    args.Add($"\"{traceFunction.FullMangledName}\"");
+                }
+
+                string argsLine = string.Join(' ', args);
+                ProcessStartInfo psi = new ProcessStartInfo("frida-trace", argsLine)
+                {
+                    UseShellExecute = true
+                };
+
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to start Frida trace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     public static class VisualTreeHelperExtensions

@@ -91,8 +91,12 @@ namespace QuickStart
             List<string> methodQueries = opts.IncludedMethods.ToList();
             if (File.Exists(opts.IncludedFlistFilePath))
             {
-                string[] functionsFromFlist = File.ReadAllText(opts.IncludedFlistFilePath).Split("\n", 
+                string[] jsonFromFlist = File.ReadAllText(opts.IncludedFlistFilePath).Split("\n", 
                     StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                // Parse each line (a JSON) to a TraceFunction
+                List<TraceFunction> traceFunctions = jsonFromFlist.Select(TraceFunction.FromJson).ToList();
+                List<string> functionsFromFlist = traceFunctions.Select(tf => tf.DemangledName).ToList();
+
                 methodQueries = methodQueries.Concat(functionsFromFlist).ToList();
             }
 
