@@ -36,8 +36,8 @@ namespace RemoteNetSpy
 
             InitializeComponent();
             double multiplier = parent is ObjectViewer ? 1 : 0.9;
-            this.Height = parent.Height * multiplier;
-            this.Width = parent.Width * multiplier;
+            this.Height = Math.Max(parent.Height * multiplier, 800);
+            this.Width = Math.Max(parent.Width * multiplier, 1200);
 
             _ro = ro;
             _type = _ro.GetType();

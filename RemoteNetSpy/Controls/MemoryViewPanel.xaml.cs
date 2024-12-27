@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 
 namespace RemoteNetSpy.Controls
 {
@@ -125,6 +126,7 @@ namespace RemoteNetSpy.Controls
         }
 
         private int _size;
+
         public int Size
         {
             get { return _size; }
@@ -135,6 +137,17 @@ namespace RemoteNetSpy.Controls
             }
         }
 
+        private Type _detectedType;
+        public Type DetectedType
+        {
+            get { return _detectedType; }
+            set
+            {
+                _detectedType = value;
+                OnPropertyChanged(nameof(DetectedType));
+            }
+        }
+
         public RemoteAppModel RemoteAppModel { get; set; }
 
         public MemoryViewPanelModel(RemoteAppModel remoteAppModel)
@@ -142,6 +155,7 @@ namespace RemoteNetSpy.Controls
             RemoteAppModel = remoteAppModel;
             Size = 240;
         }
+
     }
 
     /// <summary>
@@ -154,9 +168,70 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-        private async void GoButtonClicked(object sender, RoutedEventArgs e) => LoadBytesAsync();
+        ulong currentlyShownAddress = 0;
+        int currentlShownSize = 0;
 
+        int updater = 1;
         public async Task LoadBytesAsync()
+        {
+            // Atomicly increase the updater and keep the old value as our "id"
+            int id = System.Threading.Interlocked.Increment(ref updater);
+            // Sleep to let "Address" update
+            await Task.Delay(100);
+            // If the updater has changed since we started, return
+            if (updater != id)
+                return;
+
+            var mvpModel = DataContext as MemoryViewPanelModel;
+            if (mvpModel == null)
+            {
+                MessageBox.Show("DataContext is not a RemoteAppModel");
+                return;
+            }
+
+            if (mvpModel.Address == 0)
+                return;
+
+            if (mvpModel.Address == currentlyShownAddress && mvpModel.Size == currentlShownSize)
+                return;
+
+            using (fetchSpinner.TemporarilyShow())
+            {
+
+                byte[] temp = new byte[mvpModel.Size];
+                try
+                {
+                    RemoteNET.RemoteMarshal marshal = mvpModel.RemoteAppModel.App.Marshal;
+                    await Task.Run(() =>
+                        marshal.Read((nint)mvpModel.Address, temp, 0, mvpModel.Size));
+
+                    // read successful. Start Task to figure out which type we're looing at
+                    await Task.Run(() =>
+                    {
+                        long vftableAddress = BitConverter.ToInt64(temp, 0);
+                        Type objType = mvpModel.RemoteAppModel.App.GetRemoteType(vftableAddress);
+                        mvpModel.DetectedType = objType;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    return;
+                }
+
+                MemoryStream ba = new MemoryStream(temp);
+                myHexEditor.Stream = ba;
+                // Update "current" vars
+                currentlyShownAddress = mvpModel.Address;
+                currentlShownSize = mvpModel.Size;
+            }
+        }
+
+        private async void InspectObjectClicked(object sender, RoutedEventArgs e)
+        {
+            await InspectObject();
+        }
+        private async Task InspectObject()
         {
             using (fetchSpinner.TemporarilyShow())
             {
@@ -167,21 +242,59 @@ namespace RemoteNetSpy.Controls
                     return;
                 }
 
-                byte[] temp = new byte[mvpModel.Size];
                 try
                 {
-                    RemoteNET.RemoteMarshal marshal = mvpModel.RemoteAppModel.App.Marshal;
-                    await Task.Run(() =>
-                        marshal.Read((nint)mvpModel.Address, temp, 0, mvpModel.Size));
+                    Type objType = mvpModel.DetectedType;
+                    if (objType == null)
+                    {
+                        MessageBox.Show("Failed to get type from vftable");
+                        return;
+                    }
+
+                    var app = mvpModel.RemoteAppModel.App;
+                    app.Communicator.StartOffensiveGC(objType.Assembly.GetName().FullName);
+
+                    // Get remote object from address + type
+                    RemoteNET.RemoteObject obj = app.GetRemoteObject(mvpModel.Address, objType.FullName);
+                    Window ownerWindow = Window.GetWindow(this);
+                    Window objectViewer = ObjectViewer.CreateViewerWindow(ownerWindow, mvpModel.RemoteAppModel, obj);
+                    objectViewer.Show();
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
                     return;
-                }
+                }            }
+        }
 
-                MemoryStream ba = new MemoryStream(temp);
-                myHexEditor.Stream = ba;
+        private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            // Cast DataContext to MemoryViewPanelModel
+            MemoryViewPanelModel mvpModel = DataContext as MemoryViewPanelModel;
+            if (mvpModel == null)
+            {
+                MessageBox.Show("DataContext is not a MemoryViewPanelModel");
+                return;
+            }
+            // register to changes on the "Address" property of the model
+            mvpModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == "Address")
+                {
+                    LoadBytesAsync();
+                }
+            };
+        }
+
+        private void TextBox_KeyEnterUpdate(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                TextBox tBox = (TextBox)sender;
+                DependencyProperty prop = TextBox.TextProperty;
+
+                BindingExpression binding = BindingOperations.GetBindingExpression(tBox, prop);
+                if (binding != null) { binding.UpdateSource(); }
             }
         }
     }

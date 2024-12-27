@@ -4,13 +4,18 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:control="clr-namespace:WpfHexaEditor;assembly=WPFHexaEditor"
+             xmlns:converters="clr-namespace:RemoteNetSpy.Converters" 
              xmlns:local="clr-namespace:RemoteNetSpy.Controls" xmlns:remotenetspy="clr-namespace:RemoteNetSpy"
              mc:Ignorable="d" 
             d:DataContext="{d:DesignInstance Type=local:MemoryViewPanelModel, IsDesignTimeCreatable=False}"
-             d:DesignHeight="450" d:DesignWidth="450">
+             d:DesignHeight="450" d:DesignWidth="450"
+             DataContextChanged="UserControl_DataContextChanged"
+             >
     <UserControl.Resources>
         <local:ULongToHexConverter x:Key="ULongToHexConverter" />
         <local:IntConverter x:Key="IntConverter" />
+        <converters:NullToBoolConverter x:Key="nullToBoolConverter"/>
+        <converters:TypeToFullNameConverter x:Key="typeToFullNameConverter"/>
     </UserControl.Resources>
     <DockPanel Margin="5">
         <Grid DockPanel.Dock="Top">
@@ -21,25 +26,41 @@
             </Grid.ColumnDefinitions>
 
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="26"/>
+                <RowDefinition Height="26"/>
+                <RowDefinition Height="22"/>
             </Grid.RowDefinitions>
 
             <!-- First Row: Address -->
             <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,5,5" VerticalAlignment="Center">Address:</TextBlock>
             <TextBox Grid.Row="0" Grid.Column="1" x:Name="addressTextBox" MinWidth="200"
-             Text="{Binding Address, Converter={StaticResource ULongToHexConverter}}"
-             Margin="0,0,0,5"/>
+                 Text="{Binding Address, Converter={StaticResource ULongToHexConverter}}"
+                 KeyUp="TextBox_KeyEnterUpdate"
+                 Margin="0,0,0,5" />
             <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
-                <Button Padding="20,0" Margin="5,0,0,5" Click="GoButtonClicked"
-            BorderBrush="#555555"
-            BorderThickness="1">Go</Button>
                 <remotenetspy:Spinner x:Name="fetchSpinner" Visibility="Collapsed"/>
             </StackPanel>
             <!-- Second Row: Size -->
             <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,5,0" VerticalAlignment="Center">Size:</TextBlock>
             <TextBox Grid.Row="1" Grid.Column="1" x:Name="sizeTextBox" MinWidth="200"
-             Text="{Binding Size, Converter={StaticResource IntConverter}}"/>
+                 Text="{Binding Size, Converter={StaticResource IntConverter}}"
+                 KeyUp="TextBox_KeyEnterUpdate"
+                 Margin="0,0,0,5"/>
+            <!-- Third Row: Detected Type-->
+            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,5,0" VerticalAlignment="Center">Detected Type:</TextBlock>
+            <!-- Icon for "type" -->
+            <DockPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                <Image DockPanel.Dock="Left" MaxHeight="14" Source="/icons/Class.png" Margin="0,0,3,0"/>
+                <TextBlock x:Name="objTypeTextBox" d:Text="Namespace.ClassName" Text="{Binding DetectedType, Converter={StaticResource typeToFullNameConverter}}" Foreground="Orange"/>
+            </DockPanel>
+            <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
+                <Button Padding="20,0" Margin="5,0,0,2" Click="InspectObjectClicked"
+                        VerticalAlignment="Center"
+                        BorderBrush="#555555"
+                        BorderThickness="1"
+                        IsEnabled="{Binding DetectedType, Converter={StaticResource nullToBoolConverter}}"
+                        >Inspect Object</Button>
+            </StackPanel>
         </Grid>
 
         <control:HexEditor x:Name="myHexEditor" SnapsToDevicePixels="True" FontSize="14"
