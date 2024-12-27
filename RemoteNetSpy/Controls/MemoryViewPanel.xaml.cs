@@ -26,11 +26,11 @@ namespace RemoteNetSpy.Controls
             string input = value as string;
             if (input == null) return DependencyProperty.UnsetValue;
 
-            // Check for Little Endian format (e.g. "88 77 66 55 44 33 22 11")
             if (input.Contains(" "))
             {
+                // Check for Little Endian format (e.g. "88 77 66 55 44 33 22 11")
                 string[] byteStrings = input.Split(' ');
-                if (byteStrings.Length <= 8)
+                if (byteStrings.All(section => section.Length == 2) && byteStrings.Length <= 8)
                 {
                     try
                     {
@@ -48,6 +48,23 @@ namespace RemoteNetSpy.Controls
                         return DependencyProperty.UnsetValue;
                     }
                 }
+                // Check for Windows Calculator format (e.g. "1D23 ABCD EF87")
+                else if (byteStrings.Any(section => section.Length == 4))
+                {
+                    try
+                    {
+                        string normalized = input.Replace(" ", string.Empty);
+                        if (ulong.TryParse(normalized, System.Globalization.NumberStyles.HexNumber, null, out ulong result))
+                        {
+                            return result;
+                        }
+                    }
+                    catch
+                    {
+                        return DependencyProperty.UnsetValue;
+                    }
+                }
+
             }
             else if (input.StartsWith("0x")) // Check for 0x format
             {
