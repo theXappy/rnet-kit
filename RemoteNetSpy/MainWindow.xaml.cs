@@ -1376,14 +1376,20 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             ////Trick to scroll to our selected item from the BOTTOM
             //double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
             //double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
-            //var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
+            //var furtherDownItem = assembliesListBox.Items[Math.min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
             //assembliesListBox.SelectedItem = matchingAssembly;
             //assembliesListBox.ScrollIntoView(furtherDownItem);
         }
 #pragma warning restore IDE0051 // Remove unused private members
 
-        private void RunFridaTracesButtonClicked(object sender, RoutedEventArgs e)
+        private async void RunFridaTracesButtonClicked(object sender, RoutedEventArgs e)
         {
+            if (!await IsFridaInstalled())
+            {
+                MessageBox.Show("Frida is not installed. Please install Frida before running frida-trace.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             if (!_traceList.Any())
             {
                 MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK,
@@ -1419,6 +1425,20 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to start Frida trace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task<bool> IsFridaInstalled()
+        {
+            try
+            {
+                CommandTask<BufferedCommandResult> commandTask = CliWrap.Cli.Wrap("frida-trace").WithArguments("--version").ExecuteBufferedAsync();
+                BufferedCommandResult result = await commandTask.Task;
+                return result.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
             }
         }
     }
