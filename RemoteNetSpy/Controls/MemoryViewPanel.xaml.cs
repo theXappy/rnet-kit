@@ -204,7 +204,15 @@ namespace RemoteNetSpy.Controls
                     RemoteNET.RemoteMarshal marshal = mvpModel.RemoteAppModel.App.Marshal;
                     await Task.Run(() =>
                         marshal.Read((nint)mvpModel.Address, temp, 0, mvpModel.Size));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    return;
+                }
 
+                try
+                {
                     // read successful. Start Task to figure out which type we're looing at
                     await Task.Run(() =>
                     {
@@ -213,10 +221,9 @@ namespace RemoteNetSpy.Controls
                         mvpModel.DetectedType = objType;
                     });
                 }
-                catch (Exception ex)
+                catch
                 {
-                    MessageBox.Show(ex.Message);
-                    return;
+                    // Ignored
                 }
 
                 MemoryStream ba = new MemoryStream(temp);

@@ -7,7 +7,7 @@
              xmlns:converters="clr-namespace:RemoteNetSpy.Converters" 
              xmlns:local="clr-namespace:RemoteNetSpy.Controls" xmlns:remotenetspy="clr-namespace:RemoteNetSpy"
              mc:Ignorable="d" 
-            d:DataContext="{d:DesignInstance Type=local:MemoryViewPanelModel, IsDesignTimeCreatable=False}"
+             d:DataContext="{d:DesignInstance Type=local:MemoryViewPanelModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="450" d:DesignWidth="450"
              DataContextChanged="UserControl_DataContextChanged"
              >
@@ -28,7 +28,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="26"/>
                 <RowDefinition Height="26"/>
-                <RowDefinition Height="22"/>
+                <RowDefinition Height="26"/>
             </Grid.RowDefinitions>
 
             <!-- First Row: Address -->
@@ -38,7 +38,7 @@
                  KeyUp="TextBox_KeyEnterUpdate"
                  Margin="0,0,0,5" />
             <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
-                <remotenetspy:Spinner x:Name="fetchSpinner" Visibility="Collapsed"/>
+                <remotenetspy:Spinner x:Name="fetchSpinner" Visibility="Collapsed" Margin="5,0"/>
             </StackPanel>
             <!-- Second Row: Size -->
             <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,5,0" VerticalAlignment="Center">Size:</TextBlock>
@@ -54,8 +54,8 @@
                 <TextBlock x:Name="objTypeTextBox" d:Text="Namespace.ClassName" Text="{Binding DetectedType, Converter={StaticResource typeToFullNameConverter}}" Foreground="Orange"/>
             </DockPanel>
             <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
-                <Button Padding="20,0" Margin="5,0,0,2" Click="InspectObjectClicked"
-                        VerticalAlignment="Center"
+                <Button Padding="20,0" Margin="5,2,0,2" Click="InspectObjectClicked"
+                        VerticalAlignment="Stretch"
                         BorderBrush="#555555"
                         BorderThickness="1"
                         IsEnabled="{Binding DetectedType, Converter={StaticResource nullToBoolConverter}}"
