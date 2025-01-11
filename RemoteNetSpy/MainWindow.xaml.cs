@@ -213,7 +213,7 @@ namespace RemoteNetSpy
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
-            Task interactiveWindowInitTask = InteractiveWindow_Init();
+            InteractiveWindow_Init();
 
             // Only now we try to dispose of the old RemoteApp.
             // We must do it after creating a new one for the case where the user re-attaches to the same
@@ -927,11 +927,22 @@ namespace RemoteNetSpy
             InterativeWindow_AddVar(dataContext);
         }
 
+
+        private Task interactiveWindowInitTask = null;
         private async Task InteractiveWindow_Init()
         {
+            // Already completed initialization
             if (interactivePanel.IsStarted)
                 return;
 
+            // Initialization is in progress
+            if (interactiveWindowInitTask != null)
+            {
+                await interactiveWindowInitTask;
+                return;
+            }
+
+            // Initialization is not started yet, starting now
             RuntimeType runtime = RuntimeType.Managed;
             if (_app is UnmanagedRemoteApp)
                 runtime = RuntimeType.Unmanaged;
@@ -941,7 +952,8 @@ namespace RemoteNetSpy
             await interactivePanel.StartAsync("rnet-repl.exe");
             string connectionScript =
 @$"var app = RemoteAppFactory.Connect(Process.GetProcessById({ProcBoxTargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
-            await interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n");
+            interactiveWindowInitTask = interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n");
+            await interactiveWindowInitTask;
             return;
         }
         private void InterativeWindow_AddVar(HeapObject dataContext)
