@@ -208,7 +208,20 @@ namespace RemoteNetSpy
 
             // Creating new RemoteApp
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Visible; });
-            var newApp = await ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver);
+            RemoteApp newApp;
+            try
+            {
+                newApp = await ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver);
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show($"Failed to connect to target {_procBoxCurrItem.Name}\nException:\n" + ex, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+                Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
+                return;
+            }
             _remoteAppModel.Update(newApp, ProcBoxTargetPid);
             Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
 
@@ -294,26 +307,19 @@ namespace RemoteNetSpy
             }
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid}), returned: {proc}");
-            try
-            {
-                return Task.Run(() =>
-                {
-                    bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
-                    bool isNativeApp = !_procBoxCurrItem.DotNetVersion.StartsWith("net");
-                    if ((noDiver && isNativeApp) ||
-                        (canConnectToUnmanagedDiver && !canConnectToManagedDiver))
-                    {
-                        return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
-                    }
 
-                    return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
-                });
-            }
-            catch (Exception ex)
+            return Task.Run(() =>
             {
-                MessageBox.Show($"Failed to connect to target '{_procBoxCurrItem.Name}'.\n\n" + ex);
-                return Task.FromException<RemoteApp>(ex);
-            }
+                bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
+                bool isNativeApp = !_procBoxCurrItem.DotNetVersion.StartsWith("net");
+                if ((noDiver && isNativeApp) ||
+                    (canConnectToUnmanagedDiver && !canConnectToManagedDiver))
+                {
+                    return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
+                }
+
+                return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
+            });
         }
 
         private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesViewAsync();
