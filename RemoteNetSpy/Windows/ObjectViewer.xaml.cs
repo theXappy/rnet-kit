@@ -48,7 +48,8 @@ namespace RemoteNetSpy
             DynamicRemoteObject dro = _ro.Dynamify() as DynamicRemoteObject;
 
             List<MembersGridItem> tempItems = new List<MembersGridItem>();
-            foreach (MemberInfo member in _type.GetMembers(~(BindingFlags.DeclaredOnly)).OrderBy(m => m.Name))
+            List<MemberInfo> ordered = _type.GetMembers(~(BindingFlags.DeclaredOnly)).OrderBy(m => m.Name).ToList();
+            foreach (MemberInfo member in ordered)
             {
                 MembersGridItem mgi = new MembersGridItem(member)
                 {
@@ -97,10 +98,7 @@ namespace RemoteNetSpy
                 tempItems.Add(mgi);
             }
 
-            tempItems.Sort((member1, member2) => member1.Name.CompareTo(member2.Name));
-
             _items = new ObservableCollection<MembersGridItem>(tempItems);
-
 
             // Try to spot IEnumerables
             IEnumerable<MemberInfo> methods = _type.GetMethods(~(BindingFlags.DeclaredOnly));
