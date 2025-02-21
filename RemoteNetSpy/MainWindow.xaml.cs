@@ -644,7 +644,8 @@ namespace RemoteNetSpy
             }
             catch
             {
-                try { File.Delete(tempFlistPath); } catch { };
+                try { File.Delete(tempFlistPath); } catch { }
+                ;
             }
         }
 
@@ -783,15 +784,19 @@ namespace RemoteNetSpy
             loadingImage.Visibility = Visibility.Visible;
 
             HeapObject ho = senderButton.DataContext as HeapObject;
+            bool success = false;
             try
             {
-                await FreezeUnfreeze(ho);
+                success = await FreezeUnfreeze(ho);
             }
             finally
             {
                 dPanel.Visibility = Visibility.Visible;
                 loadingImage.Visibility = Visibility.Collapsed;
             }
+
+            if (!success)
+                return;
 
             if (ho.Frozen)
                 InterativeWindow_AddVar(ho);
@@ -801,7 +806,7 @@ namespace RemoteNetSpy
             RefreshSearchAndWatchedLists();
         }
 
-        private async Task FreezeUnfreeze(HeapObject dataContext)
+        private async Task<bool> FreezeUnfreeze(HeapObject dataContext)
         {
             bool isFrozen = dataContext.Frozen;
             try
@@ -835,6 +840,7 @@ namespace RemoteNetSpy
                     });
                     await dumperTask;
                 }
+                return true;
             }
             catch (Exception ex)
             {
@@ -844,6 +850,7 @@ namespace RemoteNetSpy
                     error = "Error while freezing.\r\nPlease refresh the heap search and retry.\r\n";
                 error += "Exception: " + ex;
                 MessageBox.Show(error, "Error", MessageBoxButton.OK);
+                return false;
             }
         }
 
@@ -958,7 +965,7 @@ namespace RemoteNetSpy
             await interactivePanel.StartAsync("rnet-repl.exe");
             string connectionScript =
 @$"var app = RemoteAppFactory.Connect(Process.GetProcessById({ProcBoxTargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
-            interactiveWindowInitTask = interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n");
+            interactiveWindowInitTask = interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n", clearLast: false);
             await interactiveWindowInitTask;
             return;
         }
