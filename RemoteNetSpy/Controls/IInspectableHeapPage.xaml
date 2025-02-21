@@ -18,7 +18,6 @@
         <converters:InverseBooleanConverter x:Key="inverseBooleanConverter"/>
         <converters:BoolToCollapsabilityConverter x:Key="boolToVisibilityConverter"/>
         <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
-        <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
     </UserControl.Resources>
         <DockPanel>
