@@ -1,4 +1,4 @@
-﻿<Window x:Class="RemoteNetSpy.MainWindow"
+<Window x:Class="RemoteNetSpy.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -68,62 +68,7 @@
         <DockPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
             <DockPanel DockPanel.Dock="Top" Margin="5">
                 <TextBlock DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center">Target:</TextBlock>
-                <DockPanel>
-                    <Button x:Name="procsRefreshButton" DockPanel.Dock="Right" MinWidth="25" Margin="4,0,0,0" Click="ProcsRefreshButton_OnClick" BorderBrush="#FF3C3C3C">
-                        <Image Source="icons/Refresh.png" Stretch="None"/>
-                    </Button>
-                    <Grid>
-                        <Border x:Name="procsBoxBorder">
-                            <ComboBox x:Name="procsBox" SelectionChanged="procsBox_SelectionChanged" FontFamily="Consolas"
-                                  IsTextSearchEnabled="True" TextSearch.TextPath="Name"
-                                  Margin="4,0"
-                                  >
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type models:InjectableProcess}">
-                                        <DockPanel>
-                                            <DockPanel.Width>
-                                                <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=ComboBox}" Path="ActualWidth" Converter="{StaticResource comboBoxWidthAdjustmentConverter}"/>
-                                            </DockPanel.Width>
-                                            <!--<Image Source="/icons/ModulePublic.png" Margin="0,0,3,0"/>-->
-                                            <TextBlock Text="{Binding Path=Name}" Margin="0,0,10,0" />
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,10,0" >
-                                                <TextBlock Text="(" />
-                                                <TextBlock Text="{Binding Path=Pid}" />
-                                                <TextBlock Text=")" />
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding Path=DotNetVersion}" Margin="0,0,10,0" Foreground="{Binding Path=DotNetVersion, Converter={StaticResource dotnetVersionToForegroundColor}}"/>
-                                            <TextBlock Text="{Binding Path=DiverState}" Foreground="Aquamarine" />
-                                            <TextBlock DockPanel.Dock="Right" 
-                                                       Text=" &lt;&lt; PROCESS DIED >> "
-                                                       HorizontalAlignment="Right"
-                                                       Foreground="Crimson" 
-                                                       Background="Black"
-                                                       Padding="60,0"
-                                                       Margin="10,0"
-                                                       Visibility="{Binding Path=IsProcessDead, Converter={StaticResource boolToCollapsabilityConverter}}"/>
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                                <ComboBox.ItemContainerStyle>
-                                    <Style TargetType="{x:Type ComboBoxItem}">
-                                        <Setter Property="TextSearch.Text" Value="{Binding Name}" />
-                                    </Style>
-                                </ComboBox.ItemContainerStyle>
-                            </ComboBox>
-                        </Border>
-                        <TextBlock x:Name="procsBoxLoadingOverlay"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Visibility="Collapsed"
-                               d:Visibility="Visible"
-                               DockPanel.Dock="Left"
-                               Padding="4,0"
-                               >
-                            <TextBlock.Text>Loading...</TextBlock.Text>
-                        </TextBlock>
-                        <remoteNetSpy:Spinner x:Name="processConnectionSpinner" Margin="1" Visibility="Collapsed"/>
-                    </Grid>
-                </DockPanel>
+                <TextBlock x:Name="selectedTargetTextBlock" DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center"/>
             </DockPanel>
             <ToolBarTray DockPanel.Dock="Top" Background="#22000000" Margin="2,0" Height="30">
                 <ToolBar BandIndex="3" Height="28" Margin="1,1">

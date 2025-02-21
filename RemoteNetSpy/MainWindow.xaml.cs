@@ -28,6 +28,7 @@ using Microsoft.Win32;
 using RemoteNET;
 using RemoteNetSpy.Converters;
 using RemoteNetSpy.Models;
+using RemoteNetSpy.Windows;
 using RnetKit.Common;
 
 namespace RemoteNetSpy
@@ -69,118 +70,38 @@ namespace RemoteNetSpy
             _aliveCheckTimer.Elapsed += OnAliveCheckTimerElapsed;
         }
 
-        private async void MainWindow_OnInitialized(object sender, EventArgs e) => await RefreshProcessesList();
-
-        private async Task RefreshProcessesList()
+        private async void MainWindow_OnInitialized(object sender, EventArgs e)
         {
-            procsBox.ItemsSource = null;
-            StopGlow();
-
-            procsBox.IsEnabled = false;
-            procsBoxLoadingOverlay.Visibility = Visibility.Visible;
-
-            try
+            var targetSelectionWindow = new TargetSelectionWindow();
+            if (targetSelectionWindow.ShowDialog() == true)
             {
-                CommandTask<BufferedCommandResult> commandTask = CliWrap.Cli.Wrap("rnet-ps.exe").ExecuteBufferedAsync();
-                BufferedCommandResult runResults = await commandTask.Task;
-                IEnumerable<string[]> splitLines = runResults.StandardOutput.Split('\n')
-                    .Skip(1)
-                    .ToList()
-                    .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
-                    .Where(arr => arr.Length > 2);
-
-                List<InjectableProcess> procs = new();
-                foreach (string[] splitLine in splitLines)
-                {
-                    int pid = int.Parse(splitLine[0]);
-                    string name = splitLine[1];
-                    string runtimeVersion = splitLine[2]; // .NET version or "native" for C/C++/Unknown
-                    string diverState = splitLine[3];
-                    InjectableProcess proc = new(pid, name, runtimeVersion, diverState);
-
-                    procs.Add(proc);
-                }
-                procsBox.ItemsSource = procs;
-                procsBox.IsEnabled = true;
-                procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Failed to refresh processes list.\nException: " + ex, this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-
-            t = new System.Threading.Timer(UpdateGlowEffect, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
-            _glowActive = true;
-        }
-
-
-        private System.Threading.Timer t;
-        private bool _glowActive = false;
-        private int step = 0;
-
-        private void UpdateGlowEffect(object state)
-        {
-            if (!_glowActive)
-                return;
-
-            double opacity = 0;
-            int MODIFIER = 20;
-            double OPACITY_STEP = 1d / (MODIFIER / 2);
-            step = (step + 1) % MODIFIER;
-            if (step <= MODIFIER / 2)
-            {
-                opacity = OPACITY_STEP * step;
+                _procBoxCurrItem = targetSelectionWindow.SelectedProcess;
+                selectedTargetTextBlock.Text = $"Target: {_procBoxCurrItem.Name} (PID: {_procBoxCurrItem.Pid})";
+                await ConnectToSelectedProcess();
             }
             else
             {
-                opacity = 1 - (OPACITY_STEP * (step - (MODIFIER / 2)));
+                Close();
             }
-
-            Dispatcher.BeginInvoke(() =>
-            {
-                if (!_glowActive)
-                {
-                    return;
-                }
-                procsBoxBorder.Effect = new DropShadowEffect()
-                { BlurRadius = 10, Color = Colors.Yellow, Opacity = opacity, ShadowDepth = 0 };
-            });
         }
 
-
-
-        private void StopGlow()
+        private async Task ConnectToSelectedProcess()
         {
-            _glowActive = false;
-            t?.Dispose();
-            t = null;
-            procsBoxBorder.Effect = null;
-        }
-
-        private async void procsBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> procsBox_SelectionChanged");
-            if (procsBox.SelectedIndex == -1)
+            if (_procBoxCurrItem == null)
                 return;
 
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Checking injectability");
-            _procBoxCurrItem = procsBox.SelectedItem as InjectableProcess;
             bool canConnectToUnmanagedDiver = _procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]");
             bool canConnectToManagedDiver = _procBoxCurrItem.DiverState.Contains("[Diver Injected]");
             if (canConnectToManagedDiver && canConnectToManagedDiver)
             {
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Can inject to both. Prompting user to choose.");
-                // Both divers present, let user choose which to connect to.
                 DiverSelectionDialog dsd = new DiverSelectionDialog();
                 dsd.Owner = this;
                 if (dsd.ShowDialog() != true)
                 {
                     // User cancelled.
-                    procsBox.SelectedIndex = -1;
                     return;
                 }
 
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] User chose: {dsd.SelectedRuntime}");
                 if (dsd.SelectedRuntime == RuntimeType.Unmanaged)
                 {
                     canConnectToUnmanagedDiver = true;
@@ -198,10 +119,7 @@ namespace RemoteNetSpy
                 }
             }
 
-
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Stopping Glow");
             StopGlow();
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Stopped Glow");
 
             // Saving aside last RemoteApp
             var oldApp = _app;
@@ -246,7 +164,6 @@ namespace RemoteNetSpy
                 oldApp = null;
             }
 
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> RefreshAssembliesAsync");
             Task assembliesListRefresh = RefreshAssembliesViewAsync();
 
             _aliveCheckTimer.Stop();
@@ -295,7 +212,6 @@ namespace RemoteNetSpy
 
         private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
         {
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid})");
             Process proc;
             try
             {
@@ -324,7 +240,6 @@ namespace RemoteNetSpy
 
         private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesViewAsync();
 
-
         private async Task RefreshAssembliesViewAsync()
         {
             await Dispatcher.InvokeAsync(() => { assembliesSpinner.Visibility = Visibility.Visible; });
@@ -342,7 +257,6 @@ namespace RemoteNetSpy
             });
         }
 
-
         private string UnmanagedFlagIfNeeded()
         {
             if (_remoteAppModel.TargetRuntime == RuntimeType.Unmanaged)
@@ -352,8 +266,6 @@ namespace RemoteNetSpy
 
         private async Task<List<DumpedTypeModel>> GetTypesListAsync()
         {
-            //AssemblyModel assembly = assembliesListBox.SelectedItem as AssemblyModel;
-            //return await GetTypesListAsync(assembly);
             throw new Exception();
         }
 
@@ -380,46 +292,6 @@ namespace RemoteNetSpy
             tempList.Sort((dt1, dt2) => dt1.FullTypeName.CompareTo(dt2.FullTypeName));
             return tempList;
         }
-
-        //private async void typesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        //{
-        //    _currSelectedType = (_currSelectedType);
-        //    string type = _currSelectedType?.FullTypeName;
-        //    if (type == null)
-        //    {
-        //        membersListBox.ItemsSource = null;
-        //        return;
-        //    }
-
-
-        //    var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-        //        .WithArguments($"members -t {TargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
-        //        .WithValidation(CommandResultValidation.None)
-        //        .ExecuteBufferedAsync();
-        //    var res = await x.Task;
-        //    var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-        //        .SkipWhile(line => !line.Contains("Members of "))
-        //        .Skip(1)
-        //        .Select(str => str.Trim());
-
-        //    List<string> rawLinesList = xx.ToList();
-        //    List<DumpedMember> dumpedMembers = new List<DumpedMember>();
-        //    for (int i = 0; i < rawLinesList.Count; i += 2)
-        //    {
-        //        DumpedMember dumpedMember = new DumpedMember()
-        //        {
-        //            RawName = rawLinesList[i],
-        //            NormalizedName = rawLinesList[i + 1]
-        //        };
-        //        dumpedMembers.Add(dumpedMember);
-        //    }
-
-        //    dumpedMembers.Sort(CompareDumperMembers);
-
-        //    membersListBox.ItemsSource = dumpedMembers;
-
-        //    filterBox_TextChanged(membersFilterBox, null);
-        //}
 
         private int CompareDumperMembers(DumpedMember member1, DumpedMember member2)
         {
@@ -566,7 +438,6 @@ namespace RemoteNetSpy
             if (associatedBox == null)
                 return;
 
-
             string filter = (sender as TextBox)?.Text;
             ICollectionView view = CollectionViewSource.GetDefaultView(associatedBox.ItemsSource);
             if (view == null) return;
@@ -597,16 +468,6 @@ namespace RemoteNetSpy
         {
             if (sender == clearMembersFilterButton)
                 membersFilterBox.Clear();
-        }
-
-        private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            membersListBox.ItemsSource = null;
-            //assembliesListBox.ItemsSource = null;
-            heapInstancesListBox.ItemsSource = null;
-            _traceList.Clear();
-
-            await RefreshProcessesList();
         }
 
         private void RunTracesButtonClicked(object sender, RoutedEventArgs e)
@@ -844,7 +705,6 @@ namespace RemoteNetSpy
             }
             catch (Exception ex)
             {
-                // ignored
                 string error = "Error while unfreezing.\r\n";
                 if (!isFrozen)
                     error = "Error while freezing.\r\nPlease refresh the heap search and retry.\r\n";
@@ -900,8 +760,6 @@ namespace RemoteNetSpy
             Clipboard.SetText(typeName);
         }
 
-
-
         private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
             MenuItem mi = sender as MenuItem;
@@ -939,7 +797,6 @@ namespace RemoteNetSpy
             HeapObject dataContext = senderButton.DataContext as HeapObject;
             InterativeWindow_AddVar(dataContext);
         }
-
 
         private Task interactiveWindowInitTask = null;
         private async Task InteractiveWindow_Init()
@@ -1037,8 +894,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             });
         }
 
-
-
         private object _scalingLock = new object();
         private int _scalingFactor = 0;
         private HashSet<Type> _forbiddens = new HashSet<Type>();
@@ -1107,8 +962,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
         private void watchAllocationToolbarButton_Clicked(object sender, RoutedEventArgs e)
         {
-            //AssemblyModel module = assembliesListBox.SelectedItem as AssemblyModel;
-            //WatchModuleAllocations(module);
             throw new Exception();
         }
 
@@ -1157,7 +1010,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
         {
             TraceMember(membersListBox?.SelectedItem as DumpedMember);
         }
-
 
         private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
         {
@@ -1225,7 +1077,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             var contextMenu = extraButton.ContextMenu;
             contextMenu.HorizontalOffset = extraButton.ActualWidth;
             contextMenu.VerticalOffset = extraButton.ActualHeight / 2;
-
 
             contextMenu.IsOpen = true;
             e.Handled = true;
@@ -1395,15 +1246,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
         private void TypesControl_GoToAssemblyInvoked(string assembly)
         {
             throw new Exception();
-            //AssemblyModel matchingAssembly = (assembliesListBox.ItemsSource as List<AssemblyModel>).FirstOrDefault(x => x.Name == assembly);
-            //int index = assembliesListBox.Items.IndexOf(matchingAssembly);
-
-            ////Trick to scroll to our selected item from the BOTTOM
-            //double singleListItemHeight = assembliesListBox.FindVisualChildren<ListBoxItem>().First().ActualHeight;
-            //double numItemsShown = assembliesListBox.ActualHeight / singleListItemHeight;
-            //var furtherDownItem = assembliesListBox.Items[Math.Min(index + (int)numItemsShown - 2, assembliesListBox.Items.Count - 1)];
-            //assembliesListBox.SelectedItem = matchingAssembly;
-            //assembliesListBox.ScrollIntoView(furtherDownItem);
         }
 #pragma warning restore IDE0051 // Remove unused private members
 

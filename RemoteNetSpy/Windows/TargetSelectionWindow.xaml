@@ -1,0 +1,19 @@
+<Window x:Class="RemoteNetSpy.Windows.TargetSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Target Selection" Height="200" Width="400">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Select Target Process:" Margin="10" Grid.Row="0" Grid.Column="0"/>
+        <ComboBox x:Name="procsBox" Grid.Row="1" Grid.Column="0" Margin="10" SelectionChanged="ProcsBox_SelectionChanged"/>
+        <Button x:Name="procsRefreshButton" Content="Refresh" Grid.Row="2" Grid.Column="0" Margin="10" Click="ProcsRefreshButton_OnClick"/>
+        <TextBlock x:Name="procsBoxLoadingOverlay" Text="Loading..." HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" Grid.Row="1" Grid.Column="0"/>
+    </Grid>
+</Window>
