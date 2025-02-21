@@ -1271,7 +1271,10 @@
                             Background="{TemplateBinding Background}"
                             Padding="1"
                             SnapsToDevicePixels="True">
-                        <ScrollViewer Focusable="false" Padding="{TemplateBinding Padding}">
+                        <ScrollViewer Focusable="false" Padding="{TemplateBinding Padding}"
+                                      VirtualizingStackPanel.IsVirtualizing="True"
+                                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                      >
                             <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
                         </ScrollViewer>
                     </Border>
