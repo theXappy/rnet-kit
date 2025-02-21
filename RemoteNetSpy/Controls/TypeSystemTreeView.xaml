@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="RemoteNetSpy.Controls.StoreProductTreeView"
+﻿<UserControl x:Class="RemoteNetSpy.Controls.TypeSystemTreeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,7 +19,6 @@
         <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
         <converters:BoolToCollapsabilityConverter x:Key="boolToCollapsabilityConverter"/>
         <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
-        <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
         <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
         <Style TargetType="ToolBar">

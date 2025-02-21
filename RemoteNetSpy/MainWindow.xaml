@@ -115,7 +115,7 @@
             />
             <DockPanel x:Name="AssembliesLeftArea" Grid.Column="0" Grid.Row="1" Margin="5,5,0,5">
                 <Grid x:Name="AssembliesValuesArea">
-                    <controls:StoreProductTreeView x:Name="storeProductTreeView"/>
+                    <controls:TypeSystemTreeView x:Name="typeSystemTreeView"/>
                     <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
                 </Grid>
             </DockPanel>

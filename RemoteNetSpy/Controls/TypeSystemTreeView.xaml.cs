@@ -11,14 +11,11 @@ using System.Linq;
 
 namespace RemoteNetSpy.Controls
 {
-    /// <summary>
-    /// Interaction logic for StoreProductTreeView.xaml
-    /// </summary>
-    public partial class StoreProductTreeView : UserControl
+    public partial class TypeSystemTreeView : UserControl
     {
         ClassesModel Model => DataContext as ClassesModel;
 
-        public StoreProductTreeView()
+        public TypeSystemTreeView()
         {
             InitializeComponent();
         }

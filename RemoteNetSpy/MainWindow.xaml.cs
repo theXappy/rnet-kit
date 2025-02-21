@@ -62,7 +62,7 @@ namespace RemoteNetSpy
                 new System.ComponentModel.SortDescription("",
                     System.ComponentModel.ListSortDirection.Ascending));
 
-            storeProductTreeView.DataContext = _remoteAppModel.ClassesModel;
+            typeSystemTreeView.DataContext = _remoteAppModel.ClassesModel;
             _remoteAppModel.ClassesModel.PropertyChanged += ClassesModel_PropertyChanged;
 
             _aliveCheckLock = new object();
