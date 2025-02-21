@@ -41,8 +41,8 @@ namespace RemoteNetSpy
         RemoteApp _app => _remoteAppModel.App;
         private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
         private Dictionary<string, DumpedTypeModel> _dumpedTypesCache = new Dictionary<string, DumpedTypeModel>();
-        public InjectableProcess _procBoxCurrItem;
-        public int ProcBoxTargetPid => _procBoxCurrItem?.Pid ?? 0;
+        public InjectableProcess _targetProcess;
+        public int ProcBoxTargetPid => _targetProcess?.Pid ?? 0;
 
         private DumpedTypeModel _currSelectedType => _remoteAppModel.ClassesModel.SelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
@@ -75,8 +75,8 @@ namespace RemoteNetSpy
             var targetSelectionWindow = new TargetSelectionWindow();
             if (targetSelectionWindow.ShowDialog() == true)
             {
-                _procBoxCurrItem = targetSelectionWindow.SelectedProcess;
-                selectedTargetTextBlock.Text = $"Target: {_procBoxCurrItem.Name} (PID: {_procBoxCurrItem.Pid})";
+                _targetProcess = targetSelectionWindow.SelectedProcess;
+                selectedTargetTextBlock.Text = $"{_targetProcess.Name} (PID: {_targetProcess.Pid})";
                 await ConnectToSelectedProcess();
             }
             else
@@ -87,15 +87,14 @@ namespace RemoteNetSpy
 
         private async Task ConnectToSelectedProcess()
         {
-            if (_procBoxCurrItem == null)
+            if (_targetProcess == null)
                 return;
 
-            bool canConnectToUnmanagedDiver = _procBoxCurrItem.DiverState.Contains("[Unmanaged Diver Injected]");
-            bool canConnectToManagedDiver = _procBoxCurrItem.DiverState.Contains("[Diver Injected]");
+            bool canConnectToUnmanagedDiver = _targetProcess.DiverState.Contains("[Unmanaged Diver Injected]");
+            bool canConnectToManagedDiver = _targetProcess.DiverState.Contains("[Diver Injected]");
             if (canConnectToManagedDiver && canConnectToManagedDiver)
             {
                 DiverSelectionDialog dsd = new DiverSelectionDialog();
-                dsd.Owner = this;
                 if (dsd.ShowDialog() != true)
                 {
                     // User cancelled.
@@ -119,8 +118,6 @@ namespace RemoteNetSpy
                 }
             }
 
-            StopGlow();
-
             // Saving aside last RemoteApp
             var oldApp = _app;
 
@@ -135,7 +132,7 @@ namespace RemoteNetSpy
             {
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show($"Failed to connect to target {_procBoxCurrItem.Name}\nException:\n" + ex, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Failed to connect to target {_targetProcess.Name}\nException:\n" + ex, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
                 Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
                 return;
@@ -191,7 +188,7 @@ namespace RemoteNetSpy
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        _procBoxCurrItem.IsProcessDead = true;
+                        _targetProcess.IsProcessDead = true;
                     });
                     _aliveCheckTimer.Stop();
                 }
@@ -227,7 +224,7 @@ namespace RemoteNetSpy
             return Task.Run(() =>
             {
                 bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
-                bool isNativeApp = !_procBoxCurrItem.DotNetVersion.StartsWith("net");
+                bool isNativeApp = !_targetProcess.DotNetVersion.StartsWith("net");
                 if ((noDiver && isNativeApp) ||
                     (canConnectToUnmanagedDiver && !canConnectToManagedDiver))
                 {
@@ -479,7 +476,7 @@ namespace RemoteNetSpy
                 return;
             }
 
-            if (_procBoxCurrItem == null)
+            if (_targetProcess == null)
             {
                 MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -721,7 +718,7 @@ namespace RemoteNetSpy
 
         private void ManualTraceClicked(object sender, RoutedEventArgs e)
         {
-            if (_procBoxCurrItem == null)
+            if (_targetProcess == null)
             {
                 MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -1258,7 +1255,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 return;
             }
 
-            if (_procBoxCurrItem == null)
+            if (_targetProcess == null)
             {
                 MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -1288,6 +1285,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 MessageBox.Show($"Failed to start Frida trace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
     }
 
     public static class VisualTreeHelperExtensions

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RemoteNetSpy"
         mc:Ignorable="d"
         Title="Diver Selection" Height="120" Width="360"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         Style="{DynamicResource CustomWindowStyle}"
         >
     <Window.Resources>

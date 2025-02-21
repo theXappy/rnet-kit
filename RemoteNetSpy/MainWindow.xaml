@@ -6,7 +6,8 @@
         xmlns:remoteNetSpy="clr-namespace:RemoteNetSpy"
         xmlns:models="clr-namespace:RemoteNetSpy.Models"
         xmlns:controls="clr-namespace:RemoteNetSpy.Controls"
-        xmlns:converters="clr-namespace:RemoteNetSpy.Converters" xmlns:hostingwfinwpf="clr-namespace:HostingWfInWPF;assembly=HostingWfInWPF"
+        xmlns:converters="clr-namespace:RemoteNetSpy.Converters"
+        xmlns:hostingwfinwpf="clr-namespace:HostingWfInWPF;assembly=HostingWfInWPF"
         mc:Ignorable="d"
         Title="RemoteNET Spy"
         Height="820" Width="1450"
@@ -28,11 +29,9 @@
         <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter"/>
         <converters:BoolToCollapsabilityConverter x:Key="boolToCollapsabilityConverter"/>
         <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
-        <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>
         <converters:IsProcessDeadToBackgroundColor x:Key="isProcessDeadToBackgroundColor"/>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
         <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
-        <converters:ComboBoxWidthAdjustmentConverter x:Key="comboBoxWidthAdjustmentConverter"/>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>
@@ -69,6 +68,7 @@
             <DockPanel DockPanel.Dock="Top" Margin="5">
                 <TextBlock DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center">Target:</TextBlock>
                 <TextBlock x:Name="selectedTargetTextBlock" DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center"/>
+                <remoteNetSpy:Spinner x:Name="processConnectionSpinner" Margin="1" Visibility="Collapsed"/>
             </DockPanel>
             <ToolBarTray DockPanel.Dock="Top" Background="#22000000" Margin="2,0" Height="30">
                 <ToolBar BandIndex="3" Height="28" Margin="1,1">

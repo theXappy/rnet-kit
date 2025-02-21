@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using CliWrap;
 using CliWrap.Buffered;
 using RemoteNetSpy.Models;
+using RemoteNetSpy.ViewModels;
 
 namespace RemoteNetSpy.Windows
 {
@@ -17,13 +19,12 @@ namespace RemoteNetSpy.Windows
         public TargetSelectionWindow()
         {
             InitializeComponent();
+            var dataContext = new TargetSelectionViewModel();
+            dataContext.ItemDoubleClick += HandleProcessDoubleClick;
+            DataContext = dataContext;
             Loaded += TargetSelectionWindow_Loaded;
         }
 
-        private async void TargetSelectionWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            await RefreshProcessesList();
-        }
 
         private async Task RefreshProcessesList()
         {
@@ -61,20 +62,44 @@ namespace RemoteNetSpy.Windows
                 MessageBox.Show("Failed to refresh processes list.\nException: " + ex, this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void TargetSelectionWindow_Loaded(object sender, RoutedEventArgs e) => RefreshProcessesList();
+        private void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e) => RefreshProcessesList();
 
-        private void ProcsBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void SaveSelectionAndExit()
         {
+            // Get selected process
             if (procsBox.SelectedIndex == -1)
+            {
+                MessageBox.Show("Please select a process first.", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
+            }
 
             SelectedProcess = procsBox.SelectedItem as InjectableProcess;
             DialogResult = true;
             Close();
         }
 
-        private async void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
+        private void attachButton_Click(object sender, RoutedEventArgs e) => SaveSelectionAndExit();
+
+        private void HandleProcessDoubleClick(object sender, InjectableProcess e)
         {
-            await RefreshProcessesList();
+            SelectedProcess = e;
+            DialogResult = true;
+            Close();
+        }
+
+        private void procsBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                SaveSelectionAndExit();
+            }
+        }
+
+        private void cancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+            Close();
         }
     }
 }
