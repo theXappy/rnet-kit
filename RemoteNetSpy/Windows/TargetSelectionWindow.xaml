@@ -6,7 +6,8 @@
         Style="{DynamicResource CustomWindowStyle}"
         Title="Target Selection"
         WindowStartupLocation="CenterScreen"
-        Height="500" Width="600">
+        Height="700" Width="450"
+        >
     <Window.Resources>
         <converters:BoolToCollapsabilityConverter x:Key="boolToCollapsabilityConverter"/>
         <converters:DotnetVersionToForegroundColor x:Key="dotnetVersionToForegroundColor"/>

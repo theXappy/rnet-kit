@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using CliWrap;
 using CliWrap.Buffered;
@@ -56,6 +57,8 @@ namespace RemoteNetSpy.Windows
                 procsBox.ItemsSource = procs;
                 procsBox.IsEnabled = true;
                 procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
+
+                Keyboard.Focus(procsBox);
             }
             catch (Exception ex)
             {
