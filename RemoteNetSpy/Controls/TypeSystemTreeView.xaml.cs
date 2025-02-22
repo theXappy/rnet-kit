@@ -156,5 +156,24 @@ namespace RemoteNetSpy.Controls
             countLabel.Foreground = originalBrush;
             countButton.IsEnabled = true;
         }
+
+        private void CopyModuleName_Click(object sender, RoutedEventArgs e)
+        {
+            AssemblyModel assembly = (sender as MenuItem)?.DataContext as AssemblyModel;
+            if (assembly == null)
+                return;
+
+            var assemblyName = assembly.Name;
+            Clipboard.SetDataObject(assemblyName);
+        }
+
+        private void CopyTypeName_Click(object sender, RoutedEventArgs e)
+        {
+            DumpedTypeModel type = (sender as MenuItem)?.DataContext as DumpedTypeModel;
+            if (type == null)
+                return;
+            var typeName = type.FullTypeName;
+            Clipboard.SetDataObject(typeName);
+        }
     }
 }
