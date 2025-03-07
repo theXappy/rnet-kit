@@ -143,104 +143,93 @@
                                           ShowsPreview="true"
                                           Height="5" Background="#00112233" 
                                           />
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#07ffffff">
+                                <TextBlock  HorizontalAlignment="Left" Padding="4,2,5,2" VerticalAlignment="Center">Heap instances of</TextBlock>
+                                <TextBlock  Foreground="#976e01" Text="{Binding ClassesModel.SelectedType.FullTypeName, FallbackValue='(?)'}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0"/>
+                                <Button Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                                    <Grid>
+                                        <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Image Source="icons/Refresh.png" Height="16"/>
 
-                        <TabControl x:Name="tabControl" Margin="0,0,0,5" SelectedIndex="0" Grid.ColumnSpan="2">
-                            <TabControl.Resources>
-                                <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}"/>
-                            </TabControl.Resources>
-                            <TabItem Header="Heap Instances">
-                                <DockPanel>
-                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#07ffffff">
-                                        <TextBlock  HorizontalAlignment="Left" Padding="4,2,5,2" VerticalAlignment="Center">Heap instances of</TextBlock>
-                                        <TextBlock  Foreground="#976e01" Text="{Binding ClassesModel.SelectedType.FullTypeName, FallbackValue='(?)'}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0"/>
-                                        <Button Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
-                                            <Grid>
-                                                <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Image Source="icons/Refresh.png" Height="16"/>
-
-                                                </StackPanel>
-                                                <remoteNetSpy:Spinner x:Name="findHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
-                                            </Grid>
-                                        </Button>
-                                        <Button Click="ExportHeapInstancesButtonClicked" Padding="5,0" Margin="2,2" MinHeight="21" Visibility="Collapsed">
-                                            <Grid>
-                                                <StackPanel x:Name="exportHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Image Source="icons/Save.png" Height="16"/>
-                                                    <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Export CSV</TextBlock>
-                                                </StackPanel>
-                                                <remoteNetSpy:Spinner x:Name="exportHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
-                                            </Grid>
-                                        </Button>
-                                    </StackPanel>
-                                    <ListBox x:Name="heapInstancesListBox" Margin="0">
-                                        <ListBox.ItemContainerStyle>
-                                            <Style TargetType="ListBoxItem">
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
-                                            </Style>
-                                        </ListBox.ItemContainerStyle>
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type models:HeapObject}">
-                                                <Grid>
-                                                    <Grid.ContextMenu>
-                                                        <ContextMenu>
-                                                            <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                                            <MenuItem Header="Cast to Another Type" Click="CastToAnotherTypeMenuItem_Click"/>
-                                                        </ContextMenu>
-                                                    </Grid.ContextMenu>
-                                                    <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
-                                                    <TextBlock Margin="0"/>
-                                                    <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
-                                                        <DockPanel.Children>
-                                                            <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                                                            <TextBlock Foreground="Aquamarine"
+                                        </StackPanel>
+                                        <remoteNetSpy:Spinner x:Name="findHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="ExportHeapInstancesButtonClicked" Padding="5,0" Margin="2,2" MinHeight="21" Visibility="Collapsed">
+                                    <Grid>
+                                        <StackPanel x:Name="exportHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Image Source="icons/Save.png" Height="16"/>
+                                            <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Export CSV</TextBlock>
+                                        </StackPanel>
+                                        <remoteNetSpy:Spinner x:Name="exportHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                            <ListBox x:Name="heapInstancesListBox" Margin="0">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:HeapObject}">
+                                        <Grid>
+                                            <Grid.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
+                                                    <MenuItem Header="Cast to Another Type" Click="CastToAnotherTypeMenuItem_Click"/>
+                                                </ContextMenu>
+                                            </Grid.ContextMenu>
+                                            <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
+                                            <TextBlock Margin="0"/>
+                                            <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
+                                                <DockPanel.Children>
+                                                    <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                                                    <TextBlock Foreground="Aquamarine"
                                                                        Visibility="{Binding Path=Frozen, Converter={StaticResource boolToCollapsabilityConverter}}"
                                                                        VerticalAlignment="Center"
                                                                        Margin="10,0"> (Frozen)</TextBlock>
-                                                            <Button DockPanel.Dock="Right" 
+                                                    <Button DockPanel.Dock="Right" 
                                                                        Click="FreezeUnfreezeHeapObjectButtonClicked"
                                                                        Padding="8,0"
                                                                        Margin="0,0,4,0"
                                                                        MinWidth="85"
                                                                         >
-                                                                <Button.Content>
-                                                                    <Grid>
-                                                                        <DockPanel>
-                                                                            <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
-                                                                            <!--<TextBlock Text="Interact in rnet-explore"/>-->
-                                                                            <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
-                                                                        </DockPanel>
-                                                                        <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
-                                                                            <Image.RenderTransform>
-                                                                                <!-- giving the transform a name tells the framework not to freeze it -->
-                                                                                <RotateTransform x:Name="noFreeze" />
-                                                                            </Image.RenderTransform>
-                                                                            <Image.Triggers>
-                                                                                <EventTrigger RoutedEvent="Loaded">
-                                                                                    <BeginStoryboard>
-                                                                                        <Storyboard>
-                                                                                            <DoubleAnimation
+                                                        <Button.Content>
+                                                            <Grid>
+                                                                <DockPanel>
+                                                                    <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
+                                                                    <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                                                    <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                                                </DockPanel>
+                                                                <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
+                                                                    <Image.RenderTransform>
+                                                                        <!-- giving the transform a name tells the framework not to freeze it -->
+                                                                        <RotateTransform x:Name="noFreeze" />
+                                                                    </Image.RenderTransform>
+                                                                    <Image.Triggers>
+                                                                        <EventTrigger RoutedEvent="Loaded">
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation
                                                                         Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
                                                                         To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                                                                        </Storyboard>
-                                                                                    </BeginStoryboard>
-                                                                                </EventTrigger>
-                                                                            </Image.Triggers>
-                                                                        </Image>
-                                                                    </Grid>
-                                                                </Button.Content>
-                                                            </Button>
-                                                        </DockPanel.Children>
-                                                    </DockPanel>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                </DockPanel>
-                            </TabItem>
-                            <TabItem Header="IInspectable Heap Instances" IsEnabled="{Binding HasIInspectables, FallbackValue=False}">
-                                <controls:IInspectableHeapPage/>
-                            </TabItem>
-                        </TabControl>
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </EventTrigger>
+                                                                    </Image.Triggers>
+                                                                </Image>
+                                                            </Grid>
+                                                        </Button.Content>
+                                                    </Button>
+                                                </DockPanel.Children>
+                                            </DockPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
 
                         <DockPanel Grid.Row="1" LastChildFill="True" Margin="0,0,0,5">
                             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#07ffffff">
