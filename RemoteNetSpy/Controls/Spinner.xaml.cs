@@ -40,12 +40,12 @@ namespace RemoteNetSpy
             public SpinnerShower(Spinner spinner)
             {
                 _spinner = spinner;
-                _spinner.Dispatcher.Invoke(() => { _spinner.Visibility = System.Windows.Visibility.Visible; });
+                _spinner.Dispatcher.InvokeAsync(() => { _spinner.Visibility = System.Windows.Visibility.Visible; });
             }
 
             public void Dispose()
             {
-                _spinner.Dispatcher.Invoke(() => { _spinner.Visibility = System.Windows.Visibility.Collapsed; });
+                _spinner.Dispatcher.InvokeAsync(() => { _spinner.Visibility = System.Windows.Visibility.Collapsed; });
             }
         }
     }

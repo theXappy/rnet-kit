@@ -16,7 +16,7 @@
         Style="{DynamicResource CustomWindowStyle}"
         Initialized="MainWindow_OnInitialized"
         d:Background="#1e1e1e"
-        PreviewKeyDown="MainWindow_OnPreviewKeyDown"
+        PreviewKeyDown="OnKeyDown_DoZoom"
         UseLayoutRounding="True"
         >
     <Window.Resources>
@@ -178,7 +178,7 @@
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                                    <MenuItem Header="Cast to Another Type" Click="CastToAnotherTypeMenuItem_Click"/>
+                                                    <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast"/>
                                                 </ContextMenu>
                                             </Grid.ContextMenu>
                                             <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
@@ -247,7 +247,7 @@
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                                    <MenuItem Header="Cast to Another Type" Click="CastToAnotherTypeMenuItem_Click"/>
+                                                    <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast"/>
                                                 </ContextMenu>
                                             </Grid.ContextMenu>
                                             <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
@@ -413,25 +413,25 @@
                             <TabItem x:Name="tracingTabItem" Header="Tracing">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                                        <Button Click="RunTracesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                                        <Button Command="{Binding Tracer.RunRemoteNetTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <Image Source="icons/Run.png" Height="16"/>
                                                 <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace (rnet-trace)</TextBlock>
                                             </StackPanel>
                                         </Button>
-                                        <Button x:Name="RunFridaTracesButton" Click="RunFridaTracesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21">
+                                        <Button x:Name="RunFridaTracesButton" Command="{Binding Tracer.RunFridaTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <Image Source="icons/Run.png" Height="16"/>
                                                 <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace (frida-trace)</TextBlock>
                                             </StackPanel>
                                         </Button>
-                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="OpenTraceListClicked">
+                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.OpenCommand}">
                                             <Image Source="icons/OpenFolder.png" Height="16"/>
                                         </Button>
-                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="SaveTraceFunctionsListClicked">
+                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.SaveCommand}">
                                             <Image Source="icons/Save.png" Height="16"/>
                                         </Button>
-                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Click="ClearTraceListButtonClicked">
+                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.ClearCommand}">
                                             <Image Source="icons/ClearWindowContent.png" Height="16"/>
                                         </Button>
                                         <Button Padding="5,0" Margin="2,2" Click="ManualTraceClicked" Visibility="Collapsed">Manual Trace</Button>

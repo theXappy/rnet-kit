@@ -31,14 +31,13 @@ namespace RemoteNetSpy
     /// </summary>
     public partial class MainWindow : Window
     {
+        private RemoteAppModel _remoteAppModel;
         RemoteApp _app => _remoteAppModel.App;
         public InjectableProcess _targetProcess;
-        public int ProcBoxTargetPid => _targetProcess?.Pid ?? 0;
-
+        public int TargetPid => _targetProcess.Pid;
         private DumpedTypeModel _currSelectedType => _remoteAppModel.ClassesModel.SelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
-
-        private RemoteAppModel _remoteAppModel;
+        private List<HeapObject> _instancesList;
 
         private System.Timers.Timer _aliveCheckTimer;
         private object _aliveCheckLock;
@@ -48,7 +47,7 @@ namespace RemoteNetSpy
             _remoteAppModel = new RemoteAppModel();
             DataContext = _remoteAppModel;
             InitializeComponent();
-            tracesListBox.ItemsSource = _traceList;
+            tracesListBox.ItemsSource = _remoteAppModel.Tracer.TraceList;
             tracesListBox.Items.SortDescriptions.Add(
                 new System.ComponentModel.SortDescription("",
                     System.ComponentModel.ListSortDirection.Ascending));
@@ -58,7 +57,7 @@ namespace RemoteNetSpy
 
             _aliveCheckLock = new object();
             _aliveCheckTimer = new System.Timers.Timer(500);
-            _aliveCheckTimer.Elapsed += OnAliveCheckTimerElapsed;
+            _aliveCheckTimer.Elapsed += DoHeartbeat;
         }
 
         private async void MainWindow_OnInitialized(object sender, EventArgs e)
@@ -84,6 +83,49 @@ namespace RemoteNetSpy
             if (_targetProcess == null)
                 return;
 
+            RuntimeType selectedRuntime = ChooseTargetRuntime();
+            if (selectedRuntime == RuntimeType.Unknown)
+                return;
+
+            // Creating new RemoteApp
+            using (processConnectionSpinner.TemporarilyShow())
+            {
+                RemoteApp newApp;
+                try
+                {
+                    var task = Task.Run(() =>
+                    {
+                        Process proc = Process.GetProcessById(TargetPid);
+                        return RemoteAppFactory.Connect(proc, selectedRuntime);
+                    });
+                    newApp = await task;
+                }
+                catch (Exception ex)
+                {
+                    ShowError($"Failed to connect to target {_targetProcess.Name}\nException:\n" + ex);
+                    return;
+                }
+                _remoteAppModel.Update(newApp, TargetPid);
+            }
+
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
+            _remoteAppModel.Interactor.Init(this);
+
+            using (assembliesSpinner.TemporarilyShow())
+            {
+                await _remoteAppModel.ClassesModel.LoadAssembliesAsync();
+            }
+
+            _aliveCheckTimer.Stop();
+            _aliveCheckTimer.Start();
+
+            // Disable the Frida tracing button for managed apps
+            RunFridaTracesButton.IsEnabled = _remoteAppModel.TargetRuntime == RuntimeType.Unmanaged;
+        }
+
+        private RuntimeType ChooseTargetRuntime()
+        {
+            RuntimeType selectedRuntime;
             bool canConnectToUnmanagedDiver = _targetProcess.DiverState.Contains("[Unmanaged Diver Injected]");
             bool canConnectToManagedDiver = _targetProcess.DiverState.Contains("[Diver Injected]");
             if (canConnectToManagedDiver && canConnectToManagedDiver)
@@ -92,7 +134,7 @@ namespace RemoteNetSpy
                 if (dsd.ShowDialog() != true)
                 {
                     // User cancelled.
-                    return;
+                    return RuntimeType.Unknown;
                 }
 
                 if (dsd.SelectedRuntime == RuntimeType.Unmanaged)
@@ -107,64 +149,23 @@ namespace RemoteNetSpy
                 }
                 else
                 {
-                    MessageBox.Show($"Unexpected results from Diver selection dialog. Aborting app switch.\nSelected Runtime: {dsd.SelectedRuntime}");
-                    return;
+                    ShowError($"Unexpected results from Diver selection dialog. Aborting app switch.\nSelected Runtime: {dsd.SelectedRuntime}");
+                    return RuntimeType.Unknown;
                 }
             }
 
-            // Saving aside last RemoteApp
-            var oldApp = _app;
+            bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
+            bool isNativeApp = !_targetProcess.DotNetVersion.StartsWith("net");
 
-            // Creating new RemoteApp
-            Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Visible; });
-            RemoteApp newApp;
-            try
-            {
-                newApp = await ConnectRemoteApp(canConnectToUnmanagedDiver, canConnectToManagedDiver);
-            }
-            catch (Exception ex)
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show($"Failed to connect to target {_targetProcess.Name}\nException:\n" + ex, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                });
-                Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
-                return;
-            }
-            _remoteAppModel.Update(newApp, ProcBoxTargetPid);
-            Dispatcher.Invoke(() => { processConnectionSpinner.Visibility = Visibility.Collapsed; });
-
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
-            InteractiveWindow_Init();
-
-            // Only now we try to dispose of the old RemoteApp.
-            // We must do it after creating a new one for the case where the user re-attaches to the same
-            // app. Closing our old one before the new one is connected willl cause the Diver to die.
-            if (oldApp != null)
-            {
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Disposing old app");
-                try
-                {
-                    oldApp.Dispose();
-                }
-                catch
-                {
-                }
-                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Disposed old app");
-
-                oldApp = null;
-            }
-
-            Task assembliesListRefresh = RefreshAssembliesViewAsync();
-
-            _aliveCheckTimer.Stop();
-            _aliveCheckTimer.Start();
-
-            // Disable the Frida tracing button for managed apps
-            RunFridaTracesButton.IsEnabled = _remoteAppModel.TargetRuntime == RuntimeType.Unmanaged;
+            selectedRuntime = RuntimeType.Managed;
+            if (noDiver && isNativeApp)
+                selectedRuntime = RuntimeType.Unmanaged;
+            else if (canConnectToUnmanagedDiver && !canConnectToManagedDiver)
+                selectedRuntime = RuntimeType.Unmanaged;
+            return selectedRuntime;
         }
 
-        private async void OnAliveCheckTimerElapsed(object sender, ElapsedEventArgs e)
+        private async void DoHeartbeat(object sender, ElapsedEventArgs e)
         {
             if (_app == null)
             {
@@ -199,65 +200,6 @@ namespace RemoteNetSpy
             {
                 Monitor.Exit(_aliveCheckLock);
             }
-        }
-
-        private Task<RemoteApp> ConnectRemoteApp(bool canConnectToUnmanagedDiver, bool canConnectToManagedDiver)
-        {
-            Process proc;
-            try
-            {
-                proc = Process.GetProcessById(ProcBoxTargetPid);
-            }
-            catch (Exception ex)
-            {
-                return Task.FromException<RemoteApp>(ex);
-            }
-
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] Calling  Process.GetProcessById(PID={ProcBoxTargetPid}), returned: {proc}");
-
-            return Task.Run(() =>
-            {
-                bool noDiver = !canConnectToUnmanagedDiver && !canConnectToManagedDiver;
-                bool isNativeApp = !_targetProcess.DotNetVersion.StartsWith("net");
-                if ((noDiver && isNativeApp) ||
-                    (canConnectToUnmanagedDiver && !canConnectToManagedDiver))
-                {
-                    return RemoteAppFactory.Connect(proc, RuntimeType.Unmanaged);
-                }
-
-                return RemoteAppFactory.Connect(proc, RuntimeType.Managed);
-            });
-        }
-
-        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => await RefreshAssembliesViewAsync();
-
-        private async Task RefreshAssembliesViewAsync()
-        {
-            await Dispatcher.InvokeAsync(() => { assembliesSpinner.Visibility = Visibility.Visible; });
-
-            await _remoteAppModel.ClassesModel.LoadAssembliesAsync();
-
-            await Dispatcher.InvokeAsync(() =>
-            {
-                assembliesSpinner.Visibility = Visibility.Collapsed;
-                //
-                // TODO
-                //
-                //assembliesListBox.ItemsSource = assemblies;
-                //filterBox_TextChanged(assembliesFilterBox, null);
-            });
-        }
-
-        private string UnmanagedFlagIfNeeded()
-        {
-            if (_remoteAppModel.TargetRuntime == RuntimeType.Unmanaged)
-                return "-u";
-            return string.Empty;
-        }
-
-        private async Task<List<DumpedTypeModel>> GetTypesListAsync()
-        {
-            throw new Exception();
         }
 
         private async Task<List<DumpedTypeModel>> GetTypesListAsync(bool all)
@@ -301,7 +243,6 @@ namespace RemoteNetSpy
             // Same member type, sub-sort alphabetically (the member names).
             return member1.RawName.CompareTo(member2.RawName);
         }
-
 
         private async void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -354,45 +295,48 @@ namespace RemoteNetSpy
             Dispatcher.Invoke(() =>
             {
                 findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
-                findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
                 findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
             });
 
-            string type = (_currSelectedType)?.FullTypeName;
-
-            var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"heap -t {ProcBoxTargetPid} -q \"{type}\" " + UnmanagedFlagIfNeeded())
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
-            var res = await x.Task;
-            var newInstances = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .SkipWhile(line => !line.Contains("Found "))
-                .Skip(1)
-                .Select(str => str.Trim())
-                .Select(HeapObject.Parse);
-
-            // Carry with us all previously frozen objects
-            if (_instancesList != null)
+            using (findHeapInstancesButtonSpinner.TemporarilyShow())
             {
-                List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
-                foreach (var instance in newInstances)
+
+                string type = (_currSelectedType)?.FullTypeName;
+
+                var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+                    .WithArguments($"heap -t {TargetPid} -q \"{type}\" " + _remoteAppModel.UnmanagedFlagIfNeeded())
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteBufferedAsync();
+                var res = await x.Task;
+                var newInstances = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .SkipWhile(line => !line.Contains("Found "))
+                    .Skip(1)
+                    .Select(str => str.Trim())
+                    .Select(HeapObject.Parse);
+
+                // Carry with us all previously frozen objects
+                if (_instancesList != null)
                 {
-                    if (!combined.Contains(instance))
-                        combined.Add(instance);
+                    List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
+                    foreach (var instance in newInstances)
+                    {
+                        if (!combined.Contains(instance))
+                            combined.Add(instance);
+                    }
+
+                    newInstances = combined;
                 }
 
-                newInstances = combined;
+                _instancesList = newInstances.ToList();
+                _instancesList.Sort();
+
+                RefreshSearchAndWatchedLists();
             }
-
-            _instancesList = newInstances.ToList();
-            _instancesList.Sort();
-
-            RefreshSearchAndWatchedLists();
         }
 
-        private void RefreshSearchAndWatchedLists()
+        private async void RefreshSearchAndWatchedLists()
         {
-            Dispatcher.Invoke(() =>
+            await Dispatcher.InvokeAsync(() =>
             {
                 ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
                 unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
@@ -402,16 +346,8 @@ namespace RemoteNetSpy
                 ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
                 frozens.Filter = (item) => (item as HeapObject).Frozen;
                 watchedObjectsListBox.ItemsSource = frozens;
-
-                findHeapInstancesButtonSpinner.Visibility = Visibility.Collapsed;
-                findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
             });
         }
-
-        private List<HeapObject> _instancesList;
-
-        [GeneratedRegex("\\(Count: [\\d]", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex HeapInstancesRegex();
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -461,48 +397,6 @@ namespace RemoteNetSpy
                 membersFilterBox.Clear();
         }
 
-        private void RunTracesButtonClicked(object sender, RoutedEventArgs e)
-        {
-            if (!_traceList.Any())
-            {
-                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            if (_targetProcess == null)
-            {
-                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            string tempFlistPath = Path.ChangeExtension(Path.GetTempFileName(), "flist");
-            SaveTraceFunctionsList(tempFlistPath);
-
-            try
-            {
-                List<string> args = new List<string>() { "-t", ProcBoxTargetPid.ToString(), UnmanagedFlagIfNeeded() };
-                args.Add("-l");
-                args.Add($"\"{tempFlistPath}\"");
-
-                string argsLine = string.Join(' ', args);
-                ProcessStartInfo psi = new ProcessStartInfo("rnet-trace.exe", argsLine)
-                {
-                    UseShellExecute = true
-                };
-
-                Process.Start(psi);
-            }
-            catch
-            {
-                try { File.Delete(tempFlistPath); } catch { }
-                ;
-            }
-        }
-
-        private ObservableCollection<TraceFunction> _traceList = new ObservableCollection<TraceFunction>();
-
         private void MemberListItemMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2)
@@ -512,119 +406,10 @@ namespace RemoteNetSpy
             }
         }
 
-        private void TraceMember(DumpedMember sender)
-        {
-            string fullDemangledName;
-            string member = sender?.RawName;
-            if (member == null)
-                return;
+        private void TraceMember(DumpedMember sender) => _remoteAppModel.Tracer.AddFunc(sender);
+        private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e) => _remoteAppModel.Tracer.DeleteFunc(sender);
 
-            if (sender.MemberType != "Method" && sender.MemberType != "Constructor")
-                return;
-
-            string targetClass = ClassName;
-
-            // Removing "[Method]" prefix
-            string justSignature = member[(member.IndexOf(']') + 1)..].TrimStart();
-            if (justSignature.Contains('('))
-            {
-                // Managed
-
-                // Splitting return type + name / parameters
-                string parametrs = justSignature[(justSignature.IndexOf('('))..];
-                string retTypeAndName = justSignature[..(justSignature.IndexOf('('))];
-
-                // Splitting return type and name
-                string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
-                string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
-
-                // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
-                parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
-                parametrs = parametrs.Replace("*", "\\*");
-
-                string sigWithoutReturnType = methodName + parametrs;
-
-                fullDemangledName = $"{targetClass}.{sigWithoutReturnType}";
-            }
-            else
-            {
-                // Unmanaged
-                fullDemangledName = $"{targetClass}.{justSignature}";
-            }
-
-            if (!_traceList.Any(tf => tf.DemangledName == fullDemangledName))
-            {
-                string module = _currSelectedType.Assembly;
-                if (!module.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-                    module += ".dll";
-                string fullMangledName = $"{module}!{justSignature}";
-                _traceList.Add(new TraceFunction(fullDemangledName, fullMangledName));
-            }
-
-            tabControl.SelectedItem = tracingTabItem;
-        }
-
-        private void ClearTraceListButtonClicked(object sender, RoutedEventArgs e)
-        {
-            _traceList.Clear();
-        }
-
-        private void OpenTraceListClicked(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog();
-            ofd.Filter = "Functions List File (*.flist)|*.flist";
-            bool? success = ofd.ShowDialog();
-            if (success == true)
-            {
-                string path = ofd.FileName;
-                if (path == null)
-                {
-                    MessageBox.Show("Invalid file name.");
-                    return;
-                }
-
-                _traceList.Clear();
-                string[] functions = File.ReadAllText(path).Split("\n", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                foreach (var func in functions)
-                {
-                    _traceList.Add(TraceFunction.FromJson(func));
-                }
-            }
-        }
-
-        private void SaveTraceFunctionsListClicked(object sender, RoutedEventArgs e)
-        {
-            var sfd = new SaveFileDialog();
-            sfd.Filter = "Functions List File (*.flist)|*.flist";
-            sfd.OverwritePrompt = true;
-            bool? success = sfd.ShowDialog();
-            if (success == true)
-            {
-                string path = sfd.FileName;
-                SaveTraceFunctionsList(path);
-            }
-        }
-
-        private void SaveTraceFunctionsList(string path)
-        {
-            FileStream f;
-            StreamWriter sw;
-            if (path == null)
-            {
-                MessageBox.Show("Invalid file name.");
-                return;
-            }
-            f = File.Open(path, FileMode.Create);
-            sw = new StreamWriter(f);
-            foreach (TraceFunction traceFunction in _traceList)
-            {
-                sw.WriteLine(traceFunction.ToJson());
-            }
-
-            sw.Flush();
-            f.Close();
-        }
-
+        // TODO: This whole method should be a command in the RemoteAppModel
         private async void FreezeUnfreezeHeapObjectButtonClicked(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
@@ -651,9 +436,9 @@ namespace RemoteNetSpy
                 return;
 
             if (ho.Frozen)
-                InterativeWindow_AddVar(ho);
+                _remoteAppModel.Interactor.AddVar(ho);
             else
-                InterativeWindow_DeleteVar(ho);
+                _remoteAppModel.Interactor.DeleteVar(ho);
 
             RefreshSearchAndWatchedLists();
         }
@@ -705,11 +490,6 @@ namespace RemoteNetSpy
             }
         }
 
-        private async void CountButton_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
         private void ManualTraceClicked(object sender, RoutedEventArgs e)
         {
             if (_targetProcess == null)
@@ -724,7 +504,7 @@ namespace RemoteNetSpy
             if (res == true)
             {
 
-                List<string> args = new List<string>() { "-t", ProcBoxTargetPid.ToString(), UnmanagedFlagIfNeeded() };
+                List<string> args = new List<string>() { "-t", TargetPid.ToString(), _remoteAppModel.UnmanagedFlagIfNeeded() };
                 string[] funcsToTrace = qWin.Queries;
                 foreach (string funcToTrace in funcsToTrace)
                 {
@@ -769,194 +549,6 @@ namespace RemoteNetSpy
             }
 
             (ObjectViewer.CreateViewerWindow(this, _remoteAppModel, dataContext.RemoteObject)).Show();
-        }
-
-        private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e)
-        {
-            TraceFunction trace = (sender as FrameworkElement)?.DataContext as TraceFunction;
-            if (trace != null)
-            {
-                _traceList.Remove(trace);
-            }
-        }
-
-        int _remoteObjectIndex = 0;
-
-        private void ExploreButtonBaseOnClick(object sender, RoutedEventArgs e)
-        {
-            Button senderButton = sender as Button;
-            HeapObject dataContext = senderButton.DataContext as HeapObject;
-            InterativeWindow_AddVar(dataContext);
-        }
-
-        private Task interactiveWindowInitTask = null;
-        private async Task InteractiveWindow_Init()
-        {
-            // Already completed initialization
-            if (interactivePanel.IsStarted)
-                return;
-
-            // Initialization is in progress
-            if (interactiveWindowInitTask != null)
-            {
-                await interactiveWindowInitTask;
-                return;
-            }
-
-            // Initialization is not started yet, starting now
-            RuntimeType runtime = RuntimeType.Managed;
-            if (_app is UnmanagedRemoteApp)
-                runtime = RuntimeType.Unmanaged;
-
-            string RuntimeTypeFullTypeName = typeof(RuntimeType).FullName;
-
-            await interactivePanel.StartAsync("rnet-repl.exe");
-            string connectionScript =
-@$"var app = RemoteAppFactory.Connect(Process.GetProcessById({ProcBoxTargetPid}), {RuntimeTypeFullTypeName}.{runtime});";
-            interactiveWindowInitTask = interactivePanel.WriteInputTextAsync($"{connectionScript}\r\n", clearLast: false);
-            await interactiveWindowInitTask;
-            return;
-        }
-        private void InterativeWindow_AddVar(HeapObject dataContext)
-        {
-            if (!dataContext.Frozen || dataContext.RemoteObject == null)
-            {
-                MessageBox.Show("ERROR: Object must be frozen.");
-                return;
-            }
-
-            Task initTask = InteractiveWindow_Init();
-
-            _remoteObjectIndex++;
-            string roVarName = $"ro{_remoteObjectIndex}";
-            string droVarName = $"dro{_remoteObjectIndex}";
-            string objectScript =
-$"var {roVarName} = app.GetRemoteObject(0x{dataContext.Address:X16}, \"{dataContext.FullTypeName}\");\r\n" +
-$"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
-
-            initTask.ContinueWith(_ =>
-            {
-                Dispatcher.Invoke(async () =>
-                {
-                    await interactivePanel.WriteInputTextAsync(objectScript);
-                    dataContext.InteractiveRoVarName = roVarName;
-                    dataContext.InteractiveDroVarName = droVarName;
-                });
-            });
-        }
-
-        private void InterativeWindow_DeleteVar(HeapObject dataContext)
-        {
-            string roVarName = dataContext.InteractiveRoVarName;
-            string droVarName = dataContext.InteractiveDroVarName;
-            string objectScript =
-$"{roVarName} = null;\r\n" +
-$"{droVarName} = null;\r\n";
-            Dispatcher.Invoke(async () =>
-            {
-                await interactivePanel.WriteInputTextAsync(objectScript);
-                dataContext.InteractiveRoVarName = null;
-                dataContext.InteractiveDroVarName = null;
-            });
-        }
-
-        private void InterativeWindow_CastVar(HeapObject dataContext, string fullTypeName)
-        {
-            if (!dataContext.Frozen || dataContext.RemoteObject == null)
-            {
-                MessageBox.Show("ERROR: Object must be frozen.");
-                return;
-            }
-
-            Task initTask = InteractiveWindow_Init();
-
-            string roVarName = dataContext.InteractiveRoVarName;
-            string droVarName = dataContext.InteractiveDroVarName;
-            string objectScript =
-$"{roVarName} = {roVarName}.Cast(app.GetRemoteType(\"{fullTypeName}\"));\r\n" +
-$"{droVarName} = {roVarName}.Dynamify();\r\n";
-
-            initTask.ContinueWith(_ =>
-            {
-                Dispatcher.Invoke(async () =>
-                {
-                    await interactivePanel.WriteInputTextAsync(objectScript);
-                });
-            });
-        }
-
-        private object _zoomLock = new object();
-        private int _zoomLevel = 0;
-        private HashSet<Type> _forbiddens = new HashSet<Type>();
-
-        private void MainWindow_OnPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            lock (_zoomLock)
-            {
-                if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
-                    return;
-                bool scaleUp = (e.Key == Key.Add || e.Key == Key.OemPlus);
-                bool scaleDown = (e.Key == Key.Subtract || e.Key == Key.OemMinus);
-                if (!scaleUp && !scaleDown)
-                    return;
-                ChangeAllFontSizes(scaleUp);
-                e.Handled = true;
-            }
-
-            void ChangeAllFontSizes(bool up)
-            {
-                if (up)
-                {
-                    _zoomLevel++;
-                }
-                else
-                {
-                    // Make sure we're not scaling down below the default size
-                    if (_zoomLevel == 0)
-                        return;
-                    _zoomLevel--;
-                }
-
-                var allElements = WindowElementEnumerator.EnumerateAllElementsInWindow(this); // 'this' refers to your Window instance
-                var _newValues = new Dictionary<FrameworkElement, double>();
-                foreach (FrameworkElement element in allElements)
-                {
-                    Type t = element.GetType();
-                    if (_forbiddens.Contains(t))
-                        continue;
-                    if (t.GetMembers().All(member => member.Name != "FontSize"))
-                    {
-                        _forbiddens.Add(t);
-                        continue;
-                    }
-
-                    if (element.IsPropertyBound("FontSize"))
-                        continue;
-
-                    if (element.HasAncestorWithName("titlebar"))
-                        continue;
-
-                    _newValues[element] = element.Steal<double>("FontSize") + (up ? 2 : (-2));
-                }
-
-                foreach (var kvp in _newValues)
-                {
-                    FrameworkElement element = kvp.Key;
-                    element.SetMember("FontSize", kvp.Value);
-                }
-            }
-        }
-
-        private void ModuleWatchMenuItem_OnClick(object sender, RoutedEventArgs e)
-        {
-            MenuItem mi = sender as MenuItem;
-            AssemblyModel module = mi?.DataContext as AssemblyModel;
-            WatchModuleAllocations(module);
-        }
-
-        private void watchAllocationToolbarButton_Clicked(object sender, RoutedEventArgs e)
-        {
-            throw new Exception();
         }
 
         private void WatchModuleAllocations(AssemblyModel module)
@@ -1134,7 +726,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             filterBox_TextChanged(membersFilterBox, null);
         }
 
-        private async void CastToAnotherTypeMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void PromptForVariableCast(object sender, RoutedEventArgs e)
         {
             var heapObject = (sender as MenuItem).DataContext as HeapObject;
             if (heapObject == null)
@@ -1210,7 +802,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 var newRemoteObject = heapObject.RemoteObject.Cast(newType);
                 heapObject.RemoteObject = newRemoteObject;
                 heapObject.FullTypeName = selectedType.FullTypeName;
-                InterativeWindow_CastVar(heapObject, selectedType.FullTypeName);
+                _remoteAppModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
             }
             catch (Exception ex)
             {
@@ -1218,52 +810,9 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             }
         }
 
-#pragma warning disable IDE0051 // Remove unused private members
-        private void TypesControl_GoToAssemblyInvoked(string assembly)
+        private void ShowError(string msg)
         {
-            throw new Exception();
+            Dispatcher.Invoke(() => MessageBox.Show(msg, "Error", MessageBoxButton.OK, MessageBoxImage.Error));
         }
-#pragma warning restore IDE0051 // Remove unused private members
-
-        private void RunFridaTracesButtonClicked(object sender, RoutedEventArgs e)
-        {
-            if (!_traceList.Any())
-            {
-                MessageBox.Show("List of functions to trace is empty.", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            if (_targetProcess == null)
-            {
-                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                List<string> args = new List<string>() { "-p", ProcBoxTargetPid.ToString() };
-
-                foreach (var traceFunction in _traceList)
-                {
-                    args.Add("-i");
-                    args.Add($"\"{traceFunction.FullMangledName}\"");
-                }
-
-                string argsLine = string.Join(' ', args);
-                ProcessStartInfo psi = new ProcessStartInfo("frida-trace", argsLine)
-                {
-                    UseShellExecute = true
-                };
-
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to start Frida trace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
     }
 }
