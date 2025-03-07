@@ -5,8 +5,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -17,16 +15,12 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
-using CommandLine;
 using CSharpRepl.Services.Extensions;
-using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Win32;
 using RemoteNET;
-using RemoteNetSpy.Converters;
 using RemoteNetSpy.Models;
 using RemoteNetSpy.Windows;
 using RnetKit.Common;
@@ -39,8 +33,6 @@ namespace RemoteNetSpy
     public partial class MainWindow : Window
     {
         RemoteApp _app => _remoteAppModel.App;
-        private DumpedTypeToDescription _dumpedTypeToDescription = new DumpedTypeToDescription();
-        private Dictionary<string, DumpedTypeModel> _dumpedTypesCache = new Dictionary<string, DumpedTypeModel>();
         public InjectableProcess _targetProcess;
         public int ProcBoxTargetPid => _targetProcess?.Pid ?? 0;
 
