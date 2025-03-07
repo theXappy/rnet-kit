@@ -904,6 +904,7 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 }
 
                 var allElements = WindowElementEnumerator.EnumerateAllElementsInWindow(this); // 'this' refers to your Window instance
+                var _newValues = new Dictionary<FrameworkElement, double>();
                 foreach (FrameworkElement element in allElements)
                 {
                     Type t = element.GetType();
@@ -921,8 +922,13 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                     if (element.HasAncestorWithName("titlebar"))
                         continue;
 
-                    // Do something with each element, for example, print their names
-                    element.IndianaJones("FontSize", (double oldVal) => up ? (oldVal + 2) : (oldVal - 2));
+                    _newValues[element] = element.Steal<double>("FontSize") + (up ? 2 : (-2));
+                }
+
+                foreach (var kvp in _newValues)
+                {
+                    FrameworkElement element = kvp.Key;
+                    element.SetMember("FontSize", kvp.Value);
                 }
             }
 
