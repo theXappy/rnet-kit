@@ -1127,29 +1127,11 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             FindHeapInstancesButtonClicked(null, null);
         }
 
-        private async Task LoadTypeMembers(string type)
+        private async Task LoadTypeMembers(string typeFullName)
         {
-            var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                .WithArguments($"members -t {ProcBoxTargetPid} -q \"{type}\" -n true " + UnmanagedFlagIfNeeded())
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteBufferedAsync();
-            var res = await x.Task;
-            var xx = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .SkipWhile(line => !line.Contains("Members of "))
-                .Skip(1)
-                .Select(str => str.Trim());
-
-            List<string> rawLinesList = xx.ToList();
-            List<DumpedMember> dumpedMembers = new List<DumpedMember>();
-            for (int i = 0; i < rawLinesList.Count; i += 2)
-            {
-                DumpedMember dumpedMember = new DumpedMember()
-                {
-                    RawName = rawLinesList[i],
-                    NormalizedName = rawLinesList[i + 1]
-                };
-                dumpedMembers.Add(dumpedMember);
-            }
+            Type type = _app.GetRemoteType(typeFullName);
+            var members = type.GetMembers();
+            List<DumpedMember> dumpedMembers = members.Select(mi => new DumpedMember(mi)).ToList();
             dumpedMembers.Sort(CompareDumperMembers);
             membersListBox.ItemsSource = dumpedMembers;
             filterBox_TextChanged(membersFilterBox, null);
