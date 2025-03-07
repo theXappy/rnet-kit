@@ -70,6 +70,9 @@ namespace RemoteNetSpy
                 _targetProcess = targetSelectionWindow.SelectedProcess;
                 selectedTargetTextBlock.Text = $"{_targetProcess.Name} (PID: {_targetProcess.Pid})";
                 await ConnectToSelectedProcess();
+
+                // Get focus out of the "ConEmu" sub window
+                Keyboard.Focus(typeSystemTreeView);
             }
             else
             {
