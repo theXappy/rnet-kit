@@ -886,24 +886,36 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             });
         }
 
-        private object _scalingLock = new object();
-        private int _scalingFactor = 0;
+        private object _zoomLock = new object();
+        private int _zoomLevel = 0;
         private HashSet<Type> _forbiddens = new HashSet<Type>();
 
         private void MainWindow_OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
+            lock (_zoomLock)
+            {
+                if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
+                    return;
+                bool scaleUp = (e.Key == Key.Add || e.Key == Key.OemPlus);
+                bool scaleDown = (e.Key == Key.Subtract || e.Key == Key.OemMinus);
+                if (!scaleUp && !scaleDown)
+                    return;
+                ChangeAllFontSizes(scaleUp);
+                e.Handled = true;
+            }
+
             void ChangeAllFontSizes(bool up)
             {
                 if (up)
                 {
-                    _scalingFactor++;
+                    _zoomLevel++;
                 }
                 else
                 {
                     // Make sure we're not scaling down below the default size
-                    if (_scalingFactor == 0)
+                    if (_zoomLevel == 0)
                         return;
-                    _scalingFactor--;
+                    _zoomLevel--;
                 }
 
                 var allElements = WindowElementEnumerator.EnumerateAllElementsInWindow(this); // 'this' refers to your Window instance
@@ -932,21 +944,6 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
                 {
                     FrameworkElement element = kvp.Key;
                     element.SetMember("FontSize", kvp.Value);
-                }
-            }
-
-            lock (_scalingLock)
-            {
-                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                {
-                    bool scaleUp = (e.Key == Key.Add || e.Key == Key.OemPlus);
-                    bool scaleDown = (e.Key == Key.Subtract || e.Key == Key.OemMinus);
-                    if (scaleUp || scaleDown)
-                    {
-                        ChangeAllFontSizes(scaleUp);
-
-                        e.Handled = true;
-                    }
                 }
             }
         }
