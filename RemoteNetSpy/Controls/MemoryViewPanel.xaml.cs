@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace RemoteNetSpy.Controls
 {
@@ -302,6 +303,25 @@ namespace RemoteNetSpy.Controls
 
                 BindingExpression binding = BindingOperations.GetBindingExpression(tBox, prop);
                 if (binding != null) { binding.UpdateSource(); }
+            }
+        }
+
+        private void Bytes8Button_Click(object sender, RoutedEventArgs e) => SetBytesPerLine(8);
+
+        private void Bytes16Button_Click(object sender, RoutedEventArgs e) => SetBytesPerLine(16);
+
+        private void SetBytesPerLine(int bytesPerLine)
+        {
+            myHexEditor.BytePerLine = bytesPerLine;
+            if (bytesPerLine == 16)
+            {
+                bytes16Button.Background = Brushes.Gray;
+                bytes8Button.Background = Brushes.Transparent;
+            }
+            else
+            {
+                bytes16Button.Background = Brushes.Transparent;
+                bytes8Button.Background = Brushes.LightGray;
             }
         }
     }

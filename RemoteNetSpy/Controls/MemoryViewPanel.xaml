@@ -9,8 +9,7 @@
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=local:MemoryViewPanelModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="450" d:DesignWidth="450"
-             DataContextChanged="UserControl_DataContextChanged"
-             >
+             DataContextChanged="UserControl_DataContextChanged">
     <UserControl.Resources>
         <local:ULongToHexConverter x:Key="ULongToHexConverter" />
         <local:IntConverter x:Key="IntConverter" />
@@ -26,6 +25,7 @@
             </Grid.ColumnDefinitions>
 
             <Grid.RowDefinitions>
+                <RowDefinition Height="26"/>
                 <RowDefinition Height="26"/>
                 <RowDefinition Height="26"/>
                 <RowDefinition Height="26"/>
@@ -60,6 +60,11 @@
                         BorderThickness="1"
                         IsEnabled="{Binding DetectedType, Converter={StaticResource nullToBoolConverter}}"
                         >Inspect Object</Button>
+            </StackPanel>
+            <!-- Fourth Row: Bytes Per Line Buttons -->
+            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">
+                <Button x:Name="bytes16Button" Content="16 bytes rows" Click="Bytes16Button_Click" Background="Gray" BorderBrush="Gray" BorderThickness="1" Padding="5,0"/>
+                <Button x:Name="bytes8Button" Content="8 bytes rows" Click="Bytes8Button_Click" Background="Transparent" BorderBrush="Gray" BorderThickness="1" Padding="5,0"/>
             </StackPanel>
         </Grid>
 
