@@ -14,7 +14,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Media;
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
@@ -1266,65 +1265,5 @@ $"{droVarName} = {roVarName}.Dynamify();\r\n";
             }
         }
 
-    }
-
-    public static class VisualTreeHelperExtensions
-    {
-        public static IEnumerable<DependencyObject> EnumerateAllVisualChildren(this DependencyObject parent)
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                yield return child;
-
-                foreach (var visualChild in EnumerateAllVisualChildren(child))
-                {
-                    yield return visualChild;
-                }
-            }
-        }
-    }
-
-    public static class WindowElementEnumerator
-    {
-        public static IEnumerable<FrameworkElement> EnumerateAllElementsInWindow(Window window)
-        {
-            foreach (var child in window.EnumerateAllVisualChildren())
-            {
-                if (child is FrameworkElement frameworkElement)
-                {
-                    yield return frameworkElement;
-                }
-            }
-        }
-    }
-    public static class FrameworkElementExtensions
-    {
-        public static bool HasAncestorWithName(this FrameworkElement element, string ancestorName)
-        {
-            FrameworkElement currentElement = element;
-
-            while (currentElement != null)
-            {
-                if (currentElement.Name == ancestorName)
-                {
-                    return true;
-                }
-
-                currentElement = VisualTreeHelper.GetParent(currentElement) as FrameworkElement;
-            }
-
-            return false;
-        }
-
-        // Assuming 'element' is your WPF framework element, and 'propertyName' is the name of the property you want to check for binding.
-        public static bool IsPropertyBound(this FrameworkElement element, string propertyName)
-        {
-            // Try to get the binding for the specified property.
-            BindingBase binding = BindingOperations.GetBinding(element, DependencyPropertyDescriptor.FromName(propertyName, element.GetType(), element.GetType()).DependencyProperty);
-
-            // If the binding is not null, it means the property is data-bound.
-            return binding != null;
-        }
     }
 }
