@@ -106,17 +106,17 @@ namespace remotenet_dump
                         Console.WriteLine($"[Unknown Member] {memberString}");
                     }
                 }
-                foreach (KeyValuePair<string, long> kvp in rttiType.MethodTables)
+                foreach (var methodTableInfo in rttiType.GetMethodTables())
                 {
                     if (!opts.SkipPrintRaw)
-                        Console.WriteLine($"[MethodTable] {kvp.Key} = 0x{kvp.Value:x16}");
+                        Console.WriteLine($"[MethodTable] {methodTableInfo.Name} = 0x{methodTableInfo.StartAddress:x16}");
 
                     if (opts.PrintNormalizedGenerics)
                     {
-                        string decoratedMethodTable = kvp.Key;
+                        string decoratedMethodTable = methodTableInfo.Name;
                         string undecoratedMethodTable = UndecorateMethodTableName(decoratedMethodTable);
 
-                        Console.WriteLine($"[MethodTable] {undecoratedMethodTable} = 0x{kvp.Value:x16}");
+                        Console.WriteLine($"[MethodTable] {undecoratedMethodTable} = 0x{methodTableInfo.StartAddress:x16}");
                     }
                 }
             }
