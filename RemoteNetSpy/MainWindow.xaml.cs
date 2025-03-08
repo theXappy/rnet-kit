@@ -134,7 +134,7 @@ namespace RemoteNetSpy
             RuntimeType selectedRuntime;
             bool canConnectToUnmanagedDiver = _targetProcess.DiverState.Contains("[Unmanaged Diver Injected]");
             bool canConnectToManagedDiver = _targetProcess.DiverState.Contains("[Diver Injected]");
-            if (canConnectToManagedDiver && canConnectToManagedDiver)
+            if (canConnectToUnmanagedDiver && canConnectToManagedDiver)
             {
                 DiverSelectionDialog dsd = new DiverSelectionDialog();
                 if (dsd.ShowDialog() != true)
