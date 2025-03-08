@@ -10,6 +10,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Data;
+using System.Windows.Threading;
 
 namespace RemoteNetSpy.Models;
 
@@ -20,10 +22,11 @@ public class ClassesModel : INotifyPropertyChanged
     public ClassesModel(RemoteAppModel parent)
     {
         _parent = parent;
+        BindingOperations.EnableCollectionSynchronization(_assemblies, new object());
     }
 
     private DumpedTypeModel selectedType;
-    private ObservableCollection<AssemblyModel> _assemblies = new ObservableCollection<AssemblyModel>();
+    private readonly ObservableCollection<AssemblyModel> _assemblies = new ObservableCollection<AssemblyModel>();
     private ObservableCollection<AssemblyModel> _filteredAssemblies = new ObservableCollection<AssemblyModel>();
 
     public RemoteAppModel Parent => _parent;
@@ -31,11 +34,6 @@ public class ClassesModel : INotifyPropertyChanged
     public ObservableCollection<AssemblyModel> Assemblies
     {
         get => _assemblies;
-        set
-        {
-            // Create and apply a sorted CollectionView
-            SetField(ref _assemblies, value);
-        }
     }
 
     public ObservableCollection<AssemblyModel> FilteredAssemblies
@@ -74,20 +72,37 @@ public class ClassesModel : INotifyPropertyChanged
         return string.Empty;
     }
 
-    public async Task LoadAssembliesAsync()
+    public async Task LoadAssembliesAsync(Dispatcher d)
     {
-        Assemblies = await Task.Run(FetchAssemblies);
+         await Task.Run(() => UpdateAssemblies(d));
     }
 
     private Regex r = new Regex(@"\[(?<runtime>.*?)\]\[(?<assembly>.*?)\]\[(?<methodTable>.*?)\](?<type>.*)");
 
-    private ObservableCollection<AssemblyModel> FetchAssemblies()
+    private void UpdateAssemblies(Dispatcher d)
     {
         var assemblyModels = new Dictionary<string, AssemblyModel>();
-        var assemblyToTypes = new Dictionary<string, List<DumpedTypeModel>>();
 
-        IEnumerable<string> dumpedTypesLines = RnetDumpAsync($"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}").Result;
-        foreach (string dumpedTypeLine in dumpedTypesLines)
+        Task<IEnumerable<string>> typesTask = RnetDumpAsync($"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}");
+
+        // Also look for types-less assemblies
+        IEnumerable<string> domainDumpsLines = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}").Result;
+
+
+        List<string> orderedAssembliesLines = domainDumpsLines.ToList();
+        orderedAssembliesLines.Sort((asm1, asm2) => asm1.CompareTo(asm2));
+
+        Assemblies.Clear();
+        foreach (string domainDumpsLine in domainDumpsLines)
+        {
+            if (!domainDumpsLine.StartsWith("[module] "))
+                continue;
+
+            string assemblyName = domainDumpsLine.Substring("[module] ".Length);
+            GetOrCreateAssembly(assemblyName);
+        }
+
+        foreach (string dumpedTypeLine in typesTask.Result)
         {
             var match = r.Match(dumpedTypeLine);
             if (!match.Success)
@@ -95,11 +110,7 @@ public class ClassesModel : INotifyPropertyChanged
             string runtime = match.Groups["runtime"].Value.Trim();
             string assemblyName = match.Groups["assembly"].Value.Trim();
 
-            if (!assemblyModels.TryGetValue(assemblyName, out AssemblyModel assembly))
-            {
-                assembly = new AssemblyModel(assemblyName, runtime, anyTypes: true);
-                assemblyModels[assemblyName] = assembly;
-            }
+            AssemblyModel assembly = GetOrCreateAssembly(assemblyName);
 
             string methodTableStr = match.Groups["methodTable"].Value.Trim();
             ulong? methodTable = null;
@@ -107,40 +118,23 @@ public class ClassesModel : INotifyPropertyChanged
                 methodTable = Convert.ToUInt64(methodTableStr, 16);
             string typeName = match.Groups["type"].Value.Trim();
             DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, methodTable, numInstances: null);
-
-            if (!assemblyToTypes.TryGetValue(assemblyName, out List<DumpedTypeModel> typesList))
-            {
-                assemblyToTypes[assemblyName] = new List<DumpedTypeModel>();
-            }
-            assemblyToTypes[assemblyName].Add(type);
+            assembly.AddType(type);
         }
+        return;
 
-        foreach (var kvp in assemblyModels)
+        AssemblyModel GetOrCreateAssembly(string assemblyName)
         {
-            List<DumpedTypeModel> typesList = assemblyToTypes[kvp.Key];
-            typesList.Sort((type1, type2) => type1.FullTypeName.CompareTo(type2.FullTypeName));
-            kvp.Value.Types = new ObservableCollection<DumpedTypeModel>(typesList);
-        }
-
-        // Also look for types-less assemblies
-        IEnumerable<string> domainDumpsLines = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}").Result;
-        foreach (string domainDumpsLine in domainDumpsLines)
-        {
-            if (!domainDumpsLine.StartsWith("[module] "))
-                continue;
-
-            string assemblyName = domainDumpsLine.Substring("[module] ".Length);
             if (!assemblyModels.TryGetValue(assemblyName, out AssemblyModel assembly))
             {
                 assembly = new AssemblyModel(assemblyName, _parent.TargetRuntime, anyTypes: false);
                 assemblyModels[assemblyName] = assembly;
+                Assemblies.Add(assembly);
+                // We need to call EnableCollectionSynchronization on the UI thread so that the collection can be updated from other threads.
+                d.Invoke(() => BindingOperations.EnableCollectionSynchronization(assembly.Types, assembly.TypesLock));
+                d.Invoke(() => BindingOperations.EnableCollectionSynchronization(assembly.FilteredTypes, assembly.FilteredTypesLock));
             }
+            return assembly;
         }
-
-        List<AssemblyModel> assembliesList = assemblyModels.Values.ToList();
-        assembliesList.Sort((asm1, asm2) => asm1.Name.CompareTo(asm2.Name));
-
-        return new ObservableCollection<AssemblyModel>(assembliesList);
     }
 
     public async Task CountInstancesAsync()
@@ -203,3 +197,4 @@ public class ClassesModel : INotifyPropertyChanged
 
     #endregion
 }
+

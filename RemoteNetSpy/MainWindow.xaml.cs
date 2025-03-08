@@ -88,6 +88,7 @@ namespace RemoteNetSpy
                 return;
 
             // Creating new RemoteApp
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Creating new RemoteApp");
             using (processConnectionSpinner.TemporarilyShow())
             {
                 RemoteApp newApp;
@@ -105,16 +106,21 @@ namespace RemoteNetSpy
                     ShowError($"Failed to connect to target {_targetProcess.Name}\nException:\n" + ex);
                     return;
                 }
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> >> View Model Update");
                 _remoteAppModel.Update(newApp, TargetPid);
+                Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> >> View Model Update done");
             }
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Creating new RemoteApp done");
 
-            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window");
-            _remoteAppModel.Interactor.Init(this);
 
-            using (assembliesSpinner.TemporarilyShow())
-            {
-                await _remoteAppModel.ClassesModel.LoadAssembliesAsync();
-            }
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async)");
+            _remoteAppModel.Interactor.InitAsync(this);
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async), task started");
+
+
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync");
+            await _remoteAppModel.ClassesModel.LoadAssembliesAsync(Dispatcher);
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync done");
 
             _aliveCheckTimer.Stop();
             _aliveCheckTimer.Start();

@@ -29,7 +29,7 @@ namespace RemoteNetSpy.Models.Helpers
             AddVarCommand = new RelayCommand<HeapObject>(AddVar);
         }
 
-        public async Task Init(MainWindow mw)
+        public async Task InitAsync(MainWindow mw)
         {
             _interactivePanel = mw.interactivePanel;
 

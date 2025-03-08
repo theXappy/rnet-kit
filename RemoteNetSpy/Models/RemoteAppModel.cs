@@ -1,9 +1,13 @@
+using HostingWfInWPF;
 using RemoteNET;
 using RemoteNetSpy.Models.Helpers;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace RemoteNetSpy.Models;
 
@@ -51,9 +55,14 @@ public class RemoteAppModel : INotifyPropertyChanged
 
         App = app;
         TargetPid = pid;
+        Task.Run(QueryIInspectables);
+    }
+
+    private void QueryIInspectables()
+    {
         try
         {
-            CandidateType candidate = app.QueryTypes("WinRT.IInspectable").FirstOrDefault();
+            CandidateType candidate = App.QueryTypes("WinRT.IInspectable").FirstOrDefault();
             HasIInspectables = candidate != null;
         }
         catch

@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Data;
 
 namespace RemoteNetSpy.Models
 {
@@ -13,8 +14,9 @@ namespace RemoteNetSpy.Models
     public class AssemblyModel : INotifyPropertyChanged
     {
         private bool _isMonitoringAllocation;
-        private bool anyTypes;
-        private ObservableCollection<DumpedTypeModel> _types;
+        public object TypesLock = new object();
+        public object FilteredTypesLock = new object();
+        private readonly SortedObservableCollection<DumpedTypeModel> _types;
         private ObservableCollection<DumpedTypeModel> _filteredTypes;
 
         public string Name { get; private set; }
@@ -26,22 +28,9 @@ namespace RemoteNetSpy.Models
             set => SetField(ref _isMonitoringAllocation, value);
         }
 
-        /// <summary>
-        /// Whether any types spotted inside this assembly
-        /// </summary>
-        public bool AnyTypes
-        {
-            get => anyTypes;
-            set => SetField(ref anyTypes, value);
-        }
-        public ObservableCollection<DumpedTypeModel> Types
+        public IReadOnlyList<DumpedTypeModel> Types
         {
             get => _types;
-            set
-            {
-                SetField(ref _types, value);
-                ApplyFilter();
-            }
         }
 
         private Func<DumpedTypeModel, bool> _filter;
@@ -54,15 +43,9 @@ namespace RemoteNetSpy.Models
             }
         }
 
-        public ObservableCollection<DumpedTypeModel> AllTypes
-        {
-            get => _types;
-            set => SetField(ref _types, value);
-        }
-
         public ObservableCollection<DumpedTypeModel> FilteredTypes
         {
-            get => _filteredTypes;
+            get => _filter != null ? _filteredTypes : _types;
         }
 
         public AssemblyModel(string name, RuntimeType runtime, bool anyTypes)
@@ -70,20 +53,39 @@ namespace RemoteNetSpy.Models
             Name = name;
             Runtime = runtime;
             IsMonitoringAllocation = false;
-            AnyTypes = anyTypes;
-            _types = new ObservableCollection<DumpedTypeModel>();
+            _types = new SortedObservableCollection<DumpedTypeModel>((x, y) => x.FullTypeName.CompareTo(y.FullTypeName));
+            _filteredTypes = new ObservableCollection<DumpedTypeModel>();
         }
 
         public AssemblyModel(string name, string runtime, bool anyTypes) : this(name, Enum.Parse<RuntimeType>(runtime), anyTypes)
         {
         }
 
+        public void AddType(DumpedTypeModel type)
+        {
+            lock (TypesLock)
+            {
+                _types.Add(type);
+            }
+            ApplyFilter();
+        }
+
         private void ApplyFilter()
         {
-            IEnumerable<DumpedTypeModel> filteredTypes = _types;
-            if (_filter != null)
-                filteredTypes = _types.Where(_filter);
-            SetField(ref _filteredTypes, new ObservableCollection<DumpedTypeModel>(filteredTypes), propertyName: nameof(FilteredTypes));
+            if (_filter == null)
+                return;
+
+            lock (FilteredTypesLock)
+            {
+                _filteredTypes.Clear();
+                lock (TypesLock)
+                {
+                    foreach (var item in _types.Where(_filter))
+                    {
+                        _filteredTypes.Add(item);
+                    }
+                }
+            }
         }
 
         public override bool Equals(object obj)
