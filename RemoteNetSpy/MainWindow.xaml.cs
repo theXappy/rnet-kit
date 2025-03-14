@@ -247,7 +247,9 @@ namespace RemoteNetSpy
             }
 
             // Same member type, sub-sort alphabetically (the member names).
-            return member1.RawName.CompareTo(member2.RawName);
+            if (member1.RawName != null && member2.RawName != null)
+                return member1.RawName.CompareTo(member2.RawName);
+            return member1.NormalizedName.CompareTo(member2.NormalizedName);
         }
 
         private async void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
