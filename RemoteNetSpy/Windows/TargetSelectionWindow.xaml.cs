@@ -15,6 +15,15 @@ namespace RemoteNetSpy.Windows
 {
     public partial class TargetSelectionWindow : Window
     {
+        enum TargetSelectionMode
+        {
+            Attach,
+            Ambush
+        }
+
+        // mode property
+        private TargetSelectionMode _mode = TargetSelectionMode.Attach;
+
         public InjectableProcess SelectedProcess { get; private set; }
 
         public TargetSelectionWindow()
@@ -82,7 +91,50 @@ namespace RemoteNetSpy.Windows
             Close();
         }
 
-        private void attachButton_Click(object sender, RoutedEventArgs e) => SaveSelectionAndExit();
+        bool isAmbushing = false;
+
+        private void selectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_mode == TargetSelectionMode.Attach)
+            {
+                SaveSelectionAndExit();
+            }
+            else
+            {
+                // Ambush mode
+                // Check if already ambushing
+                if (isAmbushing)
+                {
+                    // Stop ambushing
+                    isAmbushing = false;
+                    modeButton.IsEnabled = true;
+                    attachButton.Content = "Ambush";
+                    ambushTargetName.IsEnabled = true;
+
+                    // Revert "ambushStatus" text to "Not searching target."
+                    ambushStatus.Text = "Not searching target.";
+                    ambushStatus.Foreground = ambushStatusLabel.Foreground;
+                }
+                else
+                {
+                    // Start ambushing
+                    string targetName = ambushTargetName.Text;
+                    if (string.IsNullOrWhiteSpace(targetName))
+                    {
+                        MessageBox.Show("Please enter a process name to ambush.", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    isAmbushing = true;
+                    // Disable mode change button
+                    modeButton.IsEnabled = false;
+                    attachButton.Content = "Stop";
+                    // change status
+                    ambushStatus.Text = "Searching for target...";
+                    ambushStatus.Foreground = Brushes.Green;
+                }
+            }
+        }
 
         private void HandleProcessDoubleClick(object sender, InjectableProcess e)
         {
@@ -91,9 +143,10 @@ namespace RemoteNetSpy.Windows
             Close();
         }
 
-        private void procsBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void procsBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.Enter)
+            // Enter works only in Attach mode
+            if (e.Key == Key.Enter && _mode == TargetSelectionMode.Attach)
             {
                 SaveSelectionAndExit();
             }
@@ -103,6 +156,22 @@ namespace RemoteNetSpy.Windows
         {
             DialogResult = false;
             Close();
+        }
+
+
+        private void modeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mode = _mode == TargetSelectionMode.Attach ? TargetSelectionMode.Ambush : TargetSelectionMode.Attach;
+            modeButton.Content = _mode == TargetSelectionMode.Ambush ? "Attach Mode" : "Ambush Mode";
+            // Show "procsRefreshButton" only in Attach mode
+            procsRefreshButton.Visibility = _mode == TargetSelectionMode.Attach ? Visibility.Visible : Visibility.Collapsed;
+
+            // Switch name on attach button
+            attachButton.Content = _mode == TargetSelectionMode.Attach ? "Attach" : "Ambush";
+
+            // Swap visibility of "ambushDockPanel" and "attachDocPanel" according to mode
+            ambushDockPanel.Visibility = _mode == TargetSelectionMode.Ambush ? Visibility.Visible : Visibility.Collapsed;
+            attachDockPanel.Visibility = _mode == TargetSelectionMode.Attach ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }
