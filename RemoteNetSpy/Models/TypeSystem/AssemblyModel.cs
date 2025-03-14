@@ -6,7 +6,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows.Data;
+using System.Windows.Documents;
 
 namespace RemoteNetSpy.Models
 {
@@ -15,7 +17,6 @@ namespace RemoteNetSpy.Models
     {
         private bool _isMonitoringAllocation;
         public object TypesLock = new object();
-        public object FilteredTypesLock = new object();
         private readonly SortedObservableCollection<DumpedTypeModel> _types;
         private ObservableCollection<DumpedTypeModel> _filteredTypes;
 
@@ -38,8 +39,12 @@ namespace RemoteNetSpy.Models
         {
             set
             {
-                SetField(ref _filter, value);
+                lock (TypesLock)
+                {
+                    SetField(ref _filter, value);
+                }
                 ApplyFilter();
+                OnPropertyChanged(nameof(FilteredTypes));
             }
         }
 
@@ -75,7 +80,7 @@ namespace RemoteNetSpy.Models
             if (_filter == null)
                 return;
 
-            lock (FilteredTypesLock)
+            lock (TypesLock)
             {
                 _filteredTypes.Clear();
                 lock (TypesLock)

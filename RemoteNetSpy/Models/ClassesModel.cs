@@ -131,7 +131,7 @@ public class ClassesModel : INotifyPropertyChanged
                 Assemblies.Add(assembly);
                 // We need to call EnableCollectionSynchronization on the UI thread so that the collection can be updated from other threads.
                 d.Invoke(() => BindingOperations.EnableCollectionSynchronization(assembly.Types, assembly.TypesLock));
-                d.Invoke(() => BindingOperations.EnableCollectionSynchronization(assembly.FilteredTypes, assembly.FilteredTypesLock));
+                d.Invoke(() => BindingOperations.EnableCollectionSynchronization(assembly.FilteredTypes, assembly.TypesLock));
             }
             return assembly;
         }
