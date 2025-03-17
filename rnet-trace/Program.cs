@@ -13,6 +13,7 @@ using RemoteNET.Common;
 using RnetKit.Common;
 using System.Drawing;
 using RemoteNET.Internal.Reflection;
+using RemoteNET.Access;
 
 namespace QuickStart
 {

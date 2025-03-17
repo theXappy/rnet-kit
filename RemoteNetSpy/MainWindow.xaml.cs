@@ -20,6 +20,7 @@ using CliWrap.Buffered;
 using CSharpRepl.Services.Extensions;
 using Microsoft.Win32;
 using RemoteNET;
+using RemoteNET.Access;
 using RemoteNetSpy.Models;
 using RemoteNetSpy.Windows;
 using RnetKit.Common;
