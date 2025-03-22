@@ -11,14 +11,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
-	  <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
-	  <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
-	  <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
-	  <PackageReference Include="System.Text.Json" Version="9.0.1" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
 		<ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
 		<ProjectReference Include="..\rnet-repl\RemoteNetRepl\CSharpRepl\CSharpRepl.csproj" />
