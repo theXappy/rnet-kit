@@ -120,6 +120,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConEmuWinForms", "conemu-in
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConEmuWpf", "conemu-inside-net8\ConEmuWpf\ConEmuWpf.csproj", "{75E45E90-2C6F-4512-A551-C255303C436F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Access", "Access", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpDllProxy", "RemoteNET\SharpDllProxy\SharpDllProxy\SharpDllProxy.csproj", "{BB5043FD-C71D-CCE0-1B94-71C08DF28686}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed = Debug|Mixed
@@ -361,6 +365,12 @@ Global
 		{75E45E90-2C6F-4512-A551-C255303C436F}.Release|Mixed.Build.0 = Release|Any CPU
 		{75E45E90-2C6F-4512-A551-C255303C436F}.RelWithDebInfo|Mixed.ActiveCfg = Release|Any CPU
 		{75E45E90-2C6F-4512-A551-C255303C436F}.RelWithDebInfo|Mixed.Build.0 = Release|Any CPU
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686}.Debug|Mixed.ActiveCfg = Debug|Any CPU
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686}.Debug|Mixed.Build.0 = Debug|Any CPU
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686}.Release|Mixed.ActiveCfg = Release|Any CPU
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686}.Release|Mixed.Build.0 = Release|Any CPU
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686}.RelWithDebInfo|Mixed.ActiveCfg = Debug|Any CPU
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686}.RelWithDebInfo|Mixed.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -410,6 +420,8 @@ Global
 		{B9C3CEAD-E0DC-4AC5-81FE-491A2B6A5BDE} = {2A7A3D94-43E3-415A-9B67-743E3E07E91B}
 		{4F6C75D7-33BC-4F9B-BA29-9CA213E6A005} = {B9C3CEAD-E0DC-4AC5-81FE-491A2B6A5BDE}
 		{75E45E90-2C6F-4512-A551-C255303C436F} = {B9C3CEAD-E0DC-4AC5-81FE-491A2B6A5BDE}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
+		{BB5043FD-C71D-CCE0-1B94-71C08DF28686} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {177A059B-3AE0-4BFA-87F0-821E5ED60207}
