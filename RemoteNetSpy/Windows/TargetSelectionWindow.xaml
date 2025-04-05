@@ -73,7 +73,6 @@
                     </Style>
                 </ListBox.ItemContainerStyle>
             </ListBox>
-            <TextBlock x:Name="procsBoxLoadingOverlay" Text="Loading..." HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" Grid.Row="0" Grid.Column="0"/>
         </DockPanel>
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>

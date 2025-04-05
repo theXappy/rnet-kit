@@ -40,7 +40,7 @@ namespace RemoteNetSpy.Windows
         {
             procsBox.ItemsSource = null;
             procsBox.IsEnabled = false;
-            procsBoxLoadingOverlay.Visibility = Visibility.Visible;
+            //procsBoxLoadingOverlay.Visibility = Visibility.Visible;
 
             try
             {
@@ -65,7 +65,7 @@ namespace RemoteNetSpy.Windows
                 }
                 procsBox.ItemsSource = procs;
                 procsBox.IsEnabled = true;
-                procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
+                //procsBoxLoadingOverlay.Visibility = Visibility.Collapsed;
 
                 Keyboard.Focus(procsBox);
             }
