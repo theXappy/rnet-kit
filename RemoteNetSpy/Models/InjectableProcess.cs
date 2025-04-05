@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace RemoteNetSpy.Models;
 
+[DebuggerDisplay("{Name} (PID: {Pid})")]
 public class InjectableProcess : INotifyPropertyChanged
 {
     private int _pid;
