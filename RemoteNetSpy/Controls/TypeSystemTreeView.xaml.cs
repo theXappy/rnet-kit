@@ -86,8 +86,11 @@ namespace RemoteNetSpy.Controls
 
                         if (assembly?.Name?.Contains(filter, comp) == true)
                             return true;
-                        if (assembly.Types.Any(t => t.FullTypeName.Contains(filter, comp)))
-                            return true;
+                        lock (assembly.TypesLock)
+                        {
+                            if (assembly.Types.Any(t => t.FullTypeName.Contains(filter, comp)))
+                                return true;
+                        }
 
                         if (methodTableFilter.HasValue)
                         {
