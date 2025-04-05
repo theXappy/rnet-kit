@@ -727,10 +727,15 @@ namespace RemoteNetSpy
 
         private async Task LoadTypeMembers(string typeFullName)
         {
-            Type type = _app.GetRemoteType(typeFullName);
-            var members = type.GetMembers();
-            List<DumpedMember> dumpedMembers = members.Select(mi => new DumpedMember(mi)).ToList();
-            dumpedMembers.Sort(CompareDumperMembers);
+            List<DumpedMember> dumpedMembers = await Task.Run(
+                () =>
+                {
+                    Type type = _app.GetRemoteType(typeFullName);
+                    System.Reflection.MemberInfo[] members = type.GetMembers();
+                    List<DumpedMember> dumpedMembers = members.Select(mi => new DumpedMember(mi)).ToList();
+                    dumpedMembers.Sort(CompareDumperMembers);
+                    return dumpedMembers;
+                });
             membersListBox.ItemsSource = dumpedMembers;
             filterBox_TextChanged(membersFilterBox, null);
         }
