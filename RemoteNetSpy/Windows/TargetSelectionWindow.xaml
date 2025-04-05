@@ -39,7 +39,7 @@
             <Label x:Name="ambushStatusLabel" Grid.Row="1" Grid.Column="0">Status:</Label>
             <TextBlock x:Name="ambushStatus" Grid.Row="1" Grid.Column="1" Text="Not searching target." VerticalAlignment="Center"/>
         </Grid>
-        <DockPanel x:Name="attachDockPanel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,10" Visibility="Visible">
+        <DockPanel x:Name="attachDockPanel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Visibility="Visible">
             <ListBox x:Name="procsBox" Grid.Row="0" Grid.Column="0" Margin="3"
                  Height="500"
                  HorizontalContentAlignment="Stretch"
@@ -89,7 +89,7 @@
             <Button x:Name="modeButton" Content="Ambush Mode" Grid.Row="1" Grid.Column="0" Margin="3,5" Width="100" Height="26" Click="modeButton_Click"/>
             <Button x:Name="attachButton" Content="Attach" Grid.Row="1" Grid.Column="2" Margin="3,5" Width="80" Height="26" Click="selectButton_Click"/>
             <Button x:Name="cancelButton" Content="Cancel" Grid.Row="1" Grid.Column="3" Margin="3,5" Width="80" Height="26" Click="cancelButton_Click"/>
-            <Button x:Name="procsRefreshButton" Content="Refresh" Grid.Row="0" Grid.Column="3" Margin="3,5" Width="80" Height="26"  Click="ProcsRefreshButton_OnClick"/>
+            <Button x:Name="procsRefreshButton" Content="Refresh" Grid.Row="0" Grid.Column="3" Margin="3,5,3,0" Width="80" Height="26"  Click="ProcsRefreshButton_OnClick"/>
         </Grid>
     </Grid>
 </Window>

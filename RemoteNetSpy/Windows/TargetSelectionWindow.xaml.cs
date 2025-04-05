@@ -132,8 +132,69 @@ namespace RemoteNetSpy.Windows
                     // change status
                     ambushStatus.Text = "Searching for target...";
                     ambushStatus.Foreground = Brushes.Green;
+                    AmbushAsync(targetName);
                 }
             }
+        }
+
+        private Task AmbushAsync(string targetName)
+        {
+            return Task.Run(() =>
+            {
+                while (isAmbushing)
+                {
+                    var processes = System.Diagnostics.Process.GetProcesses();
+                    var targetProcesses = processes.Where(process => process.ProcessName.Contains(targetName)).ToList();
+                    if (targetProcesses.Count == 1)
+                    {
+                        var process = targetProcesses.First();
+                        // Process found
+                        SelectedProcess = GetProcessInfo(process).Result;
+                        Dispatcher.Invoke(() =>
+                        {
+                            DialogResult = true;
+                            Close();
+                        });
+                        return;
+                    }
+                    else if (targetProcesses.Count > 1)
+                    {
+                        // Show error in "ambushStatus"
+                        Dispatcher.Invoke(() =>
+                        {
+                            ambushStatus.Text = $"Found {targetProcesses.Count} processes, expected 1";
+                            ambushStatus.Foreground = Brushes.Red;
+                        });
+                    }
+
+                    System.Threading.Thread.Sleep(1000); // Check every 1 second
+                }
+            });
+        }
+
+        private async Task<InjectableProcess> GetProcessInfo(System.Diagnostics.Process process)
+        {
+            CommandTask<BufferedCommandResult> commandTask = CliWrap.Cli.Wrap("rnet-ps.exe").ExecuteBufferedAsync();
+            BufferedCommandResult runResults = await commandTask.Task;
+            IEnumerable<string[]> splitLines = runResults.StandardOutput.Split('\n')
+                .Skip(1)
+                .ToList()
+                .Select(line => line.Split('\t', StringSplitOptions.TrimEntries).ToArray())
+                .Where(arr => arr.Length > 2);
+
+            foreach (string[] splitLine in splitLines)
+            {
+                int pid = int.Parse(splitLine[0]);
+                if (pid != process.Id)
+                {
+                    continue;
+                }
+                string name = splitLine[1];
+                string runtimeVersion = splitLine[2];
+                string diverState = splitLine[3];
+                return new InjectableProcess(process.Id, process.ProcessName, runtimeVersion, diverState);
+            }
+            throw new Exception($"Process with PID={process.Id} not found in rnet-ps output.");
         }
 
         private void HandleProcessDoubleClick(object sender, InjectableProcess e)
