@@ -12,7 +12,7 @@ namespace remotenet_dump
     {
         public static int DumpMembers(MembersDumpOptions opts)
         {
-            Console.WriteLine("Loading...");
+            Console.Error.WriteLine("Loading...");
 
             string target = opts.Query;
 
@@ -30,18 +30,18 @@ namespace remotenet_dump
             }
             catch (Exception e)
             {
-                Console.WriteLine("ERROR: " + e);
+                Console.Error.WriteLine("ERROR: " + e);
                 return 1;
             }
 
             if (dumpedType == null)
             {
-                Console.WriteLine("ERROR: Failed to find remote type for given query");
+                Console.Error.WriteLine("ERROR: Failed to find remote type for given query");
                 app.Dispose();
                 return 1;
             }
 
-            Console.WriteLine($"Members of type {dumpedType.FullName}:");
+            Console.Error.WriteLine($"Members of type {dumpedType.FullName}:");
             if (opts.Unmanaged)
             {
                 DumpMembersUnmanaged(opts, dumpedType);
