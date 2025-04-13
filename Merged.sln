@@ -130,8 +130,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceGenerator", "RemoteNE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp", "RemoteNET\src\ConsoleApp\ConsoleApp.csproj", "{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteNET.Dynamic", "RemoteNET.Dynamic\RemoteNET.Dynamic.csproj", "{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed = Debug|Mixed
@@ -397,12 +395,6 @@ Global
 		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.Release|Mixed.Build.0 = Release|Any CPU
 		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.RelWithDebInfo|Mixed.ActiveCfg = Debug|Any CPU
 		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.RelWithDebInfo|Mixed.Build.0 = Debug|Any CPU
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}.Debug|Mixed.ActiveCfg = Debug|Any CPU
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}.Debug|Mixed.Build.0 = Debug|Any CPU
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}.Release|Mixed.ActiveCfg = Release|Any CPU
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}.Release|Mixed.Build.0 = Release|Any CPU
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}.RelWithDebInfo|Mixed.ActiveCfg = Debug|Any CPU
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF}.RelWithDebInfo|Mixed.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -457,7 +449,6 @@ Global
 		{04FF67B1-AF26-FDE8-142C-845E044F33C9} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
 		{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
 		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
-		{9CA56306-E357-44D9-9FD8-3DDBFDBE73CF} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {177A059B-3AE0-4BFA-87F0-821E5ED60207}
