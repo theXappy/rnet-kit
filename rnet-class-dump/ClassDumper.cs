@@ -183,7 +183,7 @@ namespace rnet_class_dump
                 AppendLine(writer, "}", indentCount);
                 AppendLine(writer, "", indentCount);
 
-                HashSet<string> otherTypesUsed = new HashSet<string>();
+                Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
                 // List all members
                 MemberInfo[] members = remoteType.GetMembers();
                 if (members.Length == 0)
@@ -221,8 +221,17 @@ namespace rnet_class_dump
 
 
                     StringBuilder memberSignature = new StringBuilder();
-                    WriteMember(memberSignature, className, member, indentCount: 0, out HashSet<string> otherTypesUsedTemp);
-                    otherTypesUsed.UnionWith(otherTypesUsedTemp);
+                    WriteMember(memberSignature, className, member, indentCount: 0);
+                    GetDependencyTypes(member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsedTemp);
+
+                    // Union dictionaries
+                    foreach (var kvp in otherTypesUsedTemp)
+                    {
+                        if (!otherTypesUsed.ContainsKey(kvp.Key))
+                        {
+                            otherTypesUsed[kvp.Key] = kvp.Value;
+                        }
+                    }
 
                     string prefix = string.Empty;
                     if (isOverlappingMethod)
@@ -267,11 +276,12 @@ namespace rnet_class_dump
             }
         }
 
-        private static void WriteDummies(StringBuilder writer, HashSet<string> otherTypesUsed)
+        private static void WriteDummies(StringBuilder writer, Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
         {
-            foreach (string fullTypeName in otherTypesUsed)
+            foreach (KeyValuePair<string, LazyRemoteTypeResolver> kvp in otherTypesUsed)
             {
                 // Multi-level pointers get dynamics
+                string fullTypeName = kvp.Key;
                 if (fullTypeName == "dynamic")
                     continue;
 
@@ -302,11 +312,31 @@ namespace rnet_class_dump
             }
         }
 
-        private static void WriteMember(StringBuilder writer, string className, MemberInfo member, int indentCount, out HashSet<string> otherTypesUsed)
-        {
-            HashSet<string> otherTypesUsedInner = new HashSet<string>();
-            otherTypesUsed = otherTypesUsedInner;
 
+        private static void GetDependencyTypes(MemberInfo member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
+        {
+            otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
+            if (member is RemoteRttiMethodInfo rttiMethod)
+            {
+                // Parameters list
+                foreach (var param in rttiMethod.LazyParamInfos)
+                {
+                    var paramType = param.TypeResolver.Value;
+                    (string _, string csharpExpression) = GetTypeIdentifier(param, out bool isObject);
+                    if (isObject)
+                        otherTypesUsed[csharpExpression] = param.TypeResolver;
+                }
+
+                // Ret Value
+                var returnType = rttiMethod.LazyRetType.Value;
+                (string _, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRetType);
+                if (isObjectRetType)
+                    otherTypesUsed[csharpExpressionRetType] = rttiMethod.LazyRetType;
+            }
+        }
+
+        private static void WriteMember(StringBuilder writer, string className, MemberInfo member, int indentCount)
+        {
             if (member is PropertyInfo property)
             {
                 Append(writer, $"public dynamic {property.Name} {{ get => __dro.{property.Name}; set => __dro.{property.Name} = value; }}", indentCount);
@@ -321,10 +351,7 @@ namespace rnet_class_dump
                 IEnumerable<RemoteNET.Common.LazyRemoteParameterResolver> paramInfos = rttiMethod.LazyParamInfos.Skip(1);
                 string parameters = string.Join(", ", paramInfos.Select(p =>
                 {
-                    (string declared, string csharpExpression) = GetTypeIdentifier(p, out bool isObject);
-                    if (isObject)
-                        otherTypesUsedInner.Add(csharpExpression);
-
+                    (string declared, string csharpExpression) = GetTypeIdentifier(p, out bool _);
                     string formatted = FormatTypeIdentifier(declared, csharpExpression);
                     return formatted + $" {p.Name}";
                 }));
@@ -352,9 +379,7 @@ namespace rnet_class_dump
                         if (isObject)
                             invocationArgs += ".__dro";
                     }
-                    (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRetType);
-                    if (isObjectRetType)
-                        otherTypesUsedInner.Add(csharpExpressionRetType);
+                    (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out _);
                     string formattedRetType = FormatTypeIdentifier(declaredRetType, csharpExpressionRetType);
 
                     string body = $"__dro.{rttiMethod.Name}({invocationArgs})";
