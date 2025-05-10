@@ -14,87 +14,96 @@ namespace rnet_class_dump
     {
         public static int DumpClasses(string[] filters, string targetProcess, bool unmanaged, bool isVerbose)
         {
+            RemoteApp app;
             try
             {
                 if (isVerbose) Console.Error.WriteLine($"Placeholder: Connecting to target '{targetProcess}'...");
-                using (RemoteApp app = Common.Connect(targetProcess, unmanaged)) // Assuming default to managed for now
-                {
-                    if (isVerbose) Console.Error.WriteLine($"Placeholder: Dumping classes from target '{targetProcess}'");
-                    try
-                    {
-                        // Get app data path
-                        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-                        // Create a new temporary directory to dump all classes into
-                        string tempDir = Path.Combine(localAppData, "RemoteNetSourceGenCache", "RnetClassDump");
-                        Directory.CreateDirectory(tempDir);
-
-                        // Write the helper class
-                        string helperClassFileName = Path.Combine(tempDir, "__RemoteNET_Obj_Base.cs");
-                        if (!File.Exists(helperClassFileName) || new FileInfo(helperClassFileName).Length == 0)
-                        {
-                            StringBuilder helperClassBuilder = new StringBuilder();
-                            WriteHelperClass(helperClassBuilder);
-                            File.WriteAllText(helperClassFileName, helperClassBuilder.ToString());
-                            Console.WriteLine($"__RemoteNET_Obj_Base|{helperClassFileName}");
-                        }
-
-                        foreach (string filter in filters)
-                        {
-                            if (isVerbose) Console.Error.WriteLine($"Querying types with filter: {filter}");
-                            var candidateTypes = app.QueryTypes(filter).ToList();
-                            if (isVerbose) Console.Error.WriteLine($"Found {candidateTypes.Count} types for filter: {filter}");
-                            foreach (CandidateType? candidate in candidateTypes)
-                            {
-                                string typeFullName = candidate.TypeFullName;
-
-                                // Normalize typeName so it can be used as a Windows filename
-                                // Doing that by going over the forbidden PATH characters 
-                                // and replacing them with '_'
-                                Path.GetInvalidFileNameChars()
-                                    .ToList()
-                                    .ForEach(c => typeFullName = typeFullName.Replace(c, '_'));
-
-                                // Create a file for the class
-                                string fileName = Path.Combine(tempDir, $"{typeFullName}.cs");
-
-                                // Create StreamWriter for the new file
-                                // if it exists and NOT EMPTY, skip it
-                                bool shouldPrint = true;
-                                if (!File.Exists(fileName) || new FileInfo(fileName).Length == 0)
-                                {
-                                    Type type = app.GetRemoteType(candidate);
-                                    StringBuilder codeBuilder = new StringBuilder();
-                                    bool worthy = WriteClassCode(type, codeBuilder, isVerbose);
-
-                                    if (worthy)
-                                    {
-                                        File.WriteAllText(fileName, codeBuilder.ToString());
-                                    }
-                                    shouldPrint = worthy;
-                                }
-
-                                if (shouldPrint)
-                                    Console.WriteLine($"{typeFullName}|{fileName}");
-                                continue;
-                            }
-                        }
-
-                        // TODO: Implement actual class dumping logic using RemoteNET
-                        return 0; // Return 0 for success
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error reading filters or querying types: {ex.Message}");
-                        return 1;
-                    }
-                }
+                app = Common.Connect(targetProcess, unmanaged);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error connecting to target: {ex.Message}");
                 return 1;
             }
+
+
+            if (isVerbose) Console.Error.WriteLine($"Placeholder: Dumping classes from target '{targetProcess}'");
+            try
+            {
+                // Get app data path
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+                // Create a new temporary directory to dump all classes into
+                string tempDir = Path.Combine(localAppData, "RemoteNetSourceGenCache", "RnetClassDump");
+                Directory.CreateDirectory(tempDir);
+
+                // Write the helper class
+                string helperClassFileName = Path.Combine(tempDir, "__RemoteNET_Obj_Base.cs");
+                if (!File.Exists(helperClassFileName) || new FileInfo(helperClassFileName).Length == 0)
+                {
+                    StringBuilder helperClassBuilder = new StringBuilder();
+                    WriteHelperClass(helperClassBuilder);
+                    File.WriteAllText(helperClassFileName, helperClassBuilder.ToString());
+                    Console.WriteLine($"__RemoteNET_Obj_Base|{helperClassFileName}");
+                }
+
+                // Collect all type candidates
+                List<CandidateType> allCandidates = GetTypesToDump(filters, isVerbose, app);
+
+                // Process each candidate
+                foreach (CandidateType candidate in allCandidates)
+                {
+                    DumpType(isVerbose, app, tempDir, candidate);
+                }
+
+                return 0; // Return 0 for success
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading filters or querying types: {ex.Message}");
+                return 1;
+            }
+        }
+
+        private static void DumpType(bool isVerbose, RemoteApp app, string tempDir, CandidateType candidate)
+        {
+            string typeFullName = candidate.TypeFullName;
+
+            // Normalize typeName so it can be used as a Windows filename
+            Path.GetInvalidFileNameChars()
+                .ToList()
+                .ForEach(c => typeFullName = typeFullName.Replace(c, '_'));
+
+            // Create a file for the class
+            string fileName = Path.Combine(tempDir, $"{typeFullName}.cs");
+
+            // Create StreamWriter for the new file
+            // if it exists and NOT EMPTY, skip it
+            if (!File.Exists(fileName) || new FileInfo(fileName).Length == 0)
+            {
+                Type type = app.GetRemoteType(candidate);
+                StringBuilder codeBuilder = new StringBuilder();
+                bool worthy = WriteClassCode(type, codeBuilder, isVerbose);
+                if (!worthy)
+                    return;
+
+                File.WriteAllText(fileName, codeBuilder.ToString());
+            }
+            Console.WriteLine($"{typeFullName}|{fileName}");
+        }
+
+        private static List<CandidateType> GetTypesToDump(string[] filters, bool isVerbose, RemoteApp app)
+        {
+            var allCandidates = new List<CandidateType>();
+            foreach (string filter in filters)
+            {
+                if (isVerbose) Console.Error.WriteLine($"Querying types with filter: {filter}");
+                var candidateTypes = app.QueryTypes(filter).ToList();
+                if (isVerbose) Console.Error.WriteLine($"Found {candidateTypes.Count} types for filter: {filter}");
+                allCandidates.AddRange(candidateTypes);
+            }
+
+            return allCandidates;
         }
 
         private static void WriteHelperClass(StringBuilder writer)
@@ -425,7 +434,7 @@ namespace rnet_class_dump
         {
             string input = resolver.TypeFullName;
             // 'bool' doesn't have full type name...
-            if(input == null)
+            if (input == null)
                 input = resolver.TypeName;
             // If we DO get a full type name, we need to remove the assembly name
             if (input.Contains("!"))
