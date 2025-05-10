@@ -179,10 +179,10 @@ Global
 		{36994939-E133-43BD-8819-48EECF943E7E}.Release|Mixed.Build.0 = Release|Any CPU
 		{36994939-E133-43BD-8819-48EECF943E7E}.RelWithDebInfo|Mixed.ActiveCfg = Release|Any CPU
 		{36994939-E133-43BD-8819-48EECF943E7E}.RelWithDebInfo|Mixed.Build.0 = Release|Any CPU
-		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Debug|Mixed.ActiveCfg = Debug|Any CPU
-		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Debug|Mixed.Build.0 = Debug|Any CPU
-		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Release|Mixed.ActiveCfg = Release|Any CPU
-		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Release|Mixed.Build.0 = Release|Any CPU
+		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Debug|Mixed.ActiveCfg = Debug|x64
+		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Debug|Mixed.Build.0 = Debug|x64
+		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Release|Mixed.ActiveCfg = Release|x64
+		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.Release|Mixed.Build.0 = Release|x64
 		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.RelWithDebInfo|Mixed.ActiveCfg = Release|Any CPU
 		{BFD7273C-97B4-428F-BB5E-C1299B2EBA41}.RelWithDebInfo|Mixed.Build.0 = Release|Any CPU
 		{2ADCC09E-E6B0-4D3F-9789-69B257DC77A5}.Debug|Mixed.ActiveCfg = Debug|x86

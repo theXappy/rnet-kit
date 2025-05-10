@@ -55,7 +55,7 @@ public class RemoteAppModel : INotifyPropertyChanged
 
         App = app;
         TargetPid = pid;
-        Task.Run(QueryIInspectables);
+        _ = Task.Run(QueryIInspectables);
     }
 
     private void QueryIInspectables()

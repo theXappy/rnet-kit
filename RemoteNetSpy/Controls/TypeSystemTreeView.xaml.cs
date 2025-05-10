@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace RemoteNetSpy.Controls
 {
@@ -20,7 +21,7 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => throw new NotImplementedException();
+        private void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => throw new NotImplementedException();
 
         private void injectDllButton_Click(object sender, RoutedEventArgs e)
         {
@@ -35,11 +36,7 @@ namespace RemoteNetSpy.Controls
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             bool matchCase = true;
-            bool useRegex = false;
             bool onlyTypesInHeap = false;
-            Regex r = null;
-
-            ListBox associatedBox = null;
 
             string filter = (sender as TextBox)?.Text;
             ICollectionView view = CollectionViewSource.GetDefaultView(assembliesTreeView.ItemsSource);
@@ -113,7 +110,7 @@ namespace RemoteNetSpy.Controls
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            switch(e.NewValue)
+            switch (e.NewValue)
             {
                 case AssemblyModel assembly:
                     break;
@@ -141,7 +138,7 @@ namespace RemoteNetSpy.Controls
             throw new NotImplementedException();
         }
 
-        private async void CountButton_Click(object sender, RoutedEventArgs e)
+        private void CountButton_Click(object sender, RoutedEventArgs e)
         {
             countButton.IsEnabled = false;
 
@@ -151,13 +148,15 @@ namespace RemoteNetSpy.Controls
             countLabel.Foreground = transparentColor;
             spinner1.Visibility = Visibility.Visible;
 
-            await Model.CountInstancesAsync();
-
-            //TypesControl.UpdateTypesList(dumpedTypes);
-
-            spinner1.Visibility = Visibility.Collapsed;
-            countLabel.Foreground = originalBrush;
-            countButton.IsEnabled = true;
+            _ = Model.CountInstancesAsync().ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    spinner1.Visibility = Visibility.Collapsed;
+                    countLabel.Foreground = originalBrush;
+                    countButton.IsEnabled = true;
+                });
+             }, TaskScheduler.Default); // Explicitly specify TaskScheduler.Default to avoid VSTHRD105
         }
 
         private void CopyModuleName_Click(object sender, RoutedEventArgs e)

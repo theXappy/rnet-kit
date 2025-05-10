@@ -136,13 +136,13 @@ namespace rnet_class_dump
                     return false;
                 }
 
-                string dllName = remoteType.Assembly.GetName().Name;
-                string fullName = remoteType.FullName;
+                string? dllName = remoteType.Assembly.GetName().Name;
+                string? fullName = remoteType.FullName;
                 string className = remoteType.Name;
 
                 // Namespace
                 // TODO: Split by colons ??
-                string namespaceName = remoteType.Namespace;
+                string? namespaceName = remoteType.Namespace;
                 bool hasNamespace = !string.IsNullOrEmpty(namespaceName);
 
 
@@ -216,7 +216,7 @@ namespace rnet_class_dump
                                 restarizedParameters += ", ";
                             restarizedParameters += csharpExpression;
                         }
-                        HashSet<string> existingSignaturesForCurrentMethod;
+                        HashSet<string>? existingSignaturesForCurrentMethod;
                         if (!addedMethodsCache.TryGetValue(method.Name, out existingSignaturesForCurrentMethod))
                         {
                             existingSignaturesForCurrentMethod = new HashSet<string>();
@@ -296,7 +296,7 @@ namespace rnet_class_dump
 
                 // Split the full type name into namespace and class name
                 int lastDotIndex = fullTypeName.LastIndexOf('.');
-                string namespaceName = lastDotIndex > 0 ? fullTypeName.Substring(0, lastDotIndex) : null;
+                string? namespaceName = lastDotIndex > 0 ? fullTypeName.Substring(0, lastDotIndex) : null;
                 string className = lastDotIndex > 0 ? fullTypeName.Substring(lastDotIndex + 1) : fullTypeName;
 
                 // Write the namespace if it exists
@@ -443,7 +443,13 @@ namespace rnet_class_dump
             return GetTypeIdentifier(input, out isObject);
         }
 
-        private static (string declared, string csharpExpression) GetTypeIdentifier(ParameterInfo parameterInfo, out bool isObject) => GetTypeIdentifier(parameterInfo.ParameterType.FullName, out isObject);
+        private static (string declared, string csharpExpression) GetTypeIdentifier(ParameterInfo parameterInfo, out bool isObject)
+        {
+            string? fullName = parameterInfo.ParameterType.FullName;
+            if (fullName == null)
+                throw new ArgumentNullException("parameterInfo.ParameterType.FullName");
+            return GetTypeIdentifier(fullName, out isObject);
+        }
 
         private static (string declared, string csharpExpression) GetTypeIdentifier(string str, out bool isObject)
         {

@@ -24,7 +24,7 @@ namespace RemoteNetSpy
         {
             if (_model.Address != 0)
             {
-                memoryViewPanel.LoadBytesAsync();
+                _ = memoryViewPanel.LoadBytesAsync();
             }
         }
     }

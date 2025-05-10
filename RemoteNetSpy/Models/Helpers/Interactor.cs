@@ -70,15 +70,15 @@ $"var app = RemoteAppFactory.Connect(Process.GetProcessById({Parent.TargetPid}),
 $"var {roVarName} = app.GetRemoteObject(0x{dataContext.Address:X16}, \"{dataContext.FullTypeName}\");\r\n" +
 $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
 
-            _interactiveWindowInitTask.ContinueWith(_ =>
+            _ = _interactiveWindowInitTask.ContinueWith(_ =>
             {
-                _interactivePanel.Dispatcher.Invoke(async () =>
+                _ = _interactivePanel.Dispatcher.Invoke(async () =>
                 {
                     await _interactivePanel.WriteInputTextAsync(objectScript);
                     dataContext.InteractiveRoVarName = roVarName;
                     dataContext.InteractiveDroVarName = droVarName;
                 });
-            });
+            }, TaskScheduler.Default);
         }
 
         public void DeleteVar(HeapObject dataContext)
@@ -88,7 +88,7 @@ $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
             string objectScript =
 $"{roVarName} = null;\r\n" +
 $"{droVarName} = null;\r\n";
-            _interactivePanel.Dispatcher.Invoke(async () =>
+            _ = _interactivePanel.Dispatcher.Invoke(async () =>
             {
                 await _interactivePanel.WriteInputTextAsync(objectScript);
                 dataContext.InteractiveRoVarName = null;
@@ -109,13 +109,13 @@ $"{droVarName} = null;\r\n";
 $"{roVarName} = {roVarName}.Cast(app.GetRemoteType(\"{fullTypeName}\"));\r\n" +
 $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
-            _interactiveWindowInitTask.ContinueWith(_ =>
+            _ = _interactiveWindowInitTask.ContinueWith(_ =>
             {
-                _interactivePanel.Dispatcher.Invoke(async () =>
+                _ = _interactivePanel.Dispatcher.Invoke(async () =>
                 {
                     await _interactivePanel.WriteInputTextAsync(objectScript);
                 });
-            });
+            }, TaskScheduler.Default);
         }
     }
 }

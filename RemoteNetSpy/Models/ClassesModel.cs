@@ -1,5 +1,6 @@
 ﻿using CliWrap;
 using CliWrap.Buffered;
+using Microsoft.VisualStudio.Threading;
 using RemoteNET;
 using Spectre.Console;
 using System;
@@ -74,7 +75,7 @@ public class ClassesModel : INotifyPropertyChanged
 
     public async Task LoadAssembliesAsync(Dispatcher d)
     {
-         await Task.Run(() => UpdateAssemblies(d));
+        await Task.Run(() => UpdateAssemblies(d));
     }
 
     private Regex r = new Regex(@"\[(?<runtime>.*?)\]\[(?<assembly>.*?)\]\[(?<methodTable>.*?)\](?<type>.*)");
@@ -86,40 +87,49 @@ public class ClassesModel : INotifyPropertyChanged
         Task<IEnumerable<string>> typesTask = RnetDumpAsync($"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}");
 
         // Also look for types-less assemblies
-        IEnumerable<string> domainDumpsLines = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}").Result;
+        Task<IEnumerable<string>> domainDumpsLinesTask = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}");
 
-
-        List<string> orderedAssembliesLines = domainDumpsLines.ToList();
-        orderedAssembliesLines.Sort((asm1, asm2) => asm1.CompareTo(asm2));
-
-        Assemblies.Clear();
-        foreach (string domainDumpsLine in domainDumpsLines)
+        Task handleDomainsTask = domainDumpsLinesTask.ContinueWith(t =>
         {
-            if (!domainDumpsLine.StartsWith("[module] "))
-                continue;
+            IEnumerable<string> domainDumpsLines = t.Result;
+            List<string> orderedAssembliesLines = domainDumpsLines.ToList();
+            orderedAssembliesLines.Sort((asm1, asm2) => asm1.CompareTo(asm2));
 
-            string assemblyName = domainDumpsLine.Substring("[module] ".Length);
-            GetOrCreateAssembly(assemblyName);
-        }
+            Assemblies.Clear();
+            foreach (string domainDumpsLine in domainDumpsLines)
+            {
+                if (!domainDumpsLine.StartsWith("[module] "))
+                    continue;
 
-        foreach (string dumpedTypeLine in typesTask.Result)
+                string assemblyName = domainDumpsLine.Substring("[module] ".Length);
+                GetOrCreateAssembly(assemblyName);
+            }
+        }, TaskScheduler.Default);
+
+        _ = Task.WhenAll(handleDomainsTask, typesTask).ContinueWith(x =>
         {
-            var match = r.Match(dumpedTypeLine);
-            if (!match.Success)
-                continue;
-            string runtime = match.Groups["runtime"].Value.Trim();
-            string assemblyName = match.Groups["assembly"].Value.Trim();
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+            var typesDumpLines = typesTask.Result;
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
+            foreach (string dumpedTypeLine in typesDumpLines)
+            {
+                var match = r.Match(dumpedTypeLine);
+                if (!match.Success)
+                    continue;
+                string runtime = match.Groups["runtime"].Value.Trim();
+                string assemblyName = match.Groups["assembly"].Value.Trim();
 
-            AssemblyModel assembly = GetOrCreateAssembly(assemblyName);
+                AssemblyModel assembly = GetOrCreateAssembly(assemblyName);
 
-            string methodTableStr = match.Groups["methodTable"].Value.Trim();
-            ulong? methodTable = null;
-            if (methodTableStr != "null")
-                methodTable = Convert.ToUInt64(methodTableStr, 16);
-            string typeName = match.Groups["type"].Value.Trim();
-            DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, methodTable, numInstances: null);
-            assembly.AddType(type);
-        }
+                string methodTableStr = match.Groups["methodTable"].Value.Trim();
+                ulong? methodTable = null;
+                if (methodTableStr != "null")
+                    methodTable = Convert.ToUInt64(methodTableStr, 16);
+                string typeName = match.Groups["type"].Value.Trim();
+                DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, methodTable, numInstances: null);
+                assembly.AddType(type);
+            }
+        }, TaskScheduler.Default);
         return;
 
         AssemblyModel GetOrCreateAssembly(string assemblyName)

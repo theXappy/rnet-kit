@@ -235,11 +235,11 @@ namespace RemoteNetSpy.Controls
             }
         }
 
-        private async void InspectObjectClicked(object sender, RoutedEventArgs e)
+        private void InspectObjectClicked(object sender, RoutedEventArgs e)
         {
-            await InspectObject();
+            _ = Task.Run(InspectObject);
         }
-        private async Task InspectObject()
+        private void InspectObject()
         {
             using (fetchSpinner.TemporarilyShow())
             {
@@ -272,7 +272,8 @@ namespace RemoteNetSpy.Controls
                 {
                     MessageBox.Show(ex.Message);
                     return;
-                }            }
+                }
+            }
         }
 
         private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -289,7 +290,7 @@ namespace RemoteNetSpy.Controls
             {
                 if (e.PropertyName == "Address")
                 {
-                    LoadBytesAsync();
+                    _ = LoadBytesAsync();
                 }
             };
         }

@@ -36,7 +36,7 @@ namespace RemoteNetSpy.Windows
         }
 
 
-        private async Task RefreshProcessesList()
+        private async Task RefreshProcessesListAsync()
         {
             procsBox.ItemsSource = null;
             procsBox.IsEnabled = false;
@@ -74,8 +74,15 @@ namespace RemoteNetSpy.Windows
                 MessageBox.Show("Failed to refresh processes list.\nException: " + ex, this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void TargetSelectionWindow_Loaded(object sender, RoutedEventArgs e) => RefreshProcessesList();
-        private void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e) => RefreshProcessesList();
+        private void TargetSelectionWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            _ = RefreshProcessesListAsync();
+        }
+
+        private void ProcsRefreshButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            _ = RefreshProcessesListAsync();
+        }
 
         private void SaveSelectionAndExit()
         {
@@ -132,7 +139,7 @@ namespace RemoteNetSpy.Windows
                     // change status
                     ambushStatus.Text = "Searching for target...";
                     ambushStatus.Foreground = Brushes.Green;
-                    AmbushAsync(targetName);
+                    _ = AmbushAsync(targetName);
                 }
             }
         }
@@ -149,7 +156,7 @@ namespace RemoteNetSpy.Windows
                     {
                         var process = targetProcesses.First();
                         // Process found
-                        SelectedProcess = GetProcessInfo(process).Result;
+                        SelectedProcess = GetProcessInfoAsync(process).Result;
                         Dispatcher.Invoke(() =>
                         {
                             DialogResult = true;
@@ -172,7 +179,7 @@ namespace RemoteNetSpy.Windows
             });
         }
 
-        private async Task<InjectableProcess> GetProcessInfo(System.Diagnostics.Process process)
+        private async Task<InjectableProcess> GetProcessInfoAsync(System.Diagnostics.Process process)
         {
             CommandTask<BufferedCommandResult> commandTask = CliWrap.Cli.Wrap("rnet-ps.exe").ExecuteBufferedAsync();
             BufferedCommandResult runResults = await commandTask.Task;

@@ -17,7 +17,7 @@ namespace rnet_class_dump
             if (unmanaged)
                 runtime = RuntimeType.Unmanaged;
 
-            Process targetProc = null;
+            Process? targetProc = null;
             if (int.TryParse(targetQuery, out int pid))
             {
                 try

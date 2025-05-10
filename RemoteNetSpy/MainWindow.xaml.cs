@@ -1,3 +1,13 @@
+using AvalonDock.Controls;
+using CliWrap;
+using CliWrap.Buffered;
+using CSharpRepl.Services.Extensions;
+using Microsoft.Win32;
+using RemoteNET;
+using RemoteNET.Access;
+using RemoteNetSpy.Models;
+using RemoteNetSpy.Windows;
+using RnetKit.Common;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,16 +24,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using AvalonDock.Controls;
-using CliWrap;
-using CliWrap.Buffered;
-using CSharpRepl.Services.Extensions;
-using Microsoft.Win32;
-using RemoteNET;
-using RemoteNET.Access;
-using RemoteNetSpy.Models;
-using RemoteNetSpy.Windows;
-using RnetKit.Common;
+using static CSharpRepl.Services.Roslyn.Scripting.EvaluationResult;
 
 namespace RemoteNetSpy
 {
@@ -61,17 +62,21 @@ namespace RemoteNetSpy
             _aliveCheckTimer.Elapsed += DoHeartbeat;
         }
 
-        private async void MainWindow_OnInitialized(object sender, EventArgs e)
+        private void MainWindow_OnInitialized(object sender, EventArgs e)
         {
             var targetSelectionWindow = new TargetSelectionWindow();
             if (targetSelectionWindow.ShowDialog() == true)
             {
                 _targetProcess = targetSelectionWindow.SelectedProcess;
                 selectedTargetTextBlock.Text = $"{_targetProcess.Name} (PID: {_targetProcess.Pid})";
-                await ConnectToSelectedProcess();
-
-                // Get focus out of the "ConEmu" sub window
-                Keyboard.Focus(typeSystemTreeView);
+                _ = ConnectToSelectedProcessAsync().ContinueWith(_ =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        // Get focus out of the "ConEmu" sub window
+                        Keyboard.Focus(typeSystemTreeView);
+                    });
+                }, TaskScheduler.Default);
             }
             else
             {
@@ -79,7 +84,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private async Task ConnectToSelectedProcess()
+        private async Task ConnectToSelectedProcessAsync()
         {
             if (_targetProcess == null)
                 return;
@@ -115,7 +120,7 @@ namespace RemoteNetSpy
 
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async)");
-            _remoteAppModel.Interactor.InitAsync(this);
+            _ = _remoteAppModel.Interactor.InitAsync(this);
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async), task started");
 
 
@@ -172,7 +177,7 @@ namespace RemoteNetSpy
             return selectedRuntime;
         }
 
-        private async void DoHeartbeat(object sender, ElapsedEventArgs e)
+        private void DoHeartbeat(object sender, ElapsedEventArgs e)
         {
             if (_app == null)
             {
@@ -253,7 +258,7 @@ namespace RemoteNetSpy
             return member1.NormalizedName.CompareTo(member2.NormalizedName);
         }
 
-        private async void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
+        private void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
         {
             if (_instancesList == null || _instancesList.Count == 0)
             {
@@ -269,27 +274,27 @@ namespace RemoteNetSpy
                 return;
             }
 
-            StringBuilder csv = new StringBuilder();
-            await Task.Run(() =>
+            _= Task.Run(() =>
             {
+                StringBuilder csv = new StringBuilder();
                 csv.AppendLine("Address,Type,Frozen");
                 foreach (HeapObject heapObject in _instancesList)
                 {
                     csv.AppendLine($"{heapObject.Address},{heapObject.FullTypeName},{heapObject.Frozen}");
                 }
-            });
 
-            Stream file = sfd.OpenFile();
-            using (StreamWriter sw = new StreamWriter(file))
-            {
-                await sw.WriteAsync(csv);
-            }
+                Stream file = sfd.OpenFile();
+                using (StreamWriter sw = new StreamWriter(file))
+                {
+                    sw.Write(csv);
+                }
+            });
         }
 
-        private async void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
-            => await FindHeapInstances();
+        private void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
+            => _ = FindHeapInstancesAsync();
 
-        private async Task FindHeapInstances()
+        private async Task FindHeapInstancesAsync()
         {
             if (_currSelectedType == null)
             {
@@ -339,11 +344,11 @@ namespace RemoteNetSpy
                 _instancesList = newInstances.ToList();
                 _instancesList.Sort();
 
-                RefreshSearchAndWatchedLists();
+                await RefreshSearchAndWatchedListsAsync();
             }
         }
 
-        private async void RefreshSearchAndWatchedLists()
+        private async Task RefreshSearchAndWatchedListsAsync()
         {
             await Dispatcher.InvokeAsync(() =>
             {
@@ -361,9 +366,7 @@ namespace RemoteNetSpy
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             bool matchCase = true;
-            bool useRegex = false;
             bool onlyTypesInHeap = false;
-            Regex r = null;
 
             ListBox associatedBox = null;
             if (sender == membersFilterBox)
@@ -419,7 +422,7 @@ namespace RemoteNetSpy
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e) => _remoteAppModel.Tracer.DeleteFunc(sender);
 
         // TODO: This whole method should be a command in the RemoteAppModel
-        private async void FreezeUnfreezeHeapObjectButtonClicked(object sender, RoutedEventArgs e)
+        private void FreezeUnfreezeHeapObjectButtonClicked(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
             var grid = senderButton.FindLogicalChildren<Grid>().Single();
@@ -430,29 +433,28 @@ namespace RemoteNetSpy
             loadingImage.Visibility = Visibility.Visible;
 
             HeapObject ho = senderButton.DataContext as HeapObject;
-            bool success = false;
-            try
+            _ = FreezeUnfreezeAsync(ho).ContinueWith(t =>
             {
-                success = await FreezeUnfreeze(ho);
-            }
-            finally
-            {
-                dPanel.Visibility = Visibility.Visible;
-                loadingImage.Visibility = Visibility.Collapsed;
-            }
+                Dispatcher.Invoke(() =>
+                {
+                    // Revert the loading image
+                    dPanel.Visibility = Visibility.Visible;
+                    loadingImage.Visibility = Visibility.Collapsed;
+                });
 
-            if (!success)
-                return;
+                if (!t.Result)
+                    return;
 
-            if (ho.Frozen)
-                _remoteAppModel.Interactor.AddVar(ho);
-            else
-                _remoteAppModel.Interactor.DeleteVar(ho);
+                if (ho.Frozen)
+                    _remoteAppModel.Interactor.AddVar(ho);
+                else
+                    _remoteAppModel.Interactor.DeleteVar(ho);
 
-            RefreshSearchAndWatchedLists();
+                _ = RefreshSearchAndWatchedListsAsync();
+            }, TaskScheduler.Default);
         }
 
-        private async Task<bool> FreezeUnfreeze(HeapObject dataContext)
+        private async Task<bool> FreezeUnfreezeAsync(HeapObject dataContext)
         {
             bool isFrozen = dataContext.Frozen;
             try
@@ -696,7 +698,7 @@ namespace RemoteNetSpy
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
 
-        private async void ClassesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void ClassesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName != nameof(ClassesModel.SelectedType))
                 return;
@@ -716,7 +718,7 @@ namespace RemoteNetSpy
             // (1)
             // Dump members into the "Tracing" tab
             //
-            Task loadMembersTask = LoadTypeMembers(type);
+            Task loadMembersTask = LoadTypeMembersAsync(type);
 
             // 
             // (2)
@@ -725,7 +727,7 @@ namespace RemoteNetSpy
             FindHeapInstancesButtonClicked(null, null);
         }
 
-        private async Task LoadTypeMembers(string typeFullName)
+        private async Task LoadTypeMembersAsync(string typeFullName)
         {
             List<DumpedMember> dumpedMembers = await Task.Run(
                 () =>
@@ -740,21 +742,30 @@ namespace RemoteNetSpy
             filterBox_TextChanged(membersFilterBox, null);
         }
 
-        private async void PromptForVariableCast(object sender, RoutedEventArgs e)
+        private void PromptForVariableCast(object sender, RoutedEventArgs e)
         {
             var heapObject = (sender as MenuItem).DataContext as HeapObject;
             if (heapObject == null)
                 return;
 
+            Task freezeTask = Task.CompletedTask;
             if (!heapObject.Frozen)
             {
                 var res = MessageBox.Show("Object must be frozen before casting.\nFreeze now?", "Error", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (res != MessageBoxResult.Yes)
                     return;
 
-                await FreezeUnfreeze(heapObject);
+                freezeTask = FreezeUnfreezeAsync(heapObject);
             }
 
+            _ = freezeTask.ContinueWith(_ =>
+            {
+                _ = PromptForVariableCastInnerAsync(heapObject);
+            }, TaskScheduler.Default);
+        }
+
+        private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
+        {
             //
             // Prepare new "Type Selection Window" to select the target type
             //
@@ -775,7 +786,7 @@ namespace RemoteNetSpy
                     }
                     return newTypeDump;
                 }).ToList();
-            });
+            }, TaskScheduler.Default);
             typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
 
             var typeSelectionWindow = new TypeSelectionWindow();
