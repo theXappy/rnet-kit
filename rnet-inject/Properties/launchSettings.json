@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "rnet-inject": {
+      "commandName": "Project",
+      "commandLineArgs": "-u -t tTar -d \"C:\\Program Files\\WindowsApps\\Microsoft.VCLibs.140.00_14.0.33519.0_x64__8wekyb3d8bbwe\\msvcp140_app.dll\"\r\n"
+    }
+  }
+}
