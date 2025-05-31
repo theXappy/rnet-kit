@@ -1,0 +1,41 @@
+# .github/workflows/dotnet-kit-build.yml
+# GitHub Actions workflow to build all projects in the Kit folder on every push
+
+name: Build Kit Projects
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        project:
+          - rnet-kit/rnet-kit.csproj
+          - RnetKit.Common/RnetKit.Common.csproj
+          - rnet-class-dump/rnet-class-dump.csproj
+          - rnet-dump/rnet-dump.csproj
+          - rnet-inject/rnet-inject.csproj
+          - rnet-ps/rnet-ps.csproj
+          - rnet-trace/rnet-trace.csproj
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+      - name: Restore dependencies
+        run: dotnet restore ${{ matrix.project }}
+      - name: Build
+        run: dotnet build ${{ matrix.project }} --configuration Release --no-restore
+      - name: Test (if present)
+        run: |
+          if (Test-Path (Join-Path (Split-Path ${{ matrix.project }}) 'tests')) {
+            dotnet test (Join-Path (Split-Path ${{ matrix.project }}) 'tests') --no-build --configuration Release
+          }
+        shell: pwsh
