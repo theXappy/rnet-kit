@@ -45,7 +45,7 @@ jobs:
       # Prepare Detours library
       - name: Prepare Detours library
         run: |
-          cd src
+          cd ..\..\RemoteNET\src
           mkdir detours_build
           cd detours_build
           cmake ..\detours.net
