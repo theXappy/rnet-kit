@@ -16,7 +16,6 @@ jobs:
       matrix:
         project:
           - rnet-kit/rnet-kit.csproj
-          - RnetKit.Common/RnetKit.Common.csproj
           - rnet-class-dump/rnet-class-dump.csproj
           - rnet-dump/rnet-dump.csproj
           - rnet-inject/rnet-inject.csproj
@@ -24,6 +23,10 @@ jobs:
           - rnet-trace/rnet-trace.csproj
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Initialize submodules (if needed)
+        run: git submodule update --init --recursive
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
