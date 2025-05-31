@@ -26,7 +26,16 @@ public class ModuleToIconMultiConverter : IMultiValueConverter
         if (values.Length < 2) return null;
 
         RuntimeType runtime = (RuntimeType)values[0];
-        bool anyTypes = (int)values[1] > 0; // AnyTypes
+        bool anyTypes;
+        if (values[1] is int typesCount)
+        {
+            anyTypes = typesCount > 0;
+        }
+        else
+        {
+            // Probably "UnsetValue"
+            anyTypes = false;
+        }
 
         if (runtime == RuntimeType.Unmanaged)
         {

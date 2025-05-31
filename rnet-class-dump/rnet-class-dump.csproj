@@ -11,15 +11,15 @@
 
 	<Target Name="GenerateVersionInfo" BeforeTargets="BeforeBuild">
 		<PropertyGroup>
-			<BuildTime>$([System.DateTime]::Now.ToString("yyyyMMdd.HHmm"))</BuildTime>
+			<BuildTime>$([System.DateTime]::Now.ToString("yyyy.MMdd.HHmm"))</BuildTime>
 			<VersionFile>$(IntermediateOutputPath)VersionInfo.cs</VersionFile>
 		</PropertyGroup>
 
 		<WriteLinesToFile
 		  File="$(VersionFile)"
 		  Lines='[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.0.$(BuildTime)")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.0.$(BuildTime)")]'
+[assembly: System.Reflection.AssemblyFileVersion("1.$(BuildTime)")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.$(BuildTime)")]'
 		  Overwrite="true" />
 
 		<ItemGroup>

@@ -108,19 +108,23 @@ namespace rnet_class_dump
 
         private static void WriteHelperClass(StringBuilder writer)
         {
-            writer.AppendLine("namespace RemoteNET.ClassDump.Internal;");
+            writer.AppendLine("using System;");
             writer.AppendLine();
-            writer.AppendLine("public abstract class __RemoteNET_Obj_Base");
+            writer.AppendLine("namespace RemoteNET.ClassDump.Internal");
             writer.AppendLine("{");
-            writer.AppendLine("\tpublic dynamic __dro;");
             writer.AppendLine();
-            writer.AppendLine("\tpublic __RemoteNET_Obj_Base(DynamicRemoteObject dro)");
+            writer.AppendLine("\tpublic abstract class __RemoteNET_Obj_Base");
             writer.AppendLine("\t{");
-            writer.AppendLine("\t\t__dro = dro;");
-            writer.AppendLine("\t}");
-            writer.AppendLine("\tpublic __RemoteNET_Obj_Base()");
-            writer.AppendLine("\t{");
-            writer.AppendLine("\t\tthrow new Exception(\"Bad __RemoteNET_Obj_Base ctor called\");");
+            writer.AppendLine("\t\tpublic dynamic __dro;");
+            writer.AppendLine();
+            writer.AppendLine("\t\tpublic __RemoteNET_Obj_Base(DynamicRemoteObject dro)");
+            writer.AppendLine("\t\t{");
+            writer.AppendLine("\t\t\t__dro = dro;");
+            writer.AppendLine("\t\t}");
+            writer.AppendLine("\t\tpublic __RemoteNET_Obj_Base()");
+            writer.AppendLine("\t\t{");
+            writer.AppendLine("\t\t\tthrow new Exception(\"Bad __RemoteNET_Obj_Base ctor called\");");
+            writer.AppendLine("\t\t}");
             writer.AppendLine("\t}");
             writer.AppendLine("}");
         }
@@ -149,6 +153,7 @@ namespace rnet_class_dump
                 AppendLine(writer, $"using System;", 0);
                 AppendLine(writer, $"using System.Linq;", 0);
                 AppendLine(writer, $"using RemoteNET;", 0);
+                AppendLine(writer, $"using RemoteNET.ClassDump.Internal;", 0);
                 AppendLine(writer, "", 0);
 
                 if (hasNamespace)
@@ -194,75 +199,8 @@ namespace rnet_class_dump
 
                 Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
                 // List all members
-                MemberInfo[] members = remoteType.GetMembers();
-                if (members.Length == 0)
+                if (!TryDumpMembers(remoteType, writer, className, indentCount, otherTypesUsed))
                     return false;
-                Dictionary<string, HashSet<string>> addedMethodsCache = new Dictionary<string, HashSet<string>>();
-                foreach (MemberInfo member in members)
-                {
-                    // First, If this is a method, compose list of *actual* parameters types that we're going to use
-                    // since some are "downgraded" to dynamic
-                    string parameters = string.Empty;
-                    bool isOverlappingMethod = false;
-                    if (member is MethodInfo method)
-                    {
-                        ParameterInfo[] parametersInfo = method.GetParameters();
-                        string restarizedParameters = string.Empty;
-                        for (int i = 0; i < parametersInfo.Length; i++)
-                        {
-                            ParameterInfo param = parametersInfo[i];
-                            (string _, string csharpExpression) = GetTypeIdentifier(param, out bool isObject);
-                            if (restarizedParameters.Length > 0)
-                                restarizedParameters += ", ";
-                            restarizedParameters += csharpExpression;
-                        }
-                        HashSet<string>? existingSignaturesForCurrentMethod;
-                        if (!addedMethodsCache.TryGetValue(method.Name, out existingSignaturesForCurrentMethod))
-                        {
-                            existingSignaturesForCurrentMethod = new HashSet<string>();
-                            addedMethodsCache[method.Name] = existingSignaturesForCurrentMethod;
-                        }
-                        if (!existingSignaturesForCurrentMethod.Add(restarizedParameters))
-                        {
-                            isOverlappingMethod = true;
-                        }
-                    }
-
-
-                    StringBuilder memberSignature = new StringBuilder();
-                    WriteMember(memberSignature, className, member, indentCount: 0);
-                    GetDependencyTypes(member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsedTemp);
-
-                    // Union dictionaries
-                    foreach (var kvp in otherTypesUsedTemp)
-                    {
-                        if (!otherTypesUsed.ContainsKey(kvp.Key))
-                        {
-                            otherTypesUsed[kvp.Key] = kvp.Value;
-                        }
-                    }
-
-                    string prefix = string.Empty;
-                    if (isOverlappingMethod)
-                    {
-                        AppendLine(writer, "// WARNING: This method's reduced signature overlaps with another one.", indentCount);
-                        prefix = "// ";
-                    }
-
-                    bool containsReference = memberSignature.ToString().Contains("& ");
-                    if (containsReference)
-                    {
-                        AppendLine(writer, "// WARNING: This method's reduced signature contains a reference type. Not supported yet.", indentCount);
-                        prefix = "// ";
-                    }
-
-                    // Members text might be multiple lines (mostly lines with comments above the actual decleration)
-                    foreach (string memberLine in memberSignature.ToString().Split("\n"))
-                    {
-                        Append(writer, prefix + memberLine, indentCount);
-                    }
-                    AppendLine(writer, string.Empty, indentCount);
-                }
 
                 indentCount--;
                 AppendLine(writer, "}", indentCount);
@@ -285,6 +223,129 @@ namespace rnet_class_dump
             }
         }
 
+        private static bool TryDumpMembers(Type remoteType, StringBuilder writer, string className, int indentCount, Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
+        {
+            MemberInfo[] members = remoteType.GetMembers();
+            if (members.Length == 0)
+                return false;
+
+            string cppMainFullTypeName = remoteType.FullName!;
+            Dictionary<string, string> memberTypes = new Dictionary<string, string>(); // Tracks member names and their types
+            foreach (MemberInfo member in members)
+            {
+                // Collected implied dependency types
+                GetDependencyTypes(member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsedTemp);
+                foreach (var kvp in otherTypesUsedTemp)
+                {
+                    string csharpFullTypeName = kvp.Key;
+                    if (!otherTypesUsed.ContainsKey(csharpFullTypeName))
+                    {
+                        otherTypesUsed[csharpFullTypeName] = kvp.Value;
+
+                        // Try to check for subclasses by comparing "Full Type Names"
+                        string cppFullTypeName = kvp.Value.TypeFullName.TrimEnd('*');
+                        if (cppFullTypeName.StartsWith(cppMainFullTypeName) && cppFullTypeName.Length > cppMainFullTypeName.Length)
+                        {
+                            // Cut just the name: everything after last dot
+                            int lastDotIndex = csharpFullTypeName.LastIndexOf('.');
+                            if (lastDotIndex != -1)
+                            {
+                                string typeName = csharpFullTypeName.Substring(lastDotIndex + 1);
+                                memberTypes[typeName] = "SubClass";
+                            }
+                        }
+                    }
+                }
+            }
+
+            HashSet<string> forbiddenMembers = new HashSet<string>();
+            foreach (MemberInfo member in members)
+            {
+                string memberName = member.Name;
+
+                // Check for conflicts between methods and subclasses
+                if (memberTypes.ContainsKey(memberName))
+                {
+                    if (memberTypes[memberName] != member.MemberType.ToString())
+                    {
+                        // Conflict detected! We don't want to write those members.
+                        forbiddenMembers.Add(memberName);
+                        continue;
+                    }
+                }
+
+                // Track the member type
+                memberTypes[memberName] = member.MemberType.ToString();
+            }
+
+
+            var declaredMethods = new Dictionary<string, HashSet<string>>();
+            foreach (MemberInfo member in members)
+            {
+
+                StringBuilder memberDeclaration = new StringBuilder();
+                WriteMember(memberDeclaration, className, member, indentCount: 0);
+
+                string prefix = string.Empty;
+                if (IsOverlappingMethod(declaredMethods, member))
+                {
+                    AppendLine(writer, "// WARNING: This method's reduced signature overlaps with another one.", indentCount);
+                    prefix = "// ";
+                }
+
+                bool containsReference = memberDeclaration.ToString().Contains("& ");
+                if (containsReference)
+                {
+                    AppendLine(writer, "// WARNING: This method's reduced signature contains a reference type. Not supported yet.", indentCount);
+                    prefix = "// ";
+                }
+
+                string memberName = member.Name;
+                if (forbiddenMembers.Contains(memberName))
+                {
+                    // Write a comment
+                    AppendLine(writer, $"// WARNING: {memberName} member is conflicting with another member or subclass.", indentCount);
+                    prefix = "// ";
+                }
+
+
+                // Members text might be multiple lines (mostly lines with comments above the actual decleration)
+                foreach (string memberLine in memberDeclaration.ToString().Split("\n"))
+                {
+                    Append(writer, prefix + memberLine, indentCount);
+                }
+                AppendLine(writer, string.Empty, indentCount);
+            }
+
+            return true;
+        }
+
+        private static bool IsOverlappingMethod(Dictionary<string, HashSet<string>> addedMethodsCache, MemberInfo member)
+        {
+            if (member is not MethodInfo method)
+                return false;
+
+            // If this is a method, compose list of *actual* parameters types that we're going to use
+            // since some are "downgraded" to dynamic
+            ParameterInfo[] parametersInfo = method.GetParameters();
+            string restarizedParameters = string.Empty;
+            for (int i = 0; i < parametersInfo.Length; i++)
+            {
+                ParameterInfo param = parametersInfo[i];
+                (string _, string csharpExpression) = GetTypeIdentifier(param, out bool isObject);
+                if (restarizedParameters.Length > 0)
+                    restarizedParameters += ", ";
+                restarizedParameters += csharpExpression;
+            }
+            HashSet<string>? existingSignaturesForCurrentMethod;
+            if (!addedMethodsCache.TryGetValue(method.Name, out existingSignaturesForCurrentMethod))
+            {
+                existingSignaturesForCurrentMethod = new HashSet<string>();
+                addedMethodsCache[method.Name] = existingSignaturesForCurrentMethod;
+            }
+            return !existingSignaturesForCurrentMethod.Add(restarizedParameters);
+        }
+
         private static void WriteDummies(StringBuilder writer, Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
         {
             foreach (KeyValuePair<string, LazyRemoteTypeResolver> kvp in otherTypesUsed)
@@ -294,10 +355,18 @@ namespace rnet_class_dump
                 if (fullTypeName == "dynamic")
                     continue;
 
-                // Split the full type name into namespace and class name
-                int lastDotIndex = fullTypeName.LastIndexOf('.');
-                string? namespaceName = lastDotIndex > 0 ? fullTypeName.Substring(0, lastDotIndex) : null;
-                string className = lastDotIndex > 0 ? fullTypeName.Substring(lastDotIndex + 1) : fullTypeName;
+                // Split the full type name into components
+                string[] components = fullTypeName.Split('.');
+                if (components.Length == 0)
+                    continue;
+
+                int classIndex = 0;
+                string? namespaceName = null;
+                if (components.Length > 1)
+                {
+                    namespaceName = components[0];
+                    classIndex++;
+                }
 
                 // Write the namespace if it exists
                 if (!string.IsNullOrEmpty(namespaceName))
@@ -306,10 +375,17 @@ namespace rnet_class_dump
                     writer.AppendLine("{");
                 }
 
-                // Write the partial class
-                writer.AppendLine($"\tpublic partial class {className} : __RemoteNET_Obj_Base");
-                writer.AppendLine("\t{");
-                writer.AppendLine("\t}");
+                string closingBrackets = string.Empty;
+                for (; classIndex < components.Length; classIndex++)
+                {
+                    string className = components[classIndex];
+                    // Write the partial class
+                    string indent = new string('\t', classIndex);
+                    writer.AppendLine($"{indent}public partial class {className} : __RemoteNET_Obj_Base");
+                    writer.AppendLine(indent + "{");
+                    closingBrackets += indent + "}\n";
+                }
+                writer.AppendLine(closingBrackets);
 
                 // Close the namespace if it exists
                 if (!string.IsNullOrEmpty(namespaceName))
@@ -352,6 +428,11 @@ namespace rnet_class_dump
             }
             else if (member is FieldInfo field)
             {
+                if (field.Name == "vftable")
+                {
+                    Append(writer, $"// Unsupported vftable FIELD: {member.MemberType}. Name: {member.Name}", indentCount);
+                    return;
+                }
                 Append(writer, $"public dynamic {field.Name} {{ get => __dro.{field.Name}; set => __dro.{field.Name} = value; }}", indentCount);
             }
             else if (member is RemoteRttiMethodInfo rttiMethod)
@@ -388,7 +469,7 @@ namespace rnet_class_dump
                         if (isObject)
                             invocationArgs += ".__dro";
                     }
-                    (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out _);
+                    (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRet);
                     string formattedRetType = FormatTypeIdentifier(declaredRetType, csharpExpressionRetType);
 
                     string body = $"__dro.{rttiMethod.Name}({invocationArgs})";
@@ -396,10 +477,22 @@ namespace rnet_class_dump
                     {
                         // For primitives, add a lousy cast.
                         string castToUlong = $"(ulong)(UIntPtr)({body})";
-                        if (csharpExpressionRetType != "bool")
-                            body = $"({csharpExpressionRetType}){castToUlong}";
-                        else
+                        if (csharpExpressionRetType == "bool")
+                        {
                             body = $"({castToUlong}) != 0";
+                        }
+                        else if (csharpExpressionRetType == "void")
+                        {
+                            // Do nothing. Not return type - no need to cast to anything else.
+                        }
+                        else
+                        {
+                            body = $"({csharpExpressionRetType}){castToUlong}";
+                        }
+                    }
+                    else if (isObjectRet)
+                    {
+                        body = $"new {csharpExpressionRetType}((DynamicRemoteObject){body})";
                     }
 
                     Append(writer, $"public {formattedRetType} {rttiMethod.Name}({parameters}) => {body};", indentCount);
@@ -480,10 +573,42 @@ namespace rnet_class_dump
                 csharpExpression = "short";
             else if (str == "uint16_t")
                 csharpExpression = "ushort";
+            else if (str == "System.Void")
+                csharpExpression = "void";
+            else if (str == "System.Boolean")
+                csharpExpression = "bool";
+            else if (str == "System.Byte")
+                csharpExpression = "byte";
+            else if (str == "System.SByte")
+                csharpExpression = "sbyte";
+            else if (str == "System.Int8")
+                csharpExpression = "sbyte";
+            else if (str == "System.UInt8")
+                csharpExpression = "byte";
+            else if (str == "System.Int16")
+                csharpExpression = "short";
+            else if (str == "System.UInt16")
+                csharpExpression = "ushort";
+            else if (str == "System.Int32")
+                csharpExpression = "int";
+            else if (str == "System.UInt32")
+                csharpExpression = "uint";
+            else if (str == "System.Int64")
+                csharpExpression = "long";
+            else if (str == "System.UInt64")
+                csharpExpression = "ulong";
+            else if (str == "System.Single")
+                csharpExpression = "float";
+            else if (str == "System.Double")
+                csharpExpression = "double";
+            else if (str == "System.String")
+                csharpExpression = "string";
+            else if (str == "System.Char")
+                csharpExpression = "char";
             else
-            {
-                // At most 1 '*'
-                csharpExpression = str.Replace("::", ".").TrimEnd('*');
+            { 
+                // TODO: Used to check "IsPointer" here but something went wrong and the cases combined...
+                csharpExpression = str.Replace("::", ".").TrimEnd('*', '&');
             }
 
             return (str, csharpExpression);

@@ -2,7 +2,7 @@
   "profiles": {
     "rnet-class-dump": {
       "commandName": "Project",
-      "commandLineArgs": "-t gN -u -f libSpen_document.dll!SPen::HistoryManager"
+      "commandLineArgs": "-t gN -u -f libSpen_worddoc.dll!SPen::WNote"
     }
   }
 }

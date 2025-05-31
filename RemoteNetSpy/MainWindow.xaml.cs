@@ -789,32 +789,39 @@ namespace RemoteNetSpy
             }, TaskScheduler.Default);
             typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
 
-            var typeSelectionWindow = new TypeSelectionWindow();
-            typeSelectionWindow.DataContext = typesModel;
+            bool? res = false;
 
-            // Set "hint" in types window: If the current type is a C++ type, suggest other types
-            // with the same name in all assemblies.
-            // e.g., mylib.dll!MyNameSpace::MyType
-            // will suggest a regex that'll also cover:
-            // * my_other_lib.dll!MyNameSpace::MyType
-            // * mylib.dll!SecondNamespace::MyType
-            // Regex breakdown:
-            // ::MyType(?:\s\([^)]+\))?$
-            //  ^  ^    ^^^^^^^^^^^^^^^^^
-            //  |  |             |
-            //  | Curr type name |
-            //  |                |
-            //  |    Match end of line OR "(Count: X...)" suffix  
-            // Separator
-            string currFullTypeName = heapObject.FullTypeName;
-            if (currFullTypeName.Contains("::"))
+            Dispatcher.Invoke(() =>
             {
-                string currTypeName = currFullTypeName.Split("::").Last();
-                string regex = "::" + currTypeName + @"(?:\s\([^)]+\))?$";
-                typeSelectionWindow.ApplyRegexFilter(regex);
-            }
+                var typeSelectionWindow = new TypeSelectionWindow();
+                typeSelectionWindow.DataContext = typesModel;
 
-            if (typeSelectionWindow.ShowDialog() != true)
+                // Set "hint" in types window: If the current type is a C++ type, suggest other types
+                // with the same name in all assemblies.
+                // e.g., mylib.dll!MyNameSpace::MyType
+                // will suggest a regex that'll also cover:
+                // * my_other_lib.dll!MyNameSpace::MyType
+                // * mylib.dll!SecondNamespace::MyType
+                // Regex breakdown:
+                // ::MyType$
+                //  ^  ^   ^--------- Match end of line
+                //  |  |             
+                //  | Curr type name
+                //  |
+                //  |
+                // Separator
+                string currFullTypeName = heapObject.FullTypeName;
+                if (currFullTypeName.Contains("::"))
+                {
+                    string currTypeName = currFullTypeName.Split("::").Last();
+                    string regex = "::" + currTypeName + @"$";
+                    typeSelectionWindow.ApplyRegexFilter(regex);
+                }
+
+                res = typeSelectionWindow.ShowDialog();
+            });
+
+            if (res != true)
                 return;
 
             DumpedTypeModel selectedType = typesModel.SelectedType;
