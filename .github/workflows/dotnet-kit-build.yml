@@ -22,8 +22,8 @@ jobs:
           - rnet-ps/rnet-ps.csproj
           - rnet-trace/rnet-trace.csproj
         configuration: [Debug, Release]
-  env:
-    Solution_Name: Merged.sln          
+    env:
+      Solution_Name: Merged.sln          
     steps:
       - uses: actions/checkout@v4
         with:
