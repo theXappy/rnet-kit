@@ -27,11 +27,29 @@ jobs:
           submodules: recursive
       - name: Initialize submodules (if needed)
         run: git submodule update --init --recursive
-      - name: Setup .NET
+            
+      # Install the .NET Core workload
+      - name: Install .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.0.x
+            7.0.x
+            6.0.x
+            5.0.x
+            3.1.x
+
+      # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+      - name: Setup MSBuild.exe
+        uses: microsoft/setup-msbuild@v2
+
+      # Prepare Detours library
+      - name: Prepare Detours library
+        run: |
+          cd src
+          mkdir detours_build
+          cd detours_build
+          cmake ..\detours.net
+         
       - name: Restore dependencies
         run: dotnet restore ${{ matrix.project }}
       - name: Build
