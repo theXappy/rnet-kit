@@ -1,5 +1,6 @@
 # .github/workflows/dotnet-kit-build.yml
 # GitHub Actions workflow to build all projects in the Kit folder on every push
+# meaningless change for testing commit
 
 name: Build Kit Projects
 
