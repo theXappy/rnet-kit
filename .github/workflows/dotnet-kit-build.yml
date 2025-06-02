@@ -98,7 +98,7 @@ jobs:
         with:
           name: ${{ matrix.project }}-release
           path: |
-            ${{ github.workspace }}/${{ matrix.project }}/bin/Release/**/*
+            ${{ github.workspace }}/${{ matrix.project }}/../bin/Release/**/*
 
   release:
     name: Release Artifacts
