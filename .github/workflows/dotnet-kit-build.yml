@@ -92,6 +92,14 @@ jobs:
           }
         shell: pwsh
 
+      - name: Upload build artifacts
+        if: ${{ matrix.configuration == 'Release' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.project }}-release
+          path: |
+            ${{ github.workspace }}/**/bin/Release/**/*
+
   release:
     name: Release Artifacts
     needs: build
