@@ -31,7 +31,11 @@ jobs:
           submodules: recursive
       - name: Initialize submodules (if needed)
         run: git submodule update --init --recursive
-            
+      
+      # Add nuget.config for Azure DevOps feed
+      - name: Copy custom NuGet config
+        run: copy rnet-repl\RemoteNetRepl\nuget.config nuget.config
+
       # Install the .NET Core workload
       - name: Install .NET Core
         uses: actions/setup-dotnet@v4
@@ -56,19 +60,19 @@ jobs:
 
         # Restore the application to populate the obj folder with RuntimeIdentifiers
       - name: Restore Solution
-        run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
+        run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:RestoreConfigFile=nuget.config
         env:
             Configuration: ${{ matrix.configuration }}
 
         # Restore the application to populate the obj folder with RuntimeIdentifiers
       - name: Build RemoteNET
-        run: msbuild $env:Solution_Name -target:RemoteNET_Dir/RemoteNET:rebuild /p:Configuration=$env:Configuration /property:Platform=Mixed
+        run: msbuild $env:Solution_Name -target:RemoteNET_Dir/RemoteNET:rebuild /p:Configuration=$env:Configuration /property:Platform=Mixed /p:RestoreConfigFile=nuget.config
         env:
             Configuration: ${{ matrix.configuration }}
 
 
       - name: Restore dependencies
-        run: dotnet restore ${{ matrix.project }}
+        run: dotnet restore ${{ matrix.project }} --configfile nuget.config
       - name: Build
         run: dotnet build ${{ matrix.project }} --configuration Release --no-restore
       - name: Test (if present)
