@@ -6,6 +6,8 @@ name: Build Kit Projects
 on:
   push:
     branches: [ "main", "master", "develop" ]
+    tags:
+      - 'v*' # Trigger release job on version tags
   pull_request:
     branches: [ "main", "master", "develop" ]
 
@@ -89,3 +91,41 @@ jobs:
             dotnet test (Join-Path (Split-Path ${{ matrix.project }}) 'tests') --no-build --configuration Release
           }
         shell: pwsh
+
+  release:
+    name: Release Artifacts
+    needs: build
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: release-artifacts
+      - name: Package binaries
+        run: |
+          cd release-artifacts
+          Compress-Archive -Path * -DestinationPath ../binaries.zip
+        shell: pwsh
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./binaries.zip
+          asset_name: binaries.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
