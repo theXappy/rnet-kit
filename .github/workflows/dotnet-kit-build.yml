@@ -92,13 +92,19 @@ jobs:
           }
         shell: pwsh
 
+      - name: Set project directory
+        id: project_dir
+        run: |
+          $dir = Split-Path '${{ matrix.project }}'
+          echo "dir=$dir" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
       - name: Upload build artifacts
         if: ${{ matrix.configuration == 'Release' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.project }}-release
-          path: |
-            ${{ github.workspace }}/${{ matrix.project }}/../bin/Release/**/*
+          path: ${{ github.workspace }}/${{ steps.project_dir.outputs.dir }}/bin/Release/**/*
 
   release:
     name: Release Artifacts
