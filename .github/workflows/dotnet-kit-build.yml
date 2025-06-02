@@ -1,0 +1,91 @@
+# .github/workflows/dotnet-kit-build.yml
+# GitHub Actions workflow to build all projects in the Kit folder on every push
+
+name: Build Kit Projects
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        project:
+          - rnet-kit/rnet-kit.csproj
+          - rnet-class-dump/rnet-class-dump.csproj
+          - rnet-dump/rnet-dump.csproj
+          - rnet-inject/rnet-inject.csproj
+          - rnet-ps/rnet-ps.csproj
+          - rnet-trace/rnet-trace.csproj
+        configuration: [Debug, Release]
+    env:
+      Solution_Name: Merged.sln
+      GITHUB_ACTIONS: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Initialize submodules (if needed)
+        run: git submodule update --init --recursive
+      
+      # Add nuget.config for Azure DevOps feed
+      - name: Copy custom NuGet config
+        run: copy rnet-repl\RemoteNetRepl\nuget.config nuget.config
+
+      # Install the .NET Core workload
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            7.0.x
+            6.0.x
+            5.0.x
+            3.1.x
+
+      # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+      - name: Setup MSBuild.exe
+        uses: microsoft/setup-msbuild@v2
+
+      # Prepare Detours library
+      - name: Prepare Detours library
+        run: |
+          cd RemoteNET\src
+          mkdir detours_build
+          cd detours_build
+          cmake ..\detours.net
+
+        # Restore the application to populate the obj folder with RuntimeIdentifiers
+      - name: Restore Solution
+        run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:RestoreConfigFile=nuget.config
+        env:
+            Configuration: ${{ matrix.configuration }}
+          
+      - name: Build Detours NET
+        run: msbuild $env:Solution_Name -target:RemoteNET_Dir\DetoursNet\ALL_BUILD:rebuild /p:Configuration=$env:Configuration /property:Platform=Mixed /p:RestoreConfigFile=nuget.config
+        env:
+            Configuration: ${{ matrix.configuration }}
+
+        # Restore the application to populate the obj folder with RuntimeIdentifiers
+      - name: Build RemoteNET
+        run: msbuild $env:Solution_Name -target:RemoteNET_Dir\RemoteNET:rebuild /p:Configuration=$env:Configuration /property:Platform=Mixed /p:RestoreConfigFile=nuget.config
+        env:
+            Configuration: ${{ matrix.configuration }}
+
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ matrix.project }} --configfile nuget.config
+      - name: Build
+        run: dotnet build ${{ matrix.project }} --configuration $env:Configuration --no-restore
+        env:
+            Configuration: ${{ matrix.configuration }}
+
+      - name: Test (if present)
+        run: |
+          if (Test-Path (Join-Path (Split-Path ${{ matrix.project }}) 'tests')) {
+            dotnet test (Join-Path (Split-Path ${{ matrix.project }}) 'tests') --no-build --configuration Release
+          }
+        shell: pwsh
