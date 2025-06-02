@@ -94,7 +94,7 @@ jobs:
 
       - name: Upload build artifacts
         if: ${{ matrix.configuration == 'Release' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.project }}-release
           path: |
@@ -110,7 +110,7 @@ jobs:
         with:
           submodules: recursive
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: release-artifacts
       - name: Package binaries
