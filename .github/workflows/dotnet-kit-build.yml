@@ -103,7 +103,7 @@ jobs:
         if: ${{ matrix.configuration == 'Release' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.project }}-release
+          name: ${{ steps.project_dir.outputs.dir }}-release
           path: ${{ github.workspace }}/${{ steps.project_dir.outputs.dir }}/bin/Release/**/*
 
   release:
