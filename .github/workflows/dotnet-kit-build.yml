@@ -100,8 +100,15 @@ jobs:
           echo "dir=$dir" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-      - name: Upload build artifacts
+      - name: Upload build artifacts (rnet-kit)
         if: ${{ matrix.project == 'rnet-kit/rnet-kit.csproj' && matrix.configuration == 'Release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.project_dir.outputs.dir }}-release
+          path: ${{ github.workspace }}/${{ steps.project_dir.outputs.dir }}/bin/Release/**/*
+          
+      - name: Upload build artifacts (RemoteNetSpy)
+        if: ${{ matrix.project == 'RemoteNetSpy/RemoteNetSpy.csproj' && matrix.configuration == 'Release' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.project_dir.outputs.dir }}-release
