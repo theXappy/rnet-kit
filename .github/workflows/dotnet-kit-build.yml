@@ -100,7 +100,7 @@ jobs:
         shell: pwsh
 
       - name: Upload build artifacts
-        if: ${{ matrix.configuration == 'Release' }}
+        if: ${{ matrix.project == 'rnet-kit/rnet-kit.csproj' && matrix.configuration == 'Release' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.project_dir.outputs.dir }}-release
