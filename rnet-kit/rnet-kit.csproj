@@ -11,7 +11,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\rnet-class-dump\rnet-class-dump.csproj" />
 		<ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
+		<ProjectReference Include="..\rnet-inject\rnet-inject.csproj" />
 		<ProjectReference Include="..\rnet-ps\rnet-ps.csproj" />
 		<ProjectReference Include="..\rnet-repl\RemoteNetRepl\CSharpRepl\CSharpRepl.csproj" />
 		<ProjectReference Include="..\rnet-trace\rnet-trace.csproj" />
