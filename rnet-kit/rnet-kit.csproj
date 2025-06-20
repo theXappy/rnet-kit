@@ -11,6 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\RemoteNET\src\Tests\RemoteNET.Vessel\RemoteNET.Vessel.csproj" />
 		<ProjectReference Include="..\rnet-class-dump\rnet-class-dump.csproj" />
 		<ProjectReference Include="..\rnet-dump\rnet-dump.csproj" />
 		<ProjectReference Include="..\rnet-inject\rnet-inject.csproj" />
