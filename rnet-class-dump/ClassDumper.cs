@@ -79,8 +79,6 @@ namespace rnet_class_dump
             // Recursively resolve all 
             var allTypesToDump = RecursiveTypesSearch(queriedTypes);
 
-            Debugger.Launch();
-
             // Process each candidate group (by key)
             foreach (var kvp in allTypesToDump)
             {
@@ -428,6 +426,33 @@ namespace rnet_class_dump
 
             string cppMainFullTypeName = remoteType.FullName!;
             Dictionary<string, string> memberTypes = new Dictionary<string, string>(); // Tracks member names and their types
+            Dictionary<string, LazyRemoteTypeResolver> subClassesDict = new Dictionary<string, LazyRemoteTypeResolver>();
+            foreach (MemberInfo member in members)
+            {
+                // Collected implied dependency types
+                GetDependencyTypes(member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsedTemp);
+                foreach (var kvp in otherTypesUsedTemp)
+                {
+                    string csharpFullTypeName = kvp.Key;
+                    if (subClassesDict.ContainsKey(csharpFullTypeName))
+                        continue;
+
+                    subClassesDict[csharpFullTypeName] = kvp.Value;
+
+                    // Try to check for subclasses by comparing "Full Type Names"
+                    string cppFullTypeName = kvp.Value.TypeFullName.TrimEnd('*');
+                    if (!cppFullTypeName.StartsWith(cppMainFullTypeName) || cppFullTypeName.Length <= cppMainFullTypeName.Length)
+                        continue;
+
+                    // Cut just the name: everything after last dot
+                    int lastDotIndex = csharpFullTypeName.LastIndexOf('.');
+                    if (lastDotIndex == -1)
+                        continue;
+
+                    string typeName = csharpFullTypeName.Substring(lastDotIndex + 1);
+                    memberTypes[typeName] = "SubClass";
+                }
+            }
 
             HashSet<string> forbiddenMembers = new HashSet<string>();
             foreach (MemberInfo member in members)
@@ -517,6 +542,27 @@ namespace rnet_class_dump
             return !existingSignaturesForCurrentMethod.Add(restarizedParameters);
         }
 
+        private void GetDependencyTypes(MemberInfo member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
+        {
+            otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
+            if (member is RemoteRttiMethodInfo rttiMethod)
+            {
+                // Parameters list
+                foreach (var param in rttiMethod.LazyParamInfos)
+                {
+                    var paramType = param.TypeResolver.Value;
+                    (string _, string csharpExpression) = GetTypeIdentifier(param, out bool isObject);
+                    if (isObject)
+                        otherTypesUsed[csharpExpression] = param.TypeResolver;
+                }
+
+                // Ret Value
+                var returnType = rttiMethod.LazyRetType.Value;
+                (string _, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRetType);
+                if (isObjectRetType)
+                    otherTypesUsed[csharpExpressionRetType] = rttiMethod.LazyRetType;
+            }
+        }
 
         private void WriteMember(StringBuilder writer, string className, MemberInfo member, int indentCount)
         {
@@ -594,7 +640,15 @@ namespace rnet_class_dump
                     }
                     else if (isObjectRet)
                     {
-                        body = $"new {csharpExpressionRetType}((DynamicRemoteObject){body})";
+                        if (csharpExpressionRetType == "dynamic")
+                        {
+                            // If the return type is dynamic, we can just return the body as is
+                        }
+                        else
+                        {
+                            // For objects, we need to wrap it in a DynamicRemoteObject
+                            body = $"new {csharpExpressionRetType}((DynamicRemoteObject){body})";
+                        }
                     }
 
                     Append(writer, $"public {formattedRetType} {rttiMethod.Name}({parameters}) => {body};", indentCount);
