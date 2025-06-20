@@ -98,7 +98,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kit", "Kit", "{2A7A3D94-43E
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{C6382446-FD96-4972-A246-138CCBB436AB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTarget", "RemoteNET\src\Tests\TestTarget\TestTarget.csproj", "{BFD9ED34-4066-47CC-9397-C3B1D728690E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteNET.Vessel", "RemoteNET\src\Tests\RemoteNET.Vessel\RemoteNET.Vessel.csproj", "{BFD9ED34-4066-47CC-9397-C3B1D728690E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MsvcOffensiveGcHelper", "RemoteNET\src\MsvcOffensiveGcHelper\MsvcOffensiveGcHelper.vcxproj", "{BD00310B-63F7-4356-9669-7035AFF6B9D3}"
 EndProject
@@ -126,6 +126,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnmanagedAdapterDLL_x64", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectableDummy", "RemoteNET\src\InjectableDummy\InjectableDummy.csproj", "{D46A9A80-9DFA-4CBA-9FA3-4CFFDC5A142D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceGenerator", "RemoteNET\src\SourceGenerator\SourceGenerator.csproj", "{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp", "RemoteNET\src\ConsoleApp\ConsoleApp.csproj", "{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rnet-class-dump", "rnet-class-dump\rnet-class-dump.csproj", "{7165FD4C-9A32-C868-C577-3A809620C9CF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rnet-inject", "rnet-inject\rnet-inject.csproj", "{BAEFE38C-A5ED-45A9-AC76-3B77F1CDD767}"
@@ -134,6 +138,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.vscode\mcp.json = .vscode\mcp.json
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceGenerator.Tests", "SourceGenerator.Tests\SourceGenerator.Tests.csproj", "{9D16E37B-6038-4CC3-822B-C6FAB7EDAA05}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -301,6 +307,14 @@ Global
 		{D46A9A80-9DFA-4CBA-9FA3-4CFFDC5A142D}.Debug|Mixed.Build.0 = Debug|Any CPU
 		{D46A9A80-9DFA-4CBA-9FA3-4CFFDC5A142D}.Release|Mixed.ActiveCfg = Release|Any CPU
 		{D46A9A80-9DFA-4CBA-9FA3-4CFFDC5A142D}.Release|Mixed.Build.0 = Release|Any CPU
+		{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5}.Debug|Mixed.ActiveCfg = Debug|Any CPU
+		{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5}.Debug|Mixed.Build.0 = Debug|Any CPU
+		{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5}.Release|Mixed.ActiveCfg = Release|Any CPU
+		{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5}.Release|Mixed.Build.0 = Release|Any CPU
+		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.Debug|Mixed.ActiveCfg = Debug|Any CPU
+		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.Debug|Mixed.Build.0 = Debug|Any CPU
+		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.Release|Mixed.ActiveCfg = Release|Any CPU
+		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB}.Release|Mixed.Build.0 = Release|Any CPU
 		{7165FD4C-9A32-C868-C577-3A809620C9CF}.Debug|Mixed.ActiveCfg = Debug|Any CPU
 		{7165FD4C-9A32-C868-C577-3A809620C9CF}.Debug|Mixed.Build.0 = Debug|Any CPU
 		{7165FD4C-9A32-C868-C577-3A809620C9CF}.Release|Mixed.ActiveCfg = Release|Any CPU
@@ -309,6 +323,10 @@ Global
 		{BAEFE38C-A5ED-45A9-AC76-3B77F1CDD767}.Debug|Mixed.Build.0 = Debug|Any CPU
 		{BAEFE38C-A5ED-45A9-AC76-3B77F1CDD767}.Release|Mixed.ActiveCfg = Release|Any CPU
 		{BAEFE38C-A5ED-45A9-AC76-3B77F1CDD767}.Release|Mixed.Build.0 = Release|Any CPU
+		{9D16E37B-6038-4CC3-822B-C6FAB7EDAA05}.Debug|Mixed.ActiveCfg = Debug|Any CPU
+		{9D16E37B-6038-4CC3-822B-C6FAB7EDAA05}.Debug|Mixed.Build.0 = Debug|Any CPU
+		{9D16E37B-6038-4CC3-822B-C6FAB7EDAA05}.Release|Mixed.ActiveCfg = Release|Any CPU
+		{9D16E37B-6038-4CC3-822B-C6FAB7EDAA05}.Release|Mixed.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -360,8 +378,11 @@ Global
 		{5DE7F97C-B97B-489F-A1E4-9F9656317F94} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{E9771628-EF64-4DD8-9906-E7B1990A0FB9} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{D46A9A80-9DFA-4CBA-9FA3-4CFFDC5A142D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{8D85FAA3-C4F3-B8D4-EE81-EE865252B9E5} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
+		{4C3D42F4-E9B3-8D87-B4FA-79DF101769FB} = {0E8DBEA2-CED1-45BE-9446-934E5FEAF6B6}
 		{7165FD4C-9A32-C868-C577-3A809620C9CF} = {2A7A3D94-43E3-415A-9B67-743E3E07E91B}
 		{BAEFE38C-A5ED-45A9-AC76-3B77F1CDD767} = {2A7A3D94-43E3-415A-9B67-743E3E07E91B}
+		{9D16E37B-6038-4CC3-822B-C6FAB7EDAA05} = {C6382446-FD96-4972-A246-138CCBB436AB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {177A059B-3AE0-4BFA-87F0-821E5ED60207}
