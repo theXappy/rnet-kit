@@ -51,7 +51,8 @@ namespace rnet_class_dump
             }
 
             // Pass the verbose flag to ClassDumper
-            return ClassDumper.DumpClasses(filters, opts.TargetProcess, opts.Unmanaged, opts.Verbose);
+            ClassDumper dumper = new ClassDumper(opts.Verbose);
+            return dumper.DumpClasses(filters, opts.TargetProcess, opts.Unmanaged);
         }
 
         static int HandleParseError(IEnumerable<Error> errs)

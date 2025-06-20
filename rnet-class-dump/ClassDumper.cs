@@ -1,112 +1,286 @@
 using RemoteNET;
 using RemoteNET.Common;
 using RemoteNET.Internal.Reflection;
-using System;
+using RemoteNET.Internal.Reflection.DotNet;
+using RemoteNET.RttiReflection;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
 namespace rnet_class_dump
 {
-    internal static class ClassDumper
+    internal class ClassDumper
     {
-        public static int DumpClasses(string[] filters, string targetProcess, bool unmanaged, bool isVerbose)
+        private bool _isVerbose;
+        public void LogVerbose(string message)
+        {
+            if (_isVerbose)
+                Console.Error.WriteLine(message);
+        }
+        public void LogError(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public ClassDumper(bool isVerbose)
+        {
+            _isVerbose = isVerbose;
+        }
+
+        public int DumpClasses(string[] filters, string targetProcess, bool unmanaged)
         {
             RemoteApp app;
             try
             {
-                if (isVerbose) Console.Error.WriteLine($"Placeholder: Connecting to target '{targetProcess}'...");
+                LogVerbose($"Placeholder: Connecting to target '{targetProcess}'...");
                 app = Common.Connect(targetProcess, unmanaged);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error connecting to target: {ex.Message}");
+                LogError($"Error connecting to target: {ex.Message}");
                 return 1;
             }
 
-
-            if (isVerbose) Console.Error.WriteLine($"Placeholder: Dumping classes from target '{targetProcess}'");
+            LogVerbose($"Placeholder: Dumping classes from target '{targetProcess}'");
             try
             {
-                // Get app data path
-                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-                // Create a new temporary directory to dump all classes into
-                string tempDir = Path.Combine(localAppData, "RemoteNetSourceGenCache", "RnetClassDump");
-                Directory.CreateDirectory(tempDir);
-
-                // Write the helper class
-                string helperClassFileName = Path.Combine(tempDir, "__RemoteNET_Obj_Base.cs");
-                if (!File.Exists(helperClassFileName) || new FileInfo(helperClassFileName).Length == 0)
-                {
-                    StringBuilder helperClassBuilder = new StringBuilder();
-                    WriteHelperClass(helperClassBuilder);
-                    File.WriteAllText(helperClassFileName, helperClassBuilder.ToString());
-                    Console.WriteLine($"__RemoteNET_Obj_Base|{helperClassFileName}");
-                }
-
-                // Collect all type candidates
-                List<CandidateType> allCandidates = GetTypesToDump(filters, isVerbose, app);
-
-                // Process each candidate
-                foreach (CandidateType candidate in allCandidates)
-                {
-                    DumpType(isVerbose, app, tempDir, candidate);
-                }
-
-                return 0; // Return 0 for success
+                return DumpClassesInternal(app, filters);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading filters or querying types: {ex.Message}");
+                LogError($"Error reading filters or querying types: {ex.Message}");
                 return 1;
             }
         }
 
-        private static void DumpType(bool isVerbose, RemoteApp app, string tempDir, CandidateType candidate)
+        // Extracted for testability
+        private int DumpClassesInternal(RemoteApp app, string[] filters)
         {
-            string typeFullName = candidate.TypeFullName;
+            // Get app data path
+            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
-            // Normalize typeName so it can be used as a Windows filename
+            // Create a new temporary directory to dump all classes into
+            string tempDir = Path.Combine(localAppData, "RemoteNetSourceGenCache", "RnetClassDump");
+            Directory.CreateDirectory(tempDir);
+
+            // Write the helper class
+            string helperClassFileName = Path.Combine(tempDir, "__RemoteNET_Obj_Base.cs");
+            if (!File.Exists(helperClassFileName) || new FileInfo(helperClassFileName).Length == 0)
+            {
+                StringBuilder helperClassBuilder = new StringBuilder();
+                WriteHelperClass(helperClassBuilder);
+                File.WriteAllText(helperClassFileName, helperClassBuilder.ToString());
+            }
+            Console.WriteLine($"__RemoteNET_Obj_Base|{helperClassFileName}");
+
+            // Collect all type candidates
+            List<RemoteTypeBase> queriedTypes = GetTypesToDump(filters, app);
+
+            // Recursively resolve all 
+            var allTypesToDump = RecursiveTypesSearch(queriedTypes);
+
+            Debugger.Launch();
+
+            // Process each candidate group (by key)
+            foreach (var kvp in allTypesToDump)
+            {
+                (string typeFullName, string fileName) = DumpType(app, tempDir, kvp.Value); // Pass all types for this key
+
+                if (typeFullName != null && fileName != null)
+                {
+                    Console.WriteLine($"{typeFullName}|{fileName}");
+                }
+            }
+
+            return 0; // Return 0 for success
+        }
+
+        // Accepts all types for a key, selects the one with the most members, and adds a comment listing all type full names
+        private (string typeFullName, string fileName) DumpType(RemoteApp app, string tempDir, List<RemoteTypeBase> types)
+        {
+            if (types == null || types.Count == 0)
+                return (null, null);
+
+            // Select the type with the most members
+            RemoteTypeBase selectedType = types
+                .OrderByDescending(t => (t.GetMembers()?.Length) ?? 0)
+                .First();
+
+            // Compose a normalized filename from the key (namespace+class)
+            string typeFullName = selectedType.FullName;
             Path.GetInvalidFileNameChars()
                 .ToList()
                 .ForEach(c => typeFullName = typeFullName.Replace(c, '_'));
-
-            // Create a file for the class
             string fileName = Path.Combine(tempDir, $"{typeFullName}.cs");
 
-            // Create StreamWriter for the new file
-            // if it exists and NOT EMPTY, skip it
+            // Only write if file doesn't exist or is empty
             if (!File.Exists(fileName) || new FileInfo(fileName).Length == 0)
             {
-                Type type = app.GetRemoteType(candidate);
                 StringBuilder codeBuilder = new StringBuilder();
-                bool worthy = WriteClassCode(type, codeBuilder, isVerbose);
+                // Add comment with all type full names
+                codeBuilder.AppendLine("// All type full names for this class:");
+                foreach (var t in types)
+                {
+                    codeBuilder.AppendLine($"//   {t.FullName}");
+                }
+                codeBuilder.AppendLine();
+                bool worthy = WriteClassCode(selectedType, codeBuilder);
                 if (!worthy)
-                    return;
-
+                    return (null, null);
                 File.WriteAllText(fileName, codeBuilder.ToString());
             }
-            Console.WriteLine($"{typeFullName}|{fileName}");
+            return (typeFullName, fileName);
         }
 
-        private static List<CandidateType> GetTypesToDump(string[] filters, bool isVerbose, RemoteApp app)
+        private Dictionary<string, List<RemoteTypeBase>> RecursiveTypesSearch(List<RemoteTypeBase> queriedTypes)
+        {
+            // This queue will hold all types that we still need to process, queried or not
+            // By NAMESPACE + CLASS NAME
+            Queue<RemoteTypeBase> typesToProcess = new(queriedTypes);
+            // Keep track of all types ever enqueued, by FULL TYPE NAMES
+            HashSet<string> enqueuedTypes = queriedTypes
+                .Select(t => t.FullName!)
+                .ToHashSet();
+
+            // This dict will hold all types that we need to dump
+            // Key: <namespace + class name>, Value: List of RemoteTypeBase objects that match this key
+            Dictionary<string, List<RemoteTypeBase>> nsClassToTypes = new();
+
+            // Helper to get the key: <namespace + class name>
+            static string GetNamespaceClassKey(RemoteTypeBase type)
+            {
+                string ns = type.Namespace ?? "";
+                string name = type.Name ?? "";
+                return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+            }
+
+            while (typesToProcess.Count > 0)
+            {
+                RemoteTypeBase currentType = typesToProcess.Dequeue();
+                if (currentType == null)
+                    continue;
+
+                // Ensure the output list of types exists for this <namespace> + <class name> pair
+                string key = GetNamespaceClassKey(currentType);
+                if (!nsClassToTypes.TryGetValue(key, out var typeList))
+                {
+                    typeList = new List<RemoteTypeBase>();
+                    nsClassToTypes[key] = typeList;
+                }
+
+                typeList.Add(currentType);
+
+                // Get all members of the current type
+                MemberInfo[] members = currentType.GetMembers();
+                LogVerbose($"[RecursiveTypesSearch] Processing class: {currentType.FullName}");
+                if (currentType.FullName == "libSpen_document.dll!SPen::HistoryEventHandler")
+                    Debugger.Break();
+                foreach (MemberInfo member in members)
+                {
+                    string debug___member_ToString = member.ToString();
+                    LogVerbose($"  Member ({member.MemberType}): {debug___member_ToString}");
+                    // If this is a method, check its return type and parameters
+                    if (member is MethodInfo method)
+                    {
+                        Type actualRetType = method.ReturnType;
+                        while (actualRetType is PointerType pType)
+                        {
+                            actualRetType = pType.Inner;
+                        }
+
+                        // Check return type
+                        if (actualRetType is RemoteTypeBase returnType)
+                        {
+                            LogVerbose($"    [Dependency] Method '{method.Name}' return type: {returnType.FullName}");
+                            Enqueue(returnType);
+                        }
+
+                        if (member is IRttiMethodBase rttiMethod)
+                        {
+                            // Check parameters
+                            foreach (LazyRemoteParameterResolver param in rttiMethod.LazyParamInfos)
+                            {
+                                Type actualParamType = param.TypeResolver.Value;
+                                while (actualParamType is PointerType pType)
+                                {
+                                    actualParamType = pType.Inner;
+                                }
+
+                                if (actualParamType is RemoteTypeBase paramType)
+                                {
+                                    LogVerbose($"    [Dependency] Method '{method.Name}' parameter '{param.Name}': {paramType.FullName}");
+                                    Enqueue(paramType);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception("WTF NOT AN IRttiMethodBase? " + member.GetType().FullName);
+                        }
+                    }
+                    else if (member is PropertyInfo property)
+                    {
+                        // Check property type
+                        if (property.PropertyType is RemoteTypeBase propertyType)
+                        {
+                            LogVerbose($"    [Dependency] Property '{property.Name}': {propertyType.FullName}");
+                            Enqueue(propertyType);
+                        }
+                    }
+                    else if (member is FieldInfo field)
+                    {
+                        // Check field type
+                        if (field.FieldType is RemoteTypeBase fieldType)
+                        {
+                            LogVerbose($"    [Dependency] Field '{field.Name}': {fieldType.FullName}");
+                            Enqueue(fieldType);
+                        }
+                    }
+                }
+            }
+
+            return nsClassToTypes;
+
+
+            //Local method for Enqueuing types, avoiding ALREADY processed types
+            void Enqueue(RemoteTypeBase type)
+            {
+                if (type == null || enqueuedTypes.Contains(type.FullName))
+                    return;
+                LogVerbose($"Enqueuing type: {type.FullName}");
+                typesToProcess.Enqueue(type);
+                enqueuedTypes.Add(type.FullName);
+            }
+        }
+
+        private List<RemoteTypeBase> GetTypesToDump(string[] filters, RemoteApp app)
         {
             var allCandidates = new List<CandidateType>();
             foreach (string filter in filters)
             {
-                if (isVerbose) Console.Error.WriteLine($"Querying types with filter: {filter}");
+                LogVerbose($"Querying types with filter: {filter}");
                 var candidateTypes = app.QueryTypes(filter).ToList();
-                if (isVerbose) Console.Error.WriteLine($"Found {candidateTypes.Count} types for filter: {filter}");
+                LogVerbose($"Found {candidateTypes.Count} types for filter: {filter}");
                 allCandidates.AddRange(candidateTypes);
             }
 
-            return allCandidates;
+            List<RemoteTypeBase> remoteTypes = new List<RemoteTypeBase>();
+            foreach (var candidate in allCandidates)
+            {
+                LogVerbose($"Upgrading candidate to remote type for: {candidate.TypeFullName}");
+                RemoteTypeBase? remoteType = app.GetRemoteType(candidate) as RemoteTypeBase;
+                if (remoteType == null)
+                {
+                    LogVerbose($"Failed to resolve remote type for: {candidate.TypeFullName}");
+                    continue;
+                }
+                remoteTypes.Add(remoteType);
+            }
+
+            return remoteTypes;
         }
 
-        private static void WriteHelperClass(StringBuilder writer)
+        private void WriteHelperClass(StringBuilder writer)
         {
             writer.AppendLine("using System;");
             writer.AppendLine();
@@ -129,14 +303,14 @@ namespace rnet_class_dump
             writer.AppendLine("}");
         }
 
-        private static bool WriteClassCode(Type remoteType, StringBuilder writer, bool isVerbose)
+        private bool WriteClassCode(Type remoteType, StringBuilder writer)
         {
             try
             {
                 // Get the remote type
                 if (remoteType == null)
                 {
-                    if (isVerbose) Console.Error.WriteLine($"Null Type as input?");
+                    LogVerbose($"Null Type as input?");
                     return false;
                 }
 
@@ -145,10 +319,8 @@ namespace rnet_class_dump
                 string className = remoteType.Name;
 
                 // Namespace
-                // TODO: Split by colons ??
                 string? namespaceName = remoteType.Namespace;
                 bool hasNamespace = !string.IsNullOrEmpty(namespaceName);
-
 
                 AppendLine(writer, $"using System;", 0);
                 AppendLine(writer, $"using System.Linq;", 0);
@@ -156,22 +328,42 @@ namespace rnet_class_dump
                 AppendLine(writer, $"using RemoteNET.ClassDump.Internal;", 0);
                 AppendLine(writer, "", 0);
 
+                int indentCount = 0;
                 if (hasNamespace)
                 {
-                    AppendLine(writer, $"namespace {namespaceName}", 0);
-                    AppendLine(writer, "{", 0);
+                    // Split by '::' for C++-style nested classes, or '.' for C#-style
+                    string[] nsParts = namespaceName.Split(new[] { "::" }, StringSplitOptions.None);
+                    if (nsParts.Length == 1)
+                    {
+                        // Just a regular namespace
+                        AppendLine(writer, $"namespace {nsParts[0]}", indentCount);
+                        AppendLine(writer, "{", indentCount);
+                        indentCount++;
+                    }
+                    else
+                    {
+                        // First part is the namespace, rest are nested classes
+                        AppendLine(writer, $"namespace {nsParts[0]}", indentCount);
+                        AppendLine(writer, "{", indentCount);
+                        indentCount++;
+                        for (int i = 1; i < nsParts.Length; i++)
+                        {
+                            AppendLine(writer, $"public partial class {nsParts[i]}", indentCount);
+                            AppendLine(writer, "{", indentCount);
+                            indentCount++;
+                        }
+                    }
                 }
                 else
                 {
-                    AppendLine(writer, "// No namespace", 0);
+                    AppendLine(writer, "// No namespace", indentCount);
                 }
-                int indentCount = hasNamespace ? 1 : 0;
 
                 AppendLine(writer, $"public partial class {className} : __RemoteNET_Obj_Base", indentCount);
                 AppendLine(writer, "{", indentCount);
                 indentCount++;
 
-                AppendLine(writer, "public static Type __remoteType = null;", indentCount);
+                AppendLine(writer, "public Type __remoteType = null;", indentCount);
                 AppendLine(writer, "", indentCount);
 
                 AppendLine(writer, "public ulong __address => (__dro as DynamicRemoteObject).__ro.RemoteToken;", indentCount);
@@ -199,64 +391,43 @@ namespace rnet_class_dump
 
                 Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
                 // List all members
-                if (!TryDumpMembers(remoteType, writer, className, indentCount, otherTypesUsed))
+                if (!TryDumpMembers(remoteType, writer, className, indentCount))
                     return false;
 
                 indentCount--;
                 AppendLine(writer, "}", indentCount);
 
-                // Close namespace
+                // Close all opened scopes (nested classes and namespace)
                 if (hasNamespace)
                 {
+                    string[] nsParts = namespaceName.Split(new[] { "::" }, StringSplitOptions.None);
+                    int totalScopes = nsParts.Length; // 1 for namespace, rest for classes
+                    for (int i = 1; i < nsParts.Length; i++)
+                    {
+                        indentCount--;
+                        AppendLine(writer, "}", indentCount);
+                    }
                     indentCount--;
-                    AppendLine(writer, "}", indentCount);
+                    AppendLine(writer, "}", indentCount); // close namespace
                 }
-
-                WriteDummies(writer, otherTypesUsed);
 
                 return true;
             }
             catch (Exception ex)
             {
-                if (isVerbose) Console.Error.WriteLine($"Error writing class code for {remoteType.FullName}: {ex.Message}");
+                LogVerbose($"Error writing class code for {remoteType.FullName}: {ex.Message}");
                 return false;
             }
         }
 
-        private static bool TryDumpMembers(Type remoteType, StringBuilder writer, string className, int indentCount, Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
+        private bool TryDumpMembers(Type remoteType, StringBuilder writer, string className, int indentCount)
         {
             MemberInfo[] members = remoteType.GetMembers();
             if (members.Length == 0)
-                return false;
+                return true;
 
             string cppMainFullTypeName = remoteType.FullName!;
             Dictionary<string, string> memberTypes = new Dictionary<string, string>(); // Tracks member names and their types
-            foreach (MemberInfo member in members)
-            {
-                // Collected implied dependency types
-                GetDependencyTypes(member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsedTemp);
-                foreach (var kvp in otherTypesUsedTemp)
-                {
-                    string csharpFullTypeName = kvp.Key;
-                    if (!otherTypesUsed.ContainsKey(csharpFullTypeName))
-                    {
-                        otherTypesUsed[csharpFullTypeName] = kvp.Value;
-
-                        // Try to check for subclasses by comparing "Full Type Names"
-                        string cppFullTypeName = kvp.Value.TypeFullName.TrimEnd('*');
-                        if (cppFullTypeName.StartsWith(cppMainFullTypeName) && cppFullTypeName.Length > cppMainFullTypeName.Length)
-                        {
-                            // Cut just the name: everything after last dot
-                            int lastDotIndex = csharpFullTypeName.LastIndexOf('.');
-                            if (lastDotIndex != -1)
-                            {
-                                string typeName = csharpFullTypeName.Substring(lastDotIndex + 1);
-                                memberTypes[typeName] = "SubClass";
-                            }
-                        }
-                    }
-                }
-            }
 
             HashSet<string> forbiddenMembers = new HashSet<string>();
             foreach (MemberInfo member in members)
@@ -320,7 +491,7 @@ namespace rnet_class_dump
             return true;
         }
 
-        private static bool IsOverlappingMethod(Dictionary<string, HashSet<string>> addedMethodsCache, MemberInfo member)
+        private bool IsOverlappingMethod(Dictionary<string, HashSet<string>> addedMethodsCache, MemberInfo member)
         {
             if (member is not MethodInfo method)
                 return false;
@@ -346,81 +517,8 @@ namespace rnet_class_dump
             return !existingSignaturesForCurrentMethod.Add(restarizedParameters);
         }
 
-        private static void WriteDummies(StringBuilder writer, Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
-        {
-            foreach (KeyValuePair<string, LazyRemoteTypeResolver> kvp in otherTypesUsed)
-            {
-                // Multi-level pointers get dynamics
-                string fullTypeName = kvp.Key;
-                if (fullTypeName == "dynamic")
-                    continue;
 
-                // Split the full type name into components
-                string[] components = fullTypeName.Split('.');
-                if (components.Length == 0)
-                    continue;
-
-                int classIndex = 0;
-                string? namespaceName = null;
-                if (components.Length > 1)
-                {
-                    namespaceName = components[0];
-                    classIndex++;
-                }
-
-                // Write the namespace if it exists
-                if (!string.IsNullOrEmpty(namespaceName))
-                {
-                    writer.AppendLine($"namespace {namespaceName}");
-                    writer.AppendLine("{");
-                }
-
-                string closingBrackets = string.Empty;
-                for (; classIndex < components.Length; classIndex++)
-                {
-                    string className = components[classIndex];
-                    // Write the partial class
-                    string indent = new string('\t', classIndex);
-                    writer.AppendLine($"{indent}public partial class {className} : __RemoteNET_Obj_Base");
-                    writer.AppendLine(indent + "{");
-                    closingBrackets += indent + "}\n";
-                }
-                writer.AppendLine(closingBrackets);
-
-                // Close the namespace if it exists
-                if (!string.IsNullOrEmpty(namespaceName))
-                {
-                    writer.AppendLine("}");
-                }
-
-                writer.AppendLine();
-            }
-        }
-
-
-        private static void GetDependencyTypes(MemberInfo member, out Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed)
-        {
-            otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
-            if (member is RemoteRttiMethodInfo rttiMethod)
-            {
-                // Parameters list
-                foreach (var param in rttiMethod.LazyParamInfos)
-                {
-                    var paramType = param.TypeResolver.Value;
-                    (string _, string csharpExpression) = GetTypeIdentifier(param, out bool isObject);
-                    if (isObject)
-                        otherTypesUsed[csharpExpression] = param.TypeResolver;
-                }
-
-                // Ret Value
-                var returnType = rttiMethod.LazyRetType.Value;
-                (string _, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRetType);
-                if (isObjectRetType)
-                    otherTypesUsed[csharpExpressionRetType] = rttiMethod.LazyRetType;
-            }
-        }
-
-        private static void WriteMember(StringBuilder writer, string className, MemberInfo member, int indentCount)
+        private void WriteMember(StringBuilder writer, string className, MemberInfo member, int indentCount)
         {
             if (member is PropertyInfo property)
             {
@@ -455,6 +553,10 @@ namespace rnet_class_dump
                 {
                     // It's a destructor
                     Append(writer, $"// Destructor: {rttiMethod.Name}({parameters});", indentCount);
+                }
+                if (rttiMethod.Name == "operator[]")
+                {
+                    Append(writer, $"// Operator[]: {rttiMethod.Name}({parameters});", indentCount);
                 }
                 else
                 {
@@ -510,20 +612,20 @@ namespace rnet_class_dump
             }
         }
 
-        private static void AppendLine(StringBuilder sb, string text, int indent = 0)
+        private void AppendLine(StringBuilder sb, string text, int indent = 0)
         {
             sb.Append(new string('\t', indent));
             sb.Append(text);
             sb.AppendLine();
         }
-        private static void Append(StringBuilder sb, string text, int indent = 0)
+        private void Append(StringBuilder sb, string text, int indent = 0)
         {
             sb.Append(new string('\t', indent));
             sb.Append(text);
         }
 
-        private static (string declared, string csharpExpression) GetTypeIdentifier(LazyRemoteParameterResolver resolver, out bool isObject) => GetTypeIdentifier(resolver.TypeResolver, out isObject);
-        private static (string declared, string csharpExpression) GetTypeIdentifier(LazyRemoteTypeResolver resolver, out bool isObject)
+        private (string declared, string csharpExpression) GetTypeIdentifier(LazyRemoteParameterResolver resolver, out bool isObject) => GetTypeIdentifier(resolver.TypeResolver, out isObject);
+        private (string declared, string csharpExpression) GetTypeIdentifier(LazyRemoteTypeResolver resolver, out bool isObject)
         {
             string input = resolver.TypeFullName;
             // 'bool' doesn't have full type name...
@@ -533,10 +635,27 @@ namespace rnet_class_dump
             if (input.Contains("!"))
                 input = input.Split('!')[1];
 
-            return GetTypeIdentifier(input, out isObject);
+            var rawResults = GetTypeIdentifier(input, out isObject);
+
+            // HACK: If RemoteNET failed to dump the type to a "RemoteBaseType",
+            // we resort to dynamic
+            if (isObject)
+            {
+                Type actual = resolver.Value;
+                while (actual is PointerType pType)
+                {
+                    actual = pType.Inner;
+                }
+
+                if (actual is DummyRttiType)
+                {
+                    return (input, "dynamic");
+                }
+            }
+            return rawResults;
         }
 
-        private static (string declared, string csharpExpression) GetTypeIdentifier(ParameterInfo parameterInfo, out bool isObject)
+        private (string declared, string csharpExpression) GetTypeIdentifier(ParameterInfo parameterInfo, out bool isObject)
         {
             string? fullName = parameterInfo.ParameterType.FullName;
             if (fullName == null)
@@ -544,7 +663,7 @@ namespace rnet_class_dump
             return GetTypeIdentifier(fullName, out isObject);
         }
 
-        private static (string declared, string csharpExpression) GetTypeIdentifier(string str, out bool isObject)
+        private (string declared, string csharpExpression) GetTypeIdentifier(string str, out bool isObject)
         {
             string csharpExpression;
             bool isPointer = str.EndsWith("*");
@@ -614,7 +733,7 @@ namespace rnet_class_dump
             return (str, csharpExpression);
         }
 
-        private static bool IsPrimitive(string str)
+        private bool IsPrimitive(string str)
         {
             str = str.TrimEnd('*');
             return str == "int" ||
@@ -657,7 +776,7 @@ namespace rnet_class_dump
                 str == "uint64_t";
         }
 
-        static string FormatTypeIdentifier(string declaredType, string csharpExpression)
+        string FormatTypeIdentifier(string declaredType, string csharpExpression)
         {
             var res = $"{csharpExpression}";
             if (declaredType != csharpExpression)
