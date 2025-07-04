@@ -243,7 +243,8 @@ namespace RemoteNetSpy.Controls
         {
             using (fetchSpinner.TemporarilyShow())
             {
-                var mvpModel = DataContext as MemoryViewPanelModel;
+                MemoryViewPanelModel mvpModel = null;
+                Dispatcher.Invoke(() => { mvpModel = DataContext as MemoryViewPanelModel; });
                 if (mvpModel == null)
                 {
                     MessageBox.Show("DataContext is not a RemoteAppModel");
@@ -264,9 +265,13 @@ namespace RemoteNetSpy.Controls
 
                     // Get remote object from address + type
                     RemoteNET.RemoteObject obj = app.GetRemoteObject(mvpModel.Address, objType.FullName);
-                    Window ownerWindow = Window.GetWindow(this);
-                    Window objectViewer = ObjectViewer.CreateViewerWindow(ownerWindow, mvpModel.RemoteAppModel, obj);
-                    objectViewer.Show();
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        Window ownerWindow = Window.GetWindow(this);
+                        Window objectViewer = ObjectViewer.CreateViewerWindow(ownerWindow, mvpModel.RemoteAppModel, obj);
+                        objectViewer.Show();
+                    });
                 }
                 catch (Exception ex)
                 {
