@@ -49,6 +49,7 @@ namespace rnet_class_dump
             catch (Exception ex)
             {
                 LogError($"Error reading filters or querying types: {ex.Message}");
+                Debugger.Launch();
                 return 1;
             }
         }
@@ -171,12 +172,9 @@ namespace rnet_class_dump
                 // Get all members of the current type
                 MemberInfo[] members = currentType.GetMembers();
                 LogVerbose($"[RecursiveTypesSearch] Processing class: {currentType.FullName}");
-                if (currentType.FullName == "libSpen_document.dll!SPen::HistoryEventHandler")
-                    Debugger.Break();
                 foreach (MemberInfo member in members)
                 {
                     string debug___member_ToString = member.ToString();
-                    LogVerbose($"  Member ({member.MemberType}): {debug___member_ToString}");
                     // If this is a method, check its return type and parameters
                     if (member is MethodInfo method)
                     {
@@ -189,7 +187,6 @@ namespace rnet_class_dump
                         // Check return type
                         if (actualRetType is RemoteTypeBase returnType)
                         {
-                            LogVerbose($"    [Dependency] Method '{method.Name}' return type: {returnType.FullName}");
                             Enqueue(returnType);
                         }
 
@@ -206,7 +203,6 @@ namespace rnet_class_dump
 
                                 if (actualParamType is RemoteTypeBase paramType)
                                 {
-                                    LogVerbose($"    [Dependency] Method '{method.Name}' parameter '{param.Name}': {paramType.FullName}");
                                     Enqueue(paramType);
                                 }
                             }
@@ -221,7 +217,6 @@ namespace rnet_class_dump
                         // Check property type
                         if (property.PropertyType is RemoteTypeBase propertyType)
                         {
-                            LogVerbose($"    [Dependency] Property '{property.Name}': {propertyType.FullName}");
                             Enqueue(propertyType);
                         }
                     }
@@ -230,7 +225,6 @@ namespace rnet_class_dump
                         // Check field type
                         if (field.FieldType is RemoteTypeBase fieldType)
                         {
-                            LogVerbose($"    [Dependency] Field '{field.Name}': {fieldType.FullName}");
                             Enqueue(fieldType);
                         }
                     }
@@ -280,25 +274,39 @@ namespace rnet_class_dump
 
         private void WriteHelperClass(StringBuilder writer)
         {
-            writer.AppendLine("using System;");
-            writer.AppendLine();
-            writer.AppendLine("namespace RemoteNET.ClassDump.Internal");
-            writer.AppendLine("{");
-            writer.AppendLine();
-            writer.AppendLine("\tpublic abstract class __RemoteNET_Obj_Base");
-            writer.AppendLine("\t{");
-            writer.AppendLine("\t\tpublic dynamic __dro;");
-            writer.AppendLine();
-            writer.AppendLine("\t\tpublic __RemoteNET_Obj_Base(DynamicRemoteObject dro)");
-            writer.AppendLine("\t\t{");
-            writer.AppendLine("\t\t\t__dro = dro;");
-            writer.AppendLine("\t\t}");
-            writer.AppendLine("\t\tpublic __RemoteNET_Obj_Base()");
-            writer.AppendLine("\t\t{");
-            writer.AppendLine("\t\t\tthrow new Exception(\"Bad __RemoteNET_Obj_Base ctor called\");");
-            writer.AppendLine("\t\t}");
-            writer.AppendLine("\t}");
-            writer.AppendLine("}");
+            // TODO: Cache which modules we have already started GC on
+            writer.AppendLine(@"using System;
+using System.Linq;
+using RemoteNET;
+
+namespace RemoteNET.ClassDump.Internal
+{
+	public abstract class __RemoteNET_Obj_Base
+	{
+		public dynamic __dro;
+		public Type __remoteType = null;
+
+		public __RemoteNET_Obj_Base() => 
+			throw new Exception(""Bad __RemoteNET_Obj_Base ctor called"");
+
+		public __RemoteNET_Obj_Base(DynamicRemoteObject dro)
+		{
+			__dro = dro;
+		}
+
+		public __RemoteNET_Obj_Base(RemoteApp app, string fullTypeName, string dllName)
+		{
+			if (__remoteType == null)
+			{
+				__remoteType = app.GetRemoteType(app.QueryTypes(fullTypeName).Single());
+				app.Communicator.StartOffensiveGC(dllName);
+			}
+
+			RemoteObject ro = app.Activator.CreateInstance(__remoteType);
+			__dro = ro.Dynamify();
+		}
+	}
+}");
         }
 
         private bool WriteClassCode(Type remoteType, StringBuilder writer)
@@ -361,9 +369,6 @@ namespace rnet_class_dump
                 AppendLine(writer, "{", indentCount);
                 indentCount++;
 
-                AppendLine(writer, "public Type __remoteType = null;", indentCount);
-                AppendLine(writer, "", indentCount);
-
                 AppendLine(writer, "public ulong __address => (__dro as DynamicRemoteObject).__ro.RemoteToken;", indentCount);
                 AppendLine(writer, "", indentCount);
 
@@ -372,18 +377,25 @@ namespace rnet_class_dump
                 AppendLine(writer, "{", indentCount);
                 AppendLine(writer, "}", indentCount);
 
-                // Write a CTOR that accepts a RemoteApp (Allocats remote object automatically)
-                AppendLine(writer, $"public {className}(RemoteApp app)", indentCount);
+                // Write a CTOR that accepts a RemoteApp (Allocates remote object automatically)
+                AppendLine(writer, $"public {className}(RemoteApp app) : base(app, \"{fullName}\", \"{dllName}\")", indentCount);
                 AppendLine(writer, "{", indentCount);
-                AppendLine(writer, "if (__remoteType == null)", indentCount + 1);
-                AppendLine(writer, "{", indentCount + 1);
-                AppendLine(writer, "__remoteType = app.GetRemoteType(app.QueryTypes(\"" + fullName + "\").Single());", indentCount + 2);
-                // TODO: Cache which modules we have already started GC on
-                AppendLine(writer, "app.Communicator.StartOffensiveGC(\"" + dllName + "\");", indentCount + 2);
-                AppendLine(writer, "}", indentCount + 1);
+                AppendLine(writer, "}", indentCount);
                 AppendLine(writer, "", indentCount);
-                AppendLine(writer, "RemoteObject ro = app.Activator.CreateInstance(__remoteType);", indentCount + 1);
-                AppendLine(writer, "__dro = ro.Dynamify();", indentCount + 1);
+
+                // Write a CTOR that accepts a DRO. Effectively a "cast" constructor.
+                // Actual cast operators are not allowed because of "casting to/from base class" limitations in C#.
+                // TODO: Maybe assert (original type system's) inheritance here?
+                AppendLine(writer, $"public {className}(__RemoteNET_Obj_Base obj) : this(obj.__dro as DynamicRemoteObject)", indentCount);
+                AppendLine(writer, "{", indentCount);
+                indentCount++;
+                AppendLine(writer, $"DynamicRemoteObject objDro = obj.__dro as DynamicRemoteObject;", indentCount);
+                AppendLine(writer, $"RemoteApp app = objDro.__ra;", indentCount);
+                AppendLine(writer, $"__remoteType = app.GetRemoteType(app.QueryTypes(\"{fullName}\").Single());", indentCount);
+                AppendLine(writer, "var objRo = objDro.__ro;", indentCount);
+                AppendLine(writer, "var castedRo = objRo.Cast(__remoteType);", indentCount);
+                AppendLine(writer, $"__dro = castedRo.Dynamify();", indentCount);
+                indentCount--;
                 AppendLine(writer, "}", indentCount);
                 AppendLine(writer, "", indentCount);
 
