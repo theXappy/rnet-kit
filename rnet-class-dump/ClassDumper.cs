@@ -41,7 +41,13 @@ namespace rnet_class_dump
                 return 1;
             }
 
-            LogVerbose($"Placeholder: Dumping classes from target '{targetProcess}'");
+            LogVerbose($"Dumping classes from target '{targetProcess}'");
+            LogVerbose($"Dumping from '{targetProcess}' with those filters:");
+            foreach (string filter in filters)
+            {
+                LogVerbose($"  - {filter}");
+            }
+
             try
             {
                 return DumpClassesInternal(app, filters);
