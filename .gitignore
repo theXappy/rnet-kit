@@ -293,6 +293,8 @@ node_modules/
 **/*.Server/GeneratedArtifacts
 **/*.Server/ModelManifest.xml
 _Pvt_Extensions
+N?????mp??/
+N?????mp??.UI/
 
 # Paket dependency manager
 .paket/paket.exe
@@ -351,3 +353,4 @@ MigrationBackup/
 .vscode/
 
 mcp.json
+
