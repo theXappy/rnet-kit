@@ -312,10 +312,10 @@ namespace QuickStart
 
         private class HooksPair
         {
-            public HookAction Pre { get; set; }
-            public HookAction Post { get; set; }
+            public DynamifiedHookCallback Pre { get; set; }
+            public DynamifiedHookCallback Post { get; set; }
 
-            public HooksPair(HookAction pre, HookAction post)
+            public HooksPair(DynamifiedHookCallback pre, DynamifiedHookCallback post)
             {
                 Pre = pre;
                 Post = post;
@@ -354,7 +354,7 @@ namespace QuickStart
 
 
                 string uniqueId = $"{className}.{methodName}`{paramTypes.Length}";
-                HookAction preHook = (context, instance, args, retValue) =>
+                DynamifiedHookCallback preHook = (HookContext context, dynamic instance, dynamic[] args, ref dynamic retValue) =>
                 {
                     var semiCallstack = GetSemiCallstack(context.ThreadId);
                     semiCallstack.Push(uniqueId);
@@ -401,7 +401,7 @@ namespace QuickStart
                     }
                 };
 
-                HookAction postHook = (context, instance, args, retValue) =>
+                DynamifiedHookCallback postHook = (HookContext context, dynamic instance, dynamic[] args, ref dynamic retValue) =>
                 {
                     var color = GetModuloColor(context.ThreadId);
                     var semiCallstack = GetSemiCallstack(context.ThreadId);
