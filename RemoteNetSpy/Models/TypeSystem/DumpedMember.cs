@@ -8,15 +8,15 @@ namespace RemoteNetSpy.Models;
 [DebuggerDisplay("DumpedMember: {RawName}")]
 public class DumpedMember
 {
-    private MemberInfo mi;
+    public MemberInfo MemberInfo { get; set; }
 
     public DumpedMember(MemberInfo mi)
     {
-        this.mi = mi;
+        MemberInfo = mi;
     }
 
-    public string MemberType => mi.MemberType.ToString();
-    public string RawName => (mi as RemoteRttiMethodInfo)?.MangledName;
+    public string MemberType => MemberInfo.MemberType.ToString();
+    public string RawName => (MemberInfo as RemoteRttiMethodInfo)?.MangledName;
     // This one has generic args normalized from [[System.Byte, ... ]] to <System.Byte>
-    public string NormalizedName => (mi as IRttiMethodBase)?.UndecoratedSignature ?? mi.Name;
+    public string NormalizedName => (MemberInfo as IRttiMethodBase)?.UndecoratedSignature ?? MemberInfo.Name;
 }

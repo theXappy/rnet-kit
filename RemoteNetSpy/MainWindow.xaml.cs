@@ -1,13 +1,14 @@
 using AvalonDock.Controls;
 using CliWrap;
 using CliWrap.Buffered;
-using CSharpRepl.Services.Extensions;
+using DragDropExpressionBuilder;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNET.Access;
+using RemoteNetSpy.Controls;
 using RemoteNetSpy.Models;
 using RemoteNetSpy.Windows;
-using RnetKit.Common;
+using ScubaDiver.API.Interactions.Dumps;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -15,8 +16,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -24,7 +25,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using static CSharpRepl.Services.Roslyn.Scripting.EvaluationResult;
+using static ScubaDiver.API.Interactions.Dumps.HeapDump;
+using HeapObject = RemoteNetSpy.Models.HeapObject;
 
 namespace RemoteNetSpy
 {
@@ -82,6 +84,8 @@ namespace RemoteNetSpy
             {
                 Close();
             }
+
+            (dragDropPlayground.DataContext as PlaygroundViewModel)?.LoadDemoData();
         }
 
         private async Task ConnectToSelectedProcessAsync()
@@ -750,21 +754,7 @@ namespace RemoteNetSpy
             var heapObject = (sender as MenuItem).DataContext as HeapObject;
             if (heapObject == null)
                 return;
-
-            Task freezeTask = Task.CompletedTask;
-            if (!heapObject.Frozen)
-            {
-                var res = MessageBox.Show("Object must be frozen before casting.\nFreeze now?", "Error", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (res != MessageBoxResult.Yes)
-                    return;
-
-                freezeTask = FreezeUnfreezeAsync(heapObject);
-            }
-
-            _ = freezeTask.ContinueWith(_ =>
-            {
-                _ = PromptForVariableCastInnerAsync(heapObject);
-            }, TaskScheduler.Default);
+            PromptForVariableCastInnerAsync(heapObject);
         }
 
         private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
@@ -780,7 +770,7 @@ namespace RemoteNetSpy
             var typesModel = new TypesModel();
             List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
             {
-                return task.Result.Select(newTypeDump =>
+                return task.Result.Select((DumpedTypeModel newTypeDump) =>
                 {
                     if (mainControlFullTypeNameToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
                     {
@@ -848,6 +838,31 @@ namespace RemoteNetSpy
         private void ShowError(string msg)
         {
             Dispatcher.Invoke(() => MessageBox.Show(msg, "Error", MessageBoxButton.OK, MessageBoxImage.Error));
+        }
+
+        private void MemberMenuItem_AddToPlayground(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem)
+                return;
+            if (menuItem.DataContext is not DumpedMember dumpedMember)
+                return;
+            if (dumpedMember.MemberInfo is not MethodInfo methodInfo)
+            {
+                MessageBox.Show("Can only send Methods to playground.");
+                return;
+            }
+
+            dragDropPlayground.AddMethod(methodInfo);
+        }
+
+        private void FrozenObject_AddToPlayground(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem)
+                return;
+            if (menuItem.DataContext is not HeapObject heapObj)
+                return;
+            RemoteObject ro = heapObj.RemoteObject;
+            dragDropPlayground.AddObject(ro, $"0x{heapObj.Address:X16}", ro.GetRemoteType());
         }
     }
 }

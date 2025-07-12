@@ -12,6 +12,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Remove="Assets\Class.png" />
+		<None Remove="Assets\Method.png" />
+		<None Remove="Assets\SelectObject.png" />
 		<None Remove="icons\AddEventTracepoint.png" />
 		<None Remove="icons\AddModule.png" />
 		<None Remove="icons\Cancelled_Snowflake.png" />
@@ -196,6 +199,12 @@
 
 	<ItemGroup>
 		<NativeLibs Remove="app.manifest" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="Assets\Class.png" />
+	  <Resource Include="Assets\Method.png" />
+	  <Resource Include="Assets\SelectObject.png" />
 	</ItemGroup>
 
 </Project>
