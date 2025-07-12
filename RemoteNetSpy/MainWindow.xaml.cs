@@ -86,6 +86,8 @@ namespace RemoteNetSpy
 
         private async Task ConnectToSelectedProcessAsync()
         {
+            typeSystemTreeView.DisableSearch();
+
             if (_targetProcess == null)
                 return;
 
@@ -126,6 +128,7 @@ namespace RemoteNetSpy
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync");
             await _remoteAppModel.ClassesModel.LoadAssembliesAsync(Dispatcher);
+            typeSystemTreeView.EnableSearch();
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync done");
 
             _aliveCheckTimer.Stop();

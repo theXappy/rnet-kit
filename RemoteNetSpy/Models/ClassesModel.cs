@@ -73,14 +73,14 @@ public class ClassesModel : INotifyPropertyChanged
         return string.Empty;
     }
 
-    public async Task LoadAssembliesAsync(Dispatcher d)
+    public async Task<Dictionary<string, AssemblyModel>> LoadAssembliesAsync(Dispatcher d)
     {
-        await Task.Run(() => UpdateAssemblies(d));
+        return await UpdateAssemblies(d);
     }
 
     private Regex r = new Regex(@"\[(?<runtime>.*?)\]\[(?<assembly>.*?)\]\[(?<methodTable>.*?)\](?<type>.*)");
 
-    private void UpdateAssemblies(Dispatcher d)
+    private async Task<Dictionary<string, AssemblyModel>> UpdateAssemblies(Dispatcher d)
     {
         var assemblyModels = new Dictionary<string, AssemblyModel>();
 
@@ -106,7 +106,7 @@ public class ClassesModel : INotifyPropertyChanged
             }
         }, TaskScheduler.Default);
 
-        _ = Task.WhenAll(handleDomainsTask, typesTask).ContinueWith(x =>
+        Task addAlTypes = Task.WhenAll(handleDomainsTask, typesTask).ContinueWith(x =>
         {
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
             var typesDumpLines = typesTask.Result;
@@ -130,7 +130,9 @@ public class ClassesModel : INotifyPropertyChanged
                 assembly.AddType(type);
             }
         }, TaskScheduler.Default);
-        return;
+
+        await addAlTypes;
+        return assemblyModels;
 
         AssemblyModel GetOrCreateAssembly(string assemblyName)
         {

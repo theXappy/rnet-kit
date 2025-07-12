@@ -23,6 +23,9 @@ namespace RemoteNetSpy.Controls
 
         private void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => throw new NotImplementedException();
 
+        public void DisableSearch() => assembliesFilterBox.IsEnabled = false;
+        public void EnableSearch() => assembliesFilterBox.IsEnabled = true;
+
         private void injectDllButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
@@ -35,6 +38,18 @@ namespace RemoteNetSpy.Controls
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            foreach (var item in assembliesTreeView.Items)
+            {
+                if (assembliesTreeView.ItemContainerGenerator.ContainerFromItem(item) is TreeViewItem tvi)
+                {
+                    if (tvi.IsExpanded)
+                    {
+                        tvi.IsExpanded = false; // Collapse
+                    }
+                }
+            }
+
+
             bool matchCase = true;
             bool onlyTypesInHeap = false;
 
