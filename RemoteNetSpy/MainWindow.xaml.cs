@@ -453,9 +453,19 @@ namespace RemoteNetSpy
                     return;
 
                 if (ho.Frozen)
+                {
                     _remoteAppModel.Interactor.AddVar(ho);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        FrozenObject_AddToPlayground(ho);
+                    });
+                }
                 else
+                {
                     _remoteAppModel.Interactor.DeleteVar(ho);
+
+                }
 
                 _ = RefreshSearchAndWatchedListsAsync();
             }, TaskScheduler.Default);
@@ -861,8 +871,17 @@ namespace RemoteNetSpy
                 return;
             if (menuItem.DataContext is not HeapObject heapObj)
                 return;
+            FrozenObject_AddToPlayground(heapObj);
+        }
+
+        private void FrozenObject_AddToPlayground(HeapObject heapObj)
+        {
             RemoteObject ro = heapObj.RemoteObject;
-            dragDropPlayground.AddObject(ro, $"0x{heapObj.Address:X16}", ro.GetRemoteType());
+
+            Type t = ro.GetRemoteType();
+            ushort shortTag = (ushort)heapObj.Address;
+            string tag = $"{t.Name}_0x{shortTag:X4}";
+            dragDropPlayground.AddObject(ro, tag , t);
         }
     }
 }

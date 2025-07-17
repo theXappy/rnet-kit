@@ -98,7 +98,7 @@
                                                                         <StackPanel Orientation="Horizontal">
                                                                             <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0"/>
                                                                             <TextBlock Text="{Binding AssignedInstance.Tag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=[empty]}"
-                                                                                           MinWidth="60" Margin="0,-1,4,0" AllowDrop="True"
+                                                                                           MinWidth="60" Margin="0,1,4,0" AllowDrop="True"
                                                                                            Foreground="#065C74"/>
                                                                         </StackPanel>
                                                                     </Border>
@@ -130,7 +130,8 @@
                                                         >
                                                         <StackPanel Orientation="Horizontal">
                                                             <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0"/>
-                                                            <TextBlock Text="{Binding AssignedInstance.Tag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=thisValue}" MinWidth="60" Margin="0,0,4,0" AllowDrop="True"
+                                                            <TextBlock Text="{Binding AssignedInstance.Tag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=thisValue}"
+                                                                       MinWidth="60" Margin="0,1,4,0" AllowDrop="True"
                                                                    Foreground="#065C74"
                                                                    />
                                                         </StackPanel>
