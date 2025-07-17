@@ -38,18 +38,6 @@ namespace RemoteNetSpy.Controls
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            foreach (var item in assembliesTreeView.Items)
-            {
-                if (assembliesTreeView.ItemContainerGenerator.ContainerFromItem(item) is TreeViewItem tvi)
-                {
-                    if (tvi.IsExpanded)
-                    {
-                        tvi.IsExpanded = false; // Collapse
-                    }
-                }
-            }
-
-
             bool matchCase = true;
             bool onlyTypesInHeap = false;
 
