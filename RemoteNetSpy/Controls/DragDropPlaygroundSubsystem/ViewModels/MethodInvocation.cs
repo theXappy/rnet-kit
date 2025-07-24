@@ -7,14 +7,19 @@ namespace DragDropExpressionBuilder
 {
     public class MethodInvocationParameter : INotifyPropertyChanged
     {
-        private string _typeName;
+        private Type _type;
         private string _paramName;
         private Instance _assignedInstance;
 
+        public Type Type
+        {
+            get => _type;
+        }
+
         public string TypeName
         {
-            get => _typeName;
-            set { if (_typeName != value) { _typeName = value; OnPropertyChanged(nameof(TypeName)); } }
+            get => _type.Name;
+            //set { if (_typeName != value) { _typeName = value; OnPropertyChanged(nameof(TypeName)); } }
         }
         public string ParamName
         {
@@ -34,9 +39,9 @@ namespace DragDropExpressionBuilder
                 } 
             }
         }
-        public MethodInvocationParameter(string typeName, string paramName)
+        public MethodInvocationParameter(Type type, string paramName)
         {
-            TypeName = typeName;
+            _type = type;
             ParamName = paramName;
         }
         public event PropertyChangedEventHandler PropertyChanged;
@@ -83,10 +88,10 @@ namespace DragDropExpressionBuilder
             Method = method;
             foreach (var p in method.Method.GetParameters())
             {
-                Parameters.Add(new MethodInvocationParameter(p.ParameterType.Name, p.Name));
+                Parameters.Add(new MethodInvocationParameter(p.ParameterType, p.Name));
             }
             PlayCommand = new DelegateCommand(Invoke);
-            ThisInstance = new MethodInvocationParameter(method.Method.DeclaringType.Name, "this");
+            ThisInstance = new MethodInvocationParameter(method.Method.DeclaringType, "this");
             _isStatic = method.Method.IsStatic;
         }
 
@@ -129,7 +134,7 @@ namespace DragDropExpressionBuilder
             try
             {
                 object retVal = method.Invoke(target, args);
-                ReturnValue = new MethodInvocationParameter(retVal.GetType().Name, "returnValue")
+                ReturnValue = new MethodInvocationParameter(retVal.GetType(), retVal.ToString())
                 {
                     AssignedInstance = new Instance()
                     {

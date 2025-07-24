@@ -26,7 +26,7 @@ namespace DragDropExpressionBuilder
             vm.ReservoirItems.Add(instance4);
             // Add a dropped method for design
             var dropped = new DroppedMethodItem(new MethodInvocation(new MethodInfoWrapper(methodInfo1)), 100, 100);
-            dropped.Invocation.ReturnValue = new MethodInvocationParameter(typeName: "System.Boolean", paramName: "ReturnValue")
+            dropped.Invocation.ReturnValue = new MethodInvocationParameter(type: typeof(bool), paramName: "ReturnValue")
             {
                 AssignedInstance = instance4,
             };
@@ -35,7 +35,7 @@ namespace DragDropExpressionBuilder
 
             // Add a dropped method for design
             var dropped2 = new DroppedMethodItem(new MethodInvocation(new MethodInfoWrapper(methodInfo2)), 150, 180);
-            dropped2.Invocation.ReturnValue = new MethodInvocationParameter(typeName: "System.String", paramName: "ReturnValue")
+            dropped2.Invocation.ReturnValue = new MethodInvocationParameter(type: typeof(string), paramName: "ReturnValue")
             {
                 AssignedInstance = instance1,
             };
@@ -44,7 +44,7 @@ namespace DragDropExpressionBuilder
 
             // Add a dropped method for design
             var dropped3 = new DroppedMethodItem(new MethodInvocation(new MethodInfoWrapper(methodInfo3)), 200, 270);
-            dropped3.Invocation.ReturnValue = new MethodInvocationParameter(typeName: "System.String", paramName: "ReturnValue")
+            dropped3.Invocation.ReturnValue = new MethodInvocationParameter(type: typeof(string), paramName: "ReturnValue")
             {
                 AssignedInstance = instance1,
             };

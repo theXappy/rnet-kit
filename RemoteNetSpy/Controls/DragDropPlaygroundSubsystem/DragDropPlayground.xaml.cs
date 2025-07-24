@@ -1,4 +1,6 @@
-﻿using System;
+﻿using RemoteNetSpy.Controls.DragDropPlaygroundSubsystem;
+using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -163,6 +165,52 @@ namespace DragDropExpressionBuilder
                     DragDrop.DoDragDrop(sender as DependencyObject, instance, DragDropEffects.Copy);
                 }
             }
+        }
+
+        private void MethodParameter_MouseButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var element = sender as FrameworkElement;
+            MethodInvocationParameter mip = element?.DataContext as MethodInvocationParameter;
+            Type type = mip?.Type;
+            if (type == null)
+                return;
+
+            // Check if the type is a primitive
+            bool IsPrimitiveLike = type.IsPrimitive || type == typeof(string) || type == typeof(decimal);
+            if (!IsPrimitiveLike)
+                return;
+
+            var inputWindow = new PrimitiveInputWindow($"Enter a {type.Name} value:");
+            if (inputWindow.ShowDialog() == true)
+            {
+                string userInput = inputWindow.InputValue;
+                try
+                {
+                    object convertedValue = Convert.ChangeType(userInput, type);
+                    // Use convertedValue as needed
+                    mip.AssignedInstance = new Instance()
+                    {
+                        Obj = convertedValue,
+                        Type = type,
+                        Tag = convertedValue.ToString()
+                    };
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Invalid input: {ex.Message}");
+                }
+            }
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void RemoveDroppedMethod_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is DroppedMethodItem itemToRemove)
+                _viewModel.DroppedMethods.Remove(itemToRemove);
         }
     }
 }

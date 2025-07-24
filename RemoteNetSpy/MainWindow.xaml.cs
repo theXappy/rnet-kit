@@ -5,10 +5,8 @@ using DragDropExpressionBuilder;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNET.Access;
-using RemoteNetSpy.Controls;
 using RemoteNetSpy.Models;
 using RemoteNetSpy.Windows;
-using ScubaDiver.API.Interactions.Dumps;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -25,7 +23,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using static ScubaDiver.API.Interactions.Dumps.HeapDump;
 using HeapObject = RemoteNetSpy.Models.HeapObject;
 
 namespace RemoteNetSpy
@@ -882,6 +879,47 @@ namespace RemoteNetSpy
             ushort shortTag = (ushort)heapObj.Address;
             string tag = $"{t.Name}_0x{shortTag:X4}";
             dragDropPlayground.AddObject(ro, tag , t);
+        }
+
+        private void watchedObjectsListBox_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                var listBox = sender as ListBox;
+                var item = listBox?.SelectedItem;
+                if (item is not HeapObject ho)
+                    return;
+                
+                RemoteObject ro = ho.RemoteObject;
+
+                Type t = ro.GetRemoteType();
+                ushort shortTag = (ushort)ho.Address;
+                string tag = $"{t.Name}_0x{shortTag:X4}";
+
+                var instance = new Instance
+                {
+                    Type = t,
+                    Tag = tag,
+                    Obj = ro
+                };
+                DragDrop.DoDragDrop(listBox, instance, DragDropEffects.Copy);
+            }
+        }
+
+        private void membersListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                var listBox = sender as ListBox;
+                var item = listBox?.SelectedItem;
+                if (item is not DumpedMember dumpedMember)
+                    return;
+                if (dumpedMember.MemberInfo is not System.Reflection.MethodInfo methodInfo)
+                    return;
+
+                var miw = new MethodInfoWrapper(methodInfo);
+                DragDrop.DoDragDrop(listBox, miw, DragDropEffects.Copy);
+            }
         }
     }
 }
