@@ -70,7 +70,7 @@ $"var app = RemoteAppFactory.Connect(Process.GetProcessById({Parent.TargetPid}),
 $"var {roVarName} = app.GetRemoteObject(0x{dataContext.Address:X16}, \"{dataContext.FullTypeName}\");\r\n" +
 $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
 
-            _ = _interactiveWindowInitTask.ContinueWith(_ =>
+            _ = _interactiveWindowInitTask?.ContinueWith(_ =>
             {
                 _ = _interactivePanel.Dispatcher.Invoke(async () =>
                 {
