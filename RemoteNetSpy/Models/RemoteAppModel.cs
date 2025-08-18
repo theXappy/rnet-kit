@@ -1,7 +1,10 @@
+using CliWrap;
+using CliWrap.Buffered;
 using HostingWfInWPF;
 using RemoteNET;
 using RemoteNetSpy.Models.Helpers;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -96,4 +99,21 @@ public class RemoteAppModel : INotifyPropertyChanged
     }
 
     #endregion
+
+
+    public async Task<IEnumerable<HeapObject>> SearchHeap(string fullTypeNameQuery)
+    {
+        var x = CliWrap.Cli.Wrap("rnet-dump.exe")
+                    .WithArguments($"heap -t {TargetPid} -q \"{fullTypeNameQuery}\" " + UnmanagedFlagIfNeeded())
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteBufferedAsync();
+        var res = await x.Task;
+        var newInstances = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .SkipWhile(line => !line.Contains("Found "))
+            .Skip(1)
+            .Select(str => str.Trim())
+            .Select(HeapObject.Parse);
+
+        return newInstances;
+    }
 }

@@ -5,6 +5,7 @@ using DragDropExpressionBuilder;
 using Microsoft.Win32;
 using RemoteNET;
 using RemoteNET.Access;
+using RemoteNetSpy.Controls;
 using RemoteNetSpy.Models;
 using RemoteNetSpy.Windows;
 using System;
@@ -23,6 +24,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using HeapObject = RemoteNetSpy.Models.HeapObject;
 
 namespace RemoteNetSpy
@@ -38,7 +40,6 @@ namespace RemoteNetSpy
         public int TargetPid => _targetProcess.Pid;
         private DumpedTypeModel _currSelectedType => _remoteAppModel.ClassesModel.SelectedType;
         public string ClassName => _currSelectedType.FullTypeName;
-        private List<HeapObject> _instancesList;
 
         private System.Timers.Timer _aliveCheckTimer;
         private object _aliveCheckLock;
@@ -83,6 +84,9 @@ namespace RemoteNetSpy
             }
 
             (dragDropPlayground.DataContext as PlaygroundViewModel)?.LoadDemoData();
+
+            // TODO: Dummy for string 
+            TabItem x = MyTabControl.Items[MyTabControl.Items.Count - 1] as TabItem;
         }
 
         private async Task ConnectToSelectedProcessAsync()
@@ -242,125 +246,18 @@ namespace RemoteNetSpy
             return tempList;
         }
 
-        private int CompareDumperMembers(DumpedMember member1, DumpedMember member2)
-        {
-            var res = member1.MemberType.CompareTo(member2.MemberType);
-            if (res != 0)
-            {
-                // Member types mismatched.
-                // Order is mostly alphabetic except Method Tables, which go first.
-                if (member1.MemberType == "MethodTable")
-                    return -1;
-                if (member2.MemberType == "MethodTable")
-                    return 1;
-                return res;
-            }
 
-            // Same member type, sub-sort alphabetically (the member names).
-            if (member1.RawName != null && member2.RawName != null)
-                return member1.RawName.CompareTo(member2.RawName);
-            return member1.NormalizedName.CompareTo(member2.NormalizedName);
-        }
-
-        private void ExportHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
-        {
-            if (_instancesList == null || _instancesList.Count == 0)
-            {
-                MessageBox.Show("Nothing to save in Heap Instances windows.", this.Title);
-                return;
-            }
-
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = ".csv|.csv";
-            if (sfd.ShowDialog() != true)
-            {
-                // User cancelled
-                return;
-            }
-
-            _= Task.Run(() =>
-            {
-                StringBuilder csv = new StringBuilder();
-                csv.AppendLine("Address,Type,Frozen");
-                foreach (HeapObject heapObject in _instancesList)
-                {
-                    csv.AppendLine($"{heapObject.Address},{heapObject.FullTypeName},{heapObject.Frozen}");
-                }
-
-                Stream file = sfd.OpenFile();
-                using (StreamWriter sw = new StreamWriter(file))
-                {
-                    sw.Write(csv);
-                }
-            });
-        }
-
-        private void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e)
-            => _ = FindHeapInstancesAsync();
-
-        private async Task FindHeapInstancesAsync()
-        {
-            if (_currSelectedType == null)
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                });
-                return;
-            }
-
-            Dispatcher.Invoke(() =>
-            {
-                findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
-                findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
-            });
-
-            using (findHeapInstancesButtonSpinner.TemporarilyShow())
-            {
-
-                string type = (_currSelectedType)?.FullTypeName;
-
-                var x = CliWrap.Cli.Wrap("rnet-dump.exe")
-                    .WithArguments($"heap -t {TargetPid} -q \"{type}\" " + _remoteAppModel.UnmanagedFlagIfNeeded())
-                    .WithValidation(CommandResultValidation.None)
-                    .ExecuteBufferedAsync();
-                var res = await x.Task;
-                var newInstances = res.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                    .SkipWhile(line => !line.Contains("Found "))
-                    .Skip(1)
-                    .Select(str => str.Trim())
-                    .Select(HeapObject.Parse);
-
-                // Carry with us all previously frozen objects
-                if (_instancesList != null)
-                {
-                    List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
-                    foreach (var instance in newInstances)
-                    {
-                        if (!combined.Contains(instance))
-                            combined.Add(instance);
-                    }
-
-                    newInstances = combined;
-                }
-
-                _instancesList = newInstances.ToList();
-                _instancesList.Sort();
-
-                await RefreshSearchAndWatchedListsAsync();
-            }
-        }
-
+        private List<HeapObject> _watchedInstancesList;
         private async Task RefreshSearchAndWatchedListsAsync()
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-                unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
-                heapInstancesListBox.ItemsSource = unfrozens;
+                // TODO: this but in the current TypeView
+                // ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
+                // unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
+                // heapInstancesListBox.ItemsSource = unfrozens;
 
-                var instancesListCopy = _instancesList.ToList();
+                var instancesListCopy = _watchedInstancesList.ToList();
                 ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
                 frozens.Filter = (item) => (item as HeapObject).Frozen;
                 watchedObjectsListBox.ItemsSource = frozens;
@@ -373,11 +270,6 @@ namespace RemoteNetSpy
             bool onlyTypesInHeap = false;
 
             ListBox associatedBox = null;
-            if (sender == membersFilterBox)
-            {
-                associatedBox = membersListBox;
-            }
-
             if (associatedBox == null)
                 return;
 
@@ -398,31 +290,11 @@ namespace RemoteNetSpy
                     matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
                 view.Filter = (o) =>
                 {
-                    if (sender == membersFilterBox)
-                    {
-                        return (o as DumpedMember)?.NormalizedName?.Contains(filter, comp) == true;
-                    }
                     return (o as string)?.Contains(filter) == true;
                 };
             }
         }
 
-        private void clearTypesFilterButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            if (sender == clearMembersFilterButton)
-                membersFilterBox.Clear();
-        }
-
-        private void MemberListItemMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2)
-            {
-                var memberTextBlock = sender as TextBlock;
-                TraceMember(memberTextBlock.DataContext as DumpedMember);
-            }
-        }
-
-        private void TraceMember(DumpedMember sender) => _remoteAppModel.Tracer.AddFunc(sender);
         private void TraceLineDelete_OnClick(object sender, RoutedEventArgs e) => _remoteAppModel.Tracer.DeleteFunc(sender);
 
         // TODO: This whole method should be a command in the RemoteAppModel
@@ -433,11 +305,17 @@ namespace RemoteNetSpy
             var dPanel = grid.Children.OfType<DockPanel>().Single();
             var loadingImage = grid.Children.OfType<Image>().Single();
 
+            // Temp UI changes
             dPanel.Visibility = Visibility.Collapsed;
             loadingImage.Visibility = Visibility.Visible;
 
             HeapObject ho = senderButton.DataContext as HeapObject;
-            _ = FreezeUnfreezeAsync(ho).ContinueWith(t =>
+
+            // Heavy operation
+            Task<bool> freezeUnfreezeTask = FreezeUnfreezeAsync(ho);
+
+            // Undor temp UI changes
+            _ = freezeUnfreezeTask.ContinueWith(t =>
             {
                 Dispatcher.Invoke(() =>
                 {
@@ -556,13 +434,6 @@ namespace RemoteNetSpy
             Clipboard.SetText(typeName);
         }
 
-        private void MemberMenuItem_OnClick(object sender, RoutedEventArgs e)
-        {
-            MenuItem mi = sender as MenuItem;
-            string member = (mi.DataContext as DumpedMember).NormalizedName;
-            Clipboard.SetText(member);
-        }
-
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
@@ -617,82 +488,6 @@ namespace RemoteNetSpy
             });
         }
 
-        private void traceMethodButton_Click(object sender, RoutedEventArgs e)
-        {
-            TraceMember(membersListBox?.SelectedItem as DumpedMember);
-        }
-
-        private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
-        {
-            if (_currSelectedType == null)
-            {
-                MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            // The type is selected, so all of its members should be dumped on the members list
-            foreach (object member in membersListBox.Items)
-            {
-                TraceMember(member as DumpedMember);
-            }
-        }
-        private void TraceTypeOptimal_OnClick(object sender, RoutedEventArgs e)
-        {
-            if (_currSelectedType == null)
-            {
-                MessageBox.Show("You must select a type from the \"Types\" list first.", $"{this.Title} Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            string[] forbidden =
-            {
-                "System.Boolean Equals(",
-                "bool Equals(",
-                "void Finalize(",
-                "System.Void Finalize(",
-                "object MemberwiseClone(",
-                "System.Object MemberwiseClone()",
-                "System.Type GetType()",
-                "Type GetType()",
-                " GetHashCode(",
-                " ToString("
-            };
-            // The type is selected, so all of its members should be dumped on the members list
-            foreach (object member in membersListBox.Items)
-            {
-                DumpedMember dumpedMember = member as DumpedMember;
-                if (dumpedMember.MemberType == "Method")
-                {
-                    bool isForbidden = false;
-                    foreach (string forbiddenMember in forbidden)
-                    {
-                        if (dumpedMember.RawName.Contains(forbiddenMember))
-                        {
-                            isForbidden = true;
-                            break;
-                        }
-                    }
-                    if (isForbidden)
-                        continue;
-                }
-
-                TraceMember(dumpedMember);
-            }
-        }
-
-        private void ShowTraceTypeContextMenu(object sender, RoutedEventArgs e)
-        {
-            var extraButton = (sender as Button);
-            var contextMenu = extraButton.ContextMenu;
-            contextMenu.HorizontalOffset = extraButton.ActualWidth;
-            contextMenu.VerticalOffset = extraButton.ActualHeight / 2;
-
-            contextMenu.IsOpen = true;
-            e.Handled = true;
-        }
-
         private void memoryViewButton_Click(object sender, RoutedEventArgs e)
         {
             if (_app == null)
@@ -721,39 +516,40 @@ namespace RemoteNetSpy
             if (selectedType == null)
                 return;
 
-            string type = _currSelectedType?.FullTypeName;
-            if (type == null)
+            DumpedTypeModel type = _remoteAppModel.ClassesModel.SelectedType;
+            CreateNewTypeTab(type);
+        }
+
+        public void CreateNewTypeTab(DumpedTypeModel model)
+        {
+            string fullName = _currSelectedType?.FullTypeName;
+            if (fullName == null)
             {
-                membersListBox.ItemsSource = null;
                 return;
             }
 
-            //
-            // (1)
-            // Dump members into the "Tracing" tab
-            //
-            Task loadMembersTask = LoadTypeMembersAsync(type);
+            TypeView typeView = new TypeView();
+            typeView.Init(model, _remoteAppModel);
+            typeView.MethodSentToPlayground += dragDropPlayground.AddMethod;
+            typeView.ObjectSentToPlayground += dragDropPlayground.AddObject;
+            typeView.ObjectFreezeRequested += TypeView_ObjectFreezeRequested;
 
-            // 
-            // (2)
-            // heap Search instances in "Interactive" tab
-            //
-            FindHeapInstancesButtonClicked(null, null);
+            StackPanel header = new StackPanel() { Orientation = Orientation.Horizontal };
+            header.Children.Add(new Image() { Height = 16, Source = new BitmapImage(new Uri("icons/Class.png", UriKind.Relative)) });
+            header.Children.Add(new TextBlock() { Text = model.FullTypeName, Margin = new Thickness(4,0,0,0) });
+
+            TabItem tab = new TabItem()
+            {
+                Header = header
+            };
+            tab.Content = typeView;
+
+            MyTabControl.Items.Add(tab);
         }
 
-        private async Task LoadTypeMembersAsync(string typeFullName)
+        private void TypeView_ObjectFreezeRequested(HeapObject ho)
         {
-            List<DumpedMember> dumpedMembers = await Task.Run(
-                () =>
-                {
-                    Type type = _app.GetRemoteType(typeFullName);
-                    System.Reflection.MemberInfo[] members = type.GetMembers();
-                    List<DumpedMember> dumpedMembers = members.Select(mi => new DumpedMember(mi)).ToList();
-                    dumpedMembers.Sort(CompareDumperMembers);
-                    return dumpedMembers;
-                });
-            membersListBox.ItemsSource = dumpedMembers;
-            filterBox_TextChanged(membersFilterBox, null);
+            FreezeUnfreezeAsync(ho).Wait();
         }
 
         private void PromptForVariableCast(object sender, RoutedEventArgs e)
@@ -847,21 +643,6 @@ namespace RemoteNetSpy
             Dispatcher.Invoke(() => MessageBox.Show(msg, "Error", MessageBoxButton.OK, MessageBoxImage.Error));
         }
 
-        private void MemberMenuItem_AddToPlayground(object sender, RoutedEventArgs e)
-        {
-            if (sender is not MenuItem menuItem)
-                return;
-            if (menuItem.DataContext is not DumpedMember dumpedMember)
-                return;
-            if (dumpedMember.MemberInfo is not MethodInfo methodInfo)
-            {
-                MessageBox.Show("Can only send Methods to playground.");
-                return;
-            }
-
-            dragDropPlayground.AddMethod(methodInfo);
-        }
-
         private void FrozenObject_AddToPlayground(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem)
@@ -904,44 +685,6 @@ namespace RemoteNetSpy
                 };
                 DragDrop.DoDragDrop(listBox, instance, DragDropEffects.Copy);
             }
-        }
-
-        private void membersListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // We want to allow the user to drag and drop Members into the Drag And Drop Playground.
-            // BUT this mechanism interferes with the ListBox scroll bar dragging
-            // The code below make sure we're only starting a drag operation if the mouse is over the selected listbox item
-
-            if (e.LeftButton != MouseButtonState.Pressed)
-                return;
-
-            var listBox = sender as ListBox;
-            if (listBox == null)
-                return;
-
-            // Get the element under the mouse
-            var point = e.GetPosition(listBox);
-            var element = listBox.InputHitTest(point) as DependencyObject;
-
-            // Traverse up the visual tree to find the ListBoxItem
-            while (element != null && element is not ListBoxItem)
-            {
-                element = System.Windows.Media.VisualTreeHelper.GetParent(element);
-            }
-            if (element is not ListBoxItem listBoxItem)
-                return;
-
-            // Only start drag if the item under the mouse is the selected item
-            if (listBoxItem.DataContext != listBox.SelectedItem)
-                return;
-
-            if (listBox.SelectedItem is not DumpedMember dumpedMember)
-                return;
-            if (dumpedMember.MemberInfo is not System.Reflection.MethodInfo methodInfo)
-                return;
-
-            var miw = new MethodInfoWrapper(methodInfo);
-            DragDrop.DoDragDrop(listBox, miw, DragDropEffects.Copy);
         }
     }
 }

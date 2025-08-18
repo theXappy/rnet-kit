@@ -63,7 +63,8 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <DockPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+
+        <DockPanel Grid.Row="0" Grid.Column="0">
             <DockPanel DockPanel.Dock="Top" Margin="5">
                 <TextBlock DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center">Target:</TextBlock>
                 <TextBlock x:Name="selectedTargetTextBlock" DockPanel.Dock="Left" Margin="4,0,4,0" VerticalAlignment="Center"/>
@@ -95,400 +96,99 @@
                     </DockPanel>
                 </ToolBar>
             </ToolBarTray>
-
-            <StackPanel>
-                <DockPanel x:Name="selectedTypePanel" VerticalAlignment="Top" Margin="2,0" Visibility="Collapsed" d:Visibility="Visible">
-                    <TextBlock>Selected Type:</TextBlock>
-                    <Image Source="icons/Class.png" Height="16" ToolTip="Trace Selected Method" VerticalAlignment="Center" Margin="4,0"/>
-                    <TextBlock>
-                        <Hyperlink Foreground="Orange" Click="CurrentTypeHyperlink_Click">
-                            DummyNamespace.DummyClass
-                        </Hyperlink>
-                    </TextBlock>
-                </DockPanel>
-                <Grid x:Name="AssembliesValuesArea" DockPanel.Dock="Top" MinHeight="200">
-                    <controls:TypeSystemTreeView x:Name="typeSystemTreeView"/>
-                    <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
-                </Grid>
-            </StackPanel>
         </DockPanel>
-        <Grid x:Name="CenterAreaGrid" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3">
+
+
+        <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="5*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="4*"/>
             </Grid.ColumnDefinitions>
-            <GridSplitter Grid.Column="1" 
-                          Grid.Row="0"
-                          Grid.RowSpan="2"
-                          HorizontalAlignment="Left" 
-                          VerticalAlignment="Stretch"
-                          ShowsPreview="true"
-                          Width="5"
-            />
-            <Grid x:Name="AssembliesLeftArea" Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Margin="5,5,0,5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <GridSplitter 
-                          Grid.Row="0"
-                          HorizontalAlignment="Stretch" 
-                          VerticalAlignment="Bottom"
-                          ShowsPreview="true"
-                          Height="5" Background="#00112233"/>
-
-                <DockPanel Grid.Column="1" Margin="0,0,0,2">
-                    <DockPanel x:Name="MembersLeftArea" Dock="Top" Background="#07ffffff">
-                        <Label DockPanel.Dock="Top">Members List</Label>
-                        <ToolBarTray DockPanel.Dock="Top" Height="26">
-                            <ToolBar ToolBarTray.IsLocked="True">
-                                <DockPanel>
-                                    <Button x:Name="traceClassButton" MinHeight="22" Margin="2,0" Click="TraceTypeOptimal_OnClick" Padding="0">
-                                        <Button.Content>
-                                            <Grid Height="24">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition/>
-                                                    <ColumnDefinition/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.ColumnSpan="2"/>
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Image Source="icons/TraceClass.png" Height="16" ToolTip="Trace Selected Method"/>
-                                                    <TextBlock Margin="4,0">Trace Type</TextBlock>
-                                                </StackPanel>
-                                                <Grid Grid.Column="1">
-                                                    <Button x:Name="traceTypeExtraButton" Grid.Column="1" FontFamily="Marlett" Content="6" Click="ShowTraceTypeContextMenu">
-                                                        <Button.ContextMenu>
-                                                            <ContextMenu>
-                                                                <MenuItem
-                                                           Header="Trace Type (Full)"
-                                                           ToolTip="Traces all methods of the type, including ones that might be problematic like Equals, Finalize, ..."
-                                                           Click="TraceTypeFull_OnClick" 
-                                                           >
-                                                                    <MenuItem.Icon>
-                                                                        <Image Source="icons/TraceClass.png"/>
-                                                                    </MenuItem.Icon>
-                                                                </MenuItem>
-                                                            </ContextMenu>
-                                                        </Button.ContextMenu>
-                                                    </Button>
-                                                    <TextBlock x:Name="traceTypeExtraButtonHoverHack" Background="#11ffffff" IsHitTestVisible="False"
-                                                      Visibility="{Binding IsMouseOver, ElementName=traceTypeExtraButton, Converter={StaticResource boolToCollapsabilityConverter}, FallbackValue=Hidden}"
-                                                      />
-                                                </Grid>
-                                            </Grid>
-                                        </Button.Content>
-                                    </Button>
-                                    <Button x:Name="traceMethodButton" MinHeight="22" Padding="0" DockPanel.Dock="Right" Margin="2,0" Click="traceMethodButton_Click" >
-                                        <Button.Content>
-                                            <Grid Width="24" Height="24">
-                                                <!-- TextBlock is used to extend "hover" region of the button to the area arond the icon -->
-                                                <TextBlock/>
-                                                <Image Source="icons/TraceMethod.png" Height="16" ToolTip="Trace Selected Method"/>
-                                            </Grid>
-                                        </Button.Content>
-                                    </Button>
-                                </DockPanel>
-                            </ToolBar>
-                        </ToolBarTray>
-                        <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
-                            <TextBox x:Name="membersFilterBox" TextChanged="filterBox_TextChanged" Height="26" VerticalContentAlignment="Center" Background="#07ffffff"/>
-                            <Button x:Name="clearMembersFilterButton" 
-                  DockPanel.Dock="Right" 
-                  Click="clearTypesFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+            <ListBox FontSize="20"
+                 ItemsSource="{Binding ElementName=MyTabControl, Path=Items}"
+                 SelectedItem="{Binding ElementName=MyTabControl, Path=SelectedItem, Mode=TwoWay}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <ContentControl Content="{Binding Header}" Margin="4,2,0,4"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <TabControl x:Name="MyTabControl" Grid.Column="1" SelectedIndex="0">
+                <TabControl.Template>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <!-- Only show the selected content -->
+                            <ContentPresenter ContentSource="SelectedContent"/>
                         </Grid>
-                    </DockPanel>
-                    <ListBox x:Name="membersListBox" DockPanel.Dock="Top" PreviewMouseDown="membersListBox_PreviewMouseDown">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type models:DumpedMember}">
-                                <DockPanel>
-                                    <Image Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16" Width="17"/>
-                                    <TextBlock Text="{Binding Path=NormalizedName}" MouseDown="MemberListItemMouseDown">
-                                        <TextBlock.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Copy Member" DataContext="{Binding Mode=OneWay}"
-                                                          Click="MemberMenuItem_OnClick"/>
-                                                <MenuItem Header="Add to Playground" DataContext="{Binding Mode=OneWay}"
-                                                          Click="MemberMenuItem_AddToPlayground"/>
-                                            </ContextMenu>
-                                        </TextBlock.ContextMenu>
-                                    </TextBlock>
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-
-
-                <DockPanel Grid.Row="1" Margin="0,0,0,5">
-                    <DockPanel DockPanel.Dock="Top" Background="#07ffffff">
-                        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,3,5,0">Heap instances of</TextBlock>
-                        <!--<Button DockPanel.Dock="Right" Click="ExportHeapInstancesButtonClicked" Padding="5,0" Margin="2,2" MinHeight="21" Visibility="Collapsed">
-                            <Grid>
-                                <StackPanel x:Name="exportHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Image Source="icons/Save.png" Height="16"/>
-                                    <TextBlock Padding="5,0" Margin="5,0,2,0" VerticalAlignment="Center" HorizontalAlignment="Center">Export CSV</TextBlock>
-                                </StackPanel>
-                                <remoteNetSpy:Spinner x:Name="exportHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
-                            </Grid>
-                        </Button>-->
-                        <Button DockPanel.Dock="Right" Click="FindHeapInstancesButtonClicked" Padding="5,0" Margin="0,2" MinHeight="21" VerticalAlignment="Top">
-                            <Grid>
-                                <StackPanel x:Name="findHeapInstancesButtonTextPanel" Orientation="Horizontal" VerticalAlignment="Top">
-                                    <Image Source="icons/Refresh.png" Height="16"/>
-                                </StackPanel>
-                                <remoteNetSpy:Spinner x:Name="findHeapInstancesButtonSpinner" Visibility="Collapsed" HideBackground="True"/>
-                            </Grid>
-                        </Button>
-                        <TextBlock Foreground="#976e01" Text="{Binding ClassesModel.SelectedType.FullTypeName, FallbackValue='(?)'}" VerticalAlignment="Top" HorizontalAlignment="Left"
-                                    Margin="0,3,5,0" TextWrapping="Wrap"/>
-                    </DockPanel>
-                    <ListBox x:Name="heapInstancesListBox" Margin="0">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type models:HeapObject}">
-                                <Grid>
-                                    <Grid.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                        </ContextMenu>
-                                    </Grid.ContextMenu>
-                                    <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
-                                    <TextBlock Margin="0"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <!-- TextBlock fills remaining space -->
-                                            <ColumnDefinition Width="Auto" />
-                                            <!-- Button keeps fixed size -->
-                                        </Grid.ColumnDefinitions>
-                                        <Button Grid.Column="1"
-                                                                       Click="FreezeUnfreezeHeapObjectButtonClicked"
-                                                                       Padding="8,0"
-                                                                       Margin="0,0,4,0"
-                                                                       MinWidth="85"
-                                                                        >
-                                            <Button.Content>
-                                                <Grid>
-                                                    <DockPanel>
-                                                        <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
-                                                        <!--<TextBlock Text="Interact in rnet-explore"/>-->
-                                                        <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
-                                                    </DockPanel>
-                                                    <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
-                                                        <Image.RenderTransform>
-                                                            <!-- giving the transform a name tells the framework not to freeze it -->
-                                                            <RotateTransform x:Name="noFreeze" />
-                                                        </Image.RenderTransform>
-                                                        <Image.Triggers>
-                                                            <EventTrigger RoutedEvent="Loaded">
-                                                                <BeginStoryboard>
-                                                                    <Storyboard>
-                                                                        <DoubleAnimation
-                                                                        Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
-                                                                        To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </EventTrigger>
-                                                        </Image.Triggers>
-                                                    </Image>
-                                                </Grid>
-                                            </Button.Content>
-                                        </Button>
-                                        <TextBlock Text="{Binding Path=Description}"
-                                                                   VerticalAlignment="Center"
-                                                                   ClipToBounds="True"
-                                                                   TextWrapping="NoWrap"
-                                                                   TextTrimming="CharacterEllipsis"
-                                                                   />
-                                        <TextBlock Foreground="Aquamarine"
-                                                                    Visibility="{Binding Path=Frozen, Converter={StaticResource boolToCollapsabilityConverter}}"
-                                                                    VerticalAlignment="Center"
-                                                                    Margin="10,0"> (Frozen)</TextBlock>
-                                    </Grid>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-
-            </Grid>
-
-            <TabControl Grid.Column="1">
-                <!-- Tab Item: Interactive -->
-                <!-- Tab Item: Interactive -->
-                <!-- Tab Item: Interactive -->
-                <TabItem Header="Interactive">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <!-- Instannces searching & Freezer-->
+                    </ControlTemplate>
+                </TabControl.Template>
+                <!-- Tab Item: Types Search -->
+                <!-- Tab Item: Types Search -->
+                <!-- Tab Item: Types Search -->
+                <TabItem Header="Types Search">
+                    <StackPanel>
+                        <TextBlock DockPanel.Dock="Top" Margin="5,2">Search</TextBlock>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <GridSplitter Grid.Row="0"
-                                          HorizontalAlignment="Stretch" 
-                                          VerticalAlignment="Bottom"
-                                          ShowsPreview="true"
-                                          Height="5" Background="#00112233" 
-                                          />
-                            <GridSplitter Grid.Row="1"
-                                          HorizontalAlignment="Stretch" 
-                                          VerticalAlignment="Bottom"
-                                          ShowsPreview="true"
-                                          Height="5" Background="#00112233" 
-                                          />
-
-                            <DockPanel Grid.Row="1" LastChildFill="True" Margin="0,0,0,5">
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#07ffffff">
-                                    <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Padding="4,2,5,2" Margin="0,2" MinHeight="21">Watch</TextBlock>
-                                </StackPanel>
-                                <ListBox x:Name="watchedObjectsListBox" Margin="0" DockPanel.Dock="Top" PreviewMouseMove="watchedObjectsListBox_PreviewMouseMove">
-                                    <ListBox.ItemContainerStyle>
-                                        <Style TargetType="ListBoxItem">
-                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
-                                        </Style>
-                                    </ListBox.ItemContainerStyle>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type models:HeapObject}">
-                                            <Grid>
-                                                <Grid.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                                        <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast"/>
-                                                        <MenuItem Header="Add to Playground" Click="FrozenObject_AddToPlayground"/>
-                                                    </ContextMenu>
-                                                </Grid.ContextMenu>
-                                                <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
-                                                <TextBlock Margin="0"/>
-                                                <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
-                                                    <DockPanel.Children>
-                                                        <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                                                        <TextBlock Foreground="Aquamarine"
-   Visibility="{Binding Path=Frozen, Converter={StaticResource boolToCollapsabilityConverter}}"
-   VerticalAlignment="Center"
-   Margin="10,0"> (Frozen)</TextBlock>
-                                                        <Button DockPanel.Dock="Right"
-   IsEnabled="{Binding Path=Frozen}"
-   Padding="8,0"
-   Margin="0,0,0,0"
-   Click="InspectButtonBaseOnClick">
-                                                            <Button.Content>
-                                                                <DockPanel>
-                                                                    <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
-                                                                    <TextBlock Text="Inspect"/>
-                                                                </DockPanel>
-                                                            </Button.Content>
-                                                        </Button>
-                                                        <Button DockPanel.Dock="Right" Click="FreezeUnfreezeHeapObjectButtonClicked" Padding="8,0" Margin="0,0,4,0" MinWidth="85">
-                                                            <Button.Content>
-                                                                <Grid>
-                                                                    <DockPanel>
-                                                                        <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
-                                                                        <!--<TextBlock Text="Interact in rnet-explore"/>-->
-                                                                        <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
-                                                                    </DockPanel>
-                                                                    <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
-                                                                        <Image.RenderTransform>
-                                                                            <!-- giving the transform a name tells the framework not to freeze it -->
-                                                                            <RotateTransform x:Name="noFreeze" />
-                                                                        </Image.RenderTransform>
-                                                                        <Image.Triggers>
-                                                                            <EventTrigger RoutedEvent="Loaded">
-                                                                                <BeginStoryboard>
-                                                                                    <Storyboard>
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)" To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                                                                    </Storyboard>
-                                                                                </BeginStoryboard>
-                                                                            </EventTrigger>
-                                                                        </Image.Triggers>
-                                                                    </Image>
-                                                                </Grid>
-                                                            </Button.Content>
-                                                        </Button>
-                                                    </DockPanel.Children>
-                                                </DockPanel>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-
+                            <Grid x:Name="AssembliesValuesArea" DockPanel.Dock="Left" MinHeight="200" Margin="2,2,0,2">
+                                <controls:TypeSystemTreeView x:Name="typeSystemTreeView"/>
+                                <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
+                            </Grid>
                         </Grid>
-
-                    </Grid>
+                    </StackPanel>
                 </TabItem>
+
                 <!-- Tab Item: Tracing -->
                 <!-- Tab Item: Tracing -->
                 <!-- Tab Item: Tracing -->
                 <TabItem Header="Tracing">
-                    <Grid Margin="0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-
-
-                        <TabControl Grid.Row="1" SelectedIndex="0" MinHeight="280">
-                            <TabControl.Resources>
-                                <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}"/>
-                            </TabControl.Resources>
-                            <TabItem x:Name="tracingTabItem" Header="Tracing">
-                                <DockPanel>
-                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                                        <Button Command="{Binding Tracer.RunRemoteNetTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Image Source="icons/Run.png" Height="16"/>
-                                                <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace (rnet-trace)</TextBlock>
-                                            </StackPanel>
-                                        </Button>
-                                        <Button x:Name="RunFridaTracesButton" Command="{Binding Tracer.RunFridaTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Image Source="icons/Run.png" Height="16"/>
-                                                <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace (frida-trace)</TextBlock>
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.OpenCommand}">
-                                            <Image Source="icons/OpenFolder.png" Height="16"/>
-                                        </Button>
-                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.SaveCommand}">
-                                            <Image Source="icons/Save.png" Height="16"/>
-                                        </Button>
-                                        <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.ClearCommand}">
-                                            <Image Source="icons/ClearWindowContent.png" Height="16"/>
-                                        </Button>
-                                        <Button Padding="5,0" Margin="2,2" Click="ManualTraceClicked" Visibility="Collapsed">Manual Trace</Button>
-                                    </StackPanel>
-                                    <ListBox x:Name="tracesListBox">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <DockPanel>
-                                                    <DockPanel.ContextMenu>
-                                                        <ContextMenu>
-                                                            <MenuItem Header="Delete" Click="TraceLineDelete_OnClick"/>
-                                                        </ContextMenu>
-                                                    </DockPanel.ContextMenu>
-                                                    <Image Source="/icons/NewMethod.png" Margin="0,0,3,0"/>
-                                                    <TextBlock Text="{Binding Path=DemangledName}" />
-                                                </DockPanel>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                </DockPanel>
-                            </TabItem>
-                        </TabControl>
-
-                    </Grid>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <Button Command="{Binding Tracer.RunRemoteNetTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Image Source="icons/Run.png" Height="16"/>
+                                    <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace (rnet-trace)</TextBlock>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="RunFridaTracesButton" Command="{Binding Tracer.RunFridaTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Image Source="icons/Run.png" Height="16"/>
+                                    <TextBlock Padding="0,0" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center">Start Trace (frida-trace)</TextBlock>
+                                </StackPanel>
+                            </Button>
+                            <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.OpenCommand}">
+                                <Image Source="icons/OpenFolder.png" Height="16"/>
+                            </Button>
+                            <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.SaveCommand}">
+                                <Image Source="icons/Save.png" Height="16"/>
+                            </Button>
+                            <Button Padding="2,0" Margin="2,2" MinHeight="21" Command="{Binding Tracer.ClearCommand}">
+                                <Image Source="icons/ClearWindowContent.png" Height="16"/>
+                            </Button>
+                            <Button Padding="5,0" Margin="2,2" Click="ManualTraceClicked" Visibility="Collapsed">Manual Trace</Button>
+                        </StackPanel>
+                        <ListBox x:Name="tracesListBox">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel>
+                                        <DockPanel.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Delete" Click="TraceLineDelete_OnClick"/>
+                                            </ContextMenu>
+                                        </DockPanel.ContextMenu>
+                                        <Image Source="/icons/NewMethod.png" Margin="0,0,3,0"/>
+                                        <TextBlock Text="{Binding Path=DemangledName}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
                 </TabItem>
 
                 <!-- Drag and Drop Playground-->
@@ -509,8 +209,84 @@
                         </Grid>
                     </Border>
                 </TabItem>
+
+                <!-- Watched Instances -->
+                <!-- Watched Instances -->
+                <!-- Watched Instances -->
+                <TabItem Header="Watched Instances {DUMMY}">
+                    <ListBox x:Name="watchedObjectsListBox" Margin="0" DockPanel.Dock="Top" PreviewMouseMove="watchedObjectsListBox_PreviewMouseMove">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:HeapObject}">
+                                <Grid>
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
+                                            <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast"/>
+                                            <MenuItem Header="Add to Playground" Click="FrozenObject_AddToPlayground"/>
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
+                                    <TextBlock Margin="0"/>
+                                    <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
+                                        <DockPanel.Children>
+                                            <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                                            <TextBlock Foreground="Aquamarine"
+                                                       Visibility="{Binding Path=Frozen, Converter={StaticResource boolToCollapsabilityConverter}}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="10,0"> (Frozen)</TextBlock>
+                                            <Button DockPanel.Dock="Right"
+                                                   IsEnabled="{Binding Path=Frozen}"
+                                                   Padding="8,0"
+                                                   Margin="0,0,0,0"
+                                                   Click="InspectButtonBaseOnClick">
+                                                <Button.Content>
+                                                    <DockPanel>
+                                                        <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
+                                                        <TextBlock Text="Inspect"/>
+                                                    </DockPanel>
+                                                </Button.Content>
+                                            </Button>
+                                            <Button DockPanel.Dock="Right" Click="FreezeUnfreezeHeapObjectButtonClicked" Padding="8,0" Margin="0,0,4,0" MinWidth="85">
+                                                <Button.Content>
+                                                    <Grid>
+                                                        <DockPanel>
+                                                            <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
+                                                            <!--<TextBlock Text="Interact in rnet-explore"/>-->
+                                                            <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                                        </DockPanel>
+                                                        <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
+                                                            <Image.RenderTransform>
+                                                                <!-- giving the transform a name tells the framework not to freeze it -->
+                                                                <RotateTransform x:Name="noFreeze" />
+                                                            </Image.RenderTransform>
+                                                            <Image.Triggers>
+                                                                <EventTrigger RoutedEvent="Loaded">
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)" To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </EventTrigger>
+                                                            </Image.Triggers>
+                                                        </Image>
+                                                    </Grid>
+                                                </Button.Content>
+                                            </Button>
+                                        </DockPanel.Children>
+                                    </DockPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </TabItem>
+
             </TabControl>
         </Grid>
-        <DockPanel Background="#424242" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"/>
+        <DockPanel Background="#424242" Grid.Row="3" Grid.Column="0"/>
     </Grid>
 </Window>

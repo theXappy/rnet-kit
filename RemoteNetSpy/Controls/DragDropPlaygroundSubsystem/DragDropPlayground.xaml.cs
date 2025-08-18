@@ -52,11 +52,12 @@ namespace DragDropExpressionBuilder
 
         private void MainAreaBorder_DragOver(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(typeof(MethodInfoWrapper)))
+            if (e.Data.GetDataPresent(typeof(MethodInfoWrapper)))
             {
-                e.Effects = DragDropEffects.None;
-                e.Handled = true;
+                return;
             }
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
         }
 
         private void MainAreaBorder_Drop(object sender, DragEventArgs e)

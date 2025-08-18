@@ -41,25 +41,24 @@
             </ListBox>
         </GroupBox>
         <!-- Main Area -->
-        <GroupBox Header="Main Area" Grid.Column="1" Margin="8">
-            <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8" Background="Transparent">
-                <Canvas x:Name="MainAreaCanvas">
-                    <ItemsControl x:Name="MainAreaItemsControl" ItemsSource="{Binding DroppedMethods}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <Canvas/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemContainerStyle>
-                            <Style>
-                                <Setter Property="Canvas.Left" Value="{Binding X}" />
-                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
-                            </Style>
-                        </ItemsControl.ItemContainerStyle>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type local:DroppedMethodItem}">
-                                <StackPanel Orientation="Horizontal">
-                                    <Grid>
+        <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8" Background="Transparent">
+            <Canvas x:Name="MainAreaCanvas">
+                <ItemsControl x:Name="MainAreaItemsControl" ItemsSource="{Binding DroppedMethods}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style>
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:DroppedMethodItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid>
                                     <Border Background="#53134C" Padding="6" CornerRadius="4" BorderBrush="#D237C0" BorderThickness="1"
                                     MouseLeftButtonDown="DroppedMethod_MouseLeftButtonDown"
                                     MouseMove="DroppedMethod_MouseMove"
@@ -68,9 +67,10 @@
                                             <StackPanel.Resources>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="FontFamily" Value="Cascadia Mono"/>
+                                                    <Setter Property="Foreground" Value="White"/>
                                                 </Style>
                                             </StackPanel.Resources>
-                                                <DockPanel LastChildFill="False">
+                                            <DockPanel LastChildFill="False">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" MinHeight="24">
                                                     <StackPanel Orientation="Horizontal" Margin="0,6,1,0" >
                                                         <TextBlock Text="{Binding Invocation.Method.ReturnType}" FontWeight="Bold" Foreground="#4EC9B0" Margin="0,0,6,0"/>
@@ -89,6 +89,7 @@
                                                                     <StackPanel.Resources>
                                                                         <Style TargetType="TextBlock">
                                                                             <Setter Property="FontFamily" Value="Cascadia Mono"/>
+                                                                            <Setter Property="Foreground" Value="White"/>
                                                                         </Style>
                                                                     </StackPanel.Resources>
                                                                     <TextBlock Text="{Binding TypeName}" FontWeight="Bold" Foreground="#4EC9B0" Margin="0,0,4,0" VerticalAlignment="Center"/>
@@ -147,7 +148,7 @@
                                     </Border>
 
                                     <!-- "X" button -->
-                                        <Border Width="20" Height="20"
+                                    <Border Width="20" Height="20"
                                                 Background="#441122"
                                                 CornerRadius="10"
                                                 BorderBrush="DarkRed" BorderThickness="1"
@@ -155,7 +156,7 @@
                                                 VerticalAlignment="Top"
                                                 Margin="0,-10,-10,0"
                                                 ClipToBounds="True">
-                                            <Button Content="✕"
+                                        <Button Content="✕"
                                                     Background="Transparent"
                                                     BorderThickness="0"
                                                     Foreground="White"
@@ -163,33 +164,33 @@
                                                     Cursor="Hand"
                                                     Click="RemoveDroppedMethod_Click"
                                                     >
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border x:Name="buttonBorder"
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="buttonBorder"
                                     Background="{TemplateBinding Background}"
                                     CornerRadius="10">
-                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                    </Border>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter TargetName="buttonBorder" Property="Background" Value="#771122"/>
-                                                                        </Trigger>
-                                                                        <Trigger Property="IsPressed" Value="True">
-                                                                            <Setter TargetName="buttonBorder" Property="Background" Value="#331122"/>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
-                                        </Border>
-                                    </Grid>
-                                    <Border Background="#1C3413" Padding="6" CornerRadius="4" BorderBrush="#FF66CC99" BorderThickness="1"
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="buttonBorder" Property="Background" Value="#771122"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsPressed" Value="True">
+                                                                        <Setter TargetName="buttonBorder" Property="Background" Value="#331122"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Border>
+                                </Grid>
+                                <Border Background="#1C3413" Padding="6" CornerRadius="4" BorderBrush="#FF66CC99" BorderThickness="1"
                                         Margin="8,0,0,0"
                                             VerticalAlignment="Bottom"
                                         MouseLeftButtonDown="DroppedMethod_MouseLeftButtonDown"
@@ -197,29 +198,29 @@
                                         MouseLeftButtonUp="DroppedMethod_MouseLeftButtonUp"
                                         Visibility="{Binding Invocation.ReturnValue, Converter={StaticResource NullToCollapsedConverter}}"
                                         >
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="Returned: " Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                            <Border Background="#0C2C46" Padding="2" CornerRadius="4" BorderBrush="#2383D1" BorderThickness="1">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0" 
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Returned: " Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <Border Background="#0C2C46" Padding="2" CornerRadius="4" BorderBrush="#2383D1" BorderThickness="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0" 
                                                        Visibility="{Binding Invocation.ReturnValue, Converter={StaticResource NullToCollapsedConverter}}"
                                                        />
-                                                    <TextBlock Text="{Binding Invocation.Method.ReturnType, FallbackValue=String}" FontWeight="Bold" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                <TextBlock Text="{Binding Invocation.Method.ReturnType, FallbackValue=String}" FontWeight="Bold" Margin="0,0,6,0" VerticalAlignment="Center"
                                                                Foreground="#4EC9B0"
                                                                />
-                                                    <TextBlock Text="{Binding Invocation.ReturnValue.ParamName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=thisValue}" MinWidth="60" Margin="0,0,4,0"
+                                                <TextBlock Text="{Binding Invocation.ReturnValue.ParamName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=thisValue}" MinWidth="60" Margin="0,0,4,0"
                                                            Foreground="White"
                                                            MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Canvas>
-            </Border>
-        </GroupBox>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Canvas>
+        </Border>
+
     </Grid>
 </UserControl>

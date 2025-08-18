@@ -59,8 +59,7 @@
 
         <!-- TextBox -->
         <DockPanel Grid.Row="0" x:Name="AssembliesAreaHeader" DockPanel.Dock="Top" Background="#07ffffff">
-            <Label DockPanel.Dock="Top" Content="Types"/>
-            <ToolBarTray DockPanel.Dock="Top" IsLocked="True" ClipToBounds="True" Height="26">
+            <ToolBarTray x:Name="toolBar" DockPanel.Dock="Top" IsLocked="True" ClipToBounds="True" Height="26">
                 <ToolBar ToolBarTray.IsLocked="True">
                     <DockPanel>
                         <Button x:Name="assembliesRefreshButton" Click="AssembliesRefreshButton_OnClick" ToolTip="Refresh assemblies list" Padding="0">

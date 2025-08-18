@@ -16,6 +16,11 @@ namespace RemoteNetSpy.Controls
     {
         ClassesModel Model => DataContext as ClassesModel;
 
+        public bool ToolBarVisible 
+        {
+            set { toolBar.Visibility = value ? Visibility.Visible : Visibility.Collapsed; }
+        }
+
         public TypeSystemTreeView()
         {
             InitializeComponent();
