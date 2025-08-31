@@ -2,7 +2,6 @@
 using RemoteNetSpy.Models;
 using System;
 using System.ComponentModel;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -12,6 +11,22 @@ using System.Threading.Tasks;
 
 namespace RemoteNetSpy.Controls
 {
+    internal static class DependencyObjectExtensions
+    {
+        public static T FindVisualAncestor<T>(this DependencyObject dependencyObject) where T : DependencyObject
+        {
+            var parent = VisualTreeHelper.GetParent(dependencyObject);
+            
+            if (parent == null)
+                return null;
+            
+            if (parent is T target)
+                return target;
+            
+            return FindVisualAncestor<T>(parent);
+        }
+    }
+
     public partial class TypeSystemTreeView : UserControl
     {
         ClassesModel Model => DataContext as ClassesModel;
@@ -20,6 +35,8 @@ namespace RemoteNetSpy.Controls
         {
             set { toolBar.Visibility = value ? Visibility.Visible : Visibility.Collapsed; }
         }
+
+        public event Action<DumpedTypeModel> TypeDoubleClicked;
 
         public TypeSystemTreeView()
         {
@@ -184,6 +201,29 @@ namespace RemoteNetSpy.Controls
                 return;
             var typeName = type.FullTypeName;
             Clipboard.SetDataObject(typeName);
+        }
+
+        private void assembliesTreeView_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // Get the visual element that was clicked
+            var clickedItem = e.OriginalSource as DependencyObject;
+            if (clickedItem == null)
+                return;
+
+            // Find the TreeViewItem that was clicked by walking up the visual tree
+            var treeViewItem = clickedItem.FindVisualAncestor<TreeViewItem>();
+            if (treeViewItem == null)
+                return;
+
+            // Check if this is the selected item
+            if (!treeViewItem.IsSelected)
+                return;
+
+            // Try to get the DumpedTypeModel from the selected item
+            if (treeViewItem.DataContext is DumpedTypeModel typeModel)
+            {
+                TypeDoubleClicked?.Invoke(typeModel);
+            }
         }
     }
 }

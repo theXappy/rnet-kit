@@ -103,6 +103,7 @@
 
         <!-- TreeView -->
         <stretchingtree:StretchingTreeView x:Name="assembliesTreeView" Grid.Row="1" Margin="0,2,0,0" ItemsSource="{Binding Assemblies}" SelectedItemChanged="TreeView_SelectedItemChanged"
+                                           MouseDoubleClick="assembliesTreeView_MouseDoubleClick"
                                            Background="{x:Null}"
                                            BorderBrush="{StaticResource ContainerBorder}">
             <stretchingtree:StretchingTreeView.ItemContainerStyle>

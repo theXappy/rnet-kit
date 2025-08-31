@@ -107,7 +107,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="4*"/>
             </Grid.ColumnDefinitions>
-            <ListBox FontSize="20"
+            <ListBox FontSize="14"
                  ItemsSource="{Binding ElementName=MyTabControl, Path=Items}"
                  SelectedItem="{Binding ElementName=MyTabControl, Path=SelectedItem, Mode=TwoWay}">
                 <ListBox.ItemTemplate>

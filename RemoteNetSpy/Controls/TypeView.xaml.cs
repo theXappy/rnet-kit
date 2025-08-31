@@ -56,8 +56,7 @@ namespace RemoteNetSpy.Controls
             // (2)
             // heap Search instances in "Interactive" tab
             //
-            // TODO: This but on type view
-            //FindHeapInstancesButtonClicked(null, null);
+            FindHeapInstancesButtonClicked(null, null);
         }
 
 
@@ -144,6 +143,12 @@ namespace RemoteNetSpy.Controls
 
                 await RefreshSearchListsAsync();
             }
+
+            Dispatcher.Invoke(() =>
+            {
+                findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
+                findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
+            });
         }
 
         private async Task RefreshSearchListsAsync()

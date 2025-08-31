@@ -55,7 +55,7 @@ namespace RemoteNetSpy
                     System.ComponentModel.ListSortDirection.Ascending));
 
             typeSystemTreeView.DataContext = _remoteAppModel.ClassesModel;
-            _remoteAppModel.ClassesModel.PropertyChanged += ClassesModel_PropertyChanged;
+            typeSystemTreeView.TypeDoubleClicked += ClassesModel_PropertyChanged;
 
             _aliveCheckLock = new object();
             _aliveCheckTimer = new System.Timers.Timer(500);
@@ -507,12 +507,8 @@ namespace RemoteNetSpy
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
 
-        private void ClassesModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void ClassesModel_PropertyChanged(DumpedTypeModel selectedType)
         {
-            if (e.PropertyName != nameof(ClassesModel.SelectedType))
-                return;
-
-            DumpedTypeModel selectedType = (sender as ClassesModel).SelectedType;
             if (selectedType == null)
                 return;
 
