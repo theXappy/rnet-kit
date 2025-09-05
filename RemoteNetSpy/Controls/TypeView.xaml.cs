@@ -465,5 +465,11 @@ namespace RemoteNetSpy.Controls
             var heapObj = (sender as MenuItem).DataContext as HeapObject;
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
+
+        private void ShowMemoryView_Click(object sender, RoutedEventArgs e)
+        {
+            var heapObj = (sender as MenuItem)?.DataContext as HeapObject;
+            _remoteAppModel.ShowMemoryView(Window.GetWindow(this), heapObj?.Address);
+        }
     }
 }

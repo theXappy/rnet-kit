@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace RemoteNetSpy.Models;
 
@@ -79,6 +80,18 @@ public class RemoteAppModel : INotifyPropertyChanged
         if (TargetRuntime == RuntimeType.Unmanaged)
             return "-u";
         return string.Empty;
+    }
+
+    public void ShowMemoryView(Window owner = null, ulong? address = null)
+    {
+        if (App == null)
+        {
+            MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var mvw = new MemoryViewWindow(this, address) { Owner = owner };
+        mvw.Show();
     }
 
     #region INotifyPropertyChanged

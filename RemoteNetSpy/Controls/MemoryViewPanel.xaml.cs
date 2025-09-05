@@ -1,6 +1,7 @@
 ﻿using RemoteNetSpy.Models;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -164,9 +165,68 @@ namespace RemoteNetSpy.Controls
     /// </summary>
     public partial class MemoryViewPanel : UserControl
     {
+        private System.Windows.Threading.DispatcherTimer _refreshTimer;
+        private bool _isLoadingBytes = false;
+        private bool _autoRefreshEnabled = false;
+        private static readonly TimeSpan DefaultRefreshInterval = TimeSpan.FromSeconds(1);
+        private byte[] _lastLoadedBuffer = null;
+        private int _highlightsCountdown;
+
+        public bool AutoRefreshEnabled
+        {
+            get => _autoRefreshEnabled;
+            set
+            {
+                _autoRefreshEnabled = value;
+                if (value)
+                    StartAutoRefresh();
+                else
+                    StopAutoRefresh();
+            }
+        }
+
         public MemoryViewPanel()
         {
             InitializeComponent();
+            InitializeTimer();
+        }
+
+        private void InitializeTimer()
+        {
+            _refreshTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = DefaultRefreshInterval
+            };
+            _refreshTimer.Tick += async (s, e) => await TryRefreshBytes();
+        }
+
+        private void StartAutoRefresh()
+        {
+            if (!_refreshTimer.IsEnabled)
+                _refreshTimer.Start();
+        }
+
+        private void StopAutoRefresh()
+        {
+            if (_refreshTimer.IsEnabled)
+                _refreshTimer.Stop();
+        }
+
+        private async Task TryRefreshBytes()
+        {
+            // If we're already loading bytes, don't start another operation
+            if (_isLoadingBytes)
+                return;
+
+            _isLoadingBytes = true;
+            try
+            {
+                await LoadBytesAsync();
+            }
+            finally
+            {
+                _isLoadingBytes = false;
+            }
         }
 
         ulong currentlyShownAddress = 0;
@@ -175,6 +235,7 @@ namespace RemoteNetSpy.Controls
         int updater = 1;
         public async Task LoadBytesAsync()
         {
+            Debug.WriteLine($"{DateTime.Now.ToLongTimeString()} Boop!");
             // Atomicly increase the updater and keep the old value as our "id"
             int id = System.Threading.Interlocked.Increment(ref updater);
             // Sleep to let "Address" update
@@ -187,17 +248,17 @@ namespace RemoteNetSpy.Controls
             if (mvpModel == null)
             {
                 MessageBox.Show("DataContext is not a RemoteAppModel");
+                StopAutoRefresh(); // Stop refresh on error
                 return;
             }
 
             if (mvpModel.Address == 0)
                 return;
 
-            if (mvpModel.Address == currentlyShownAddress && mvpModel.Size == currentlShownSize)
-                return;
-
-            using (fetchSpinner.TemporarilyShow())
+            //using (fetchSpinner.TemporarilyShow())
             {
+                // Debug print that we just starting THE REAL DEAL:
+                Debug.WriteLine($"{DateTime.Now.ToLongTimeString()} Started the real deal");
 
                 byte[] temp = new byte[mvpModel.Size];
                 try
@@ -209,6 +270,7 @@ namespace RemoteNetSpy.Controls
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
+                    StopAutoRefresh(); // Stop refresh on error
                     return;
                 }
 
@@ -227,11 +289,35 @@ namespace RemoteNetSpy.Controls
                     // Ignored
                 }
 
-                MemoryStream ba = new MemoryStream(temp);
-                myHexEditor.Stream = ba;
-                // Update "current" vars
-                currentlyShownAddress = mvpModel.Address;
-                currentlShownSize = mvpModel.Size;
+                bool anyChanged = _lastLoadedBuffer == null || !_lastLoadedBuffer.SequenceEqual(temp);
+                if (anyChanged)
+                {
+                    MemoryStream ba = new MemoryStream(temp);
+                    myHexEditor.Stream = ba;
+                    // Update "current" vars
+                    currentlyShownAddress = mvpModel.Address;
+                    currentlShownSize = mvpModel.Size;
+                    StartAutoRefresh();
+                }
+
+                // Highlight diff bytes
+                _highlightsCountdown--;
+                if (_highlightsCountdown < 1)
+                {
+                    myHexEditor.UnHighLightAll();
+                }
+                if (anyChanged && _lastLoadedBuffer != null)
+                {
+                    for (int i = 0; i < temp.Length; i++)
+                    {
+                        if (temp[i] != _lastLoadedBuffer[i])
+                            myHexEditor.AddHighLight(i, 1, updateVisual: false);
+                    }
+                    myHexEditor.AddHighLight(1, 0, updateVisual: true);
+                    _highlightsCountdown = 10;
+                }
+                _lastLoadedBuffer = (byte[])temp.Clone();
+                Debug.WriteLine($"{DateTime.Now.ToLongTimeString()} Ended the real deal");
             }
         }
 

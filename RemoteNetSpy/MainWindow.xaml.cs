@@ -490,15 +490,7 @@ namespace RemoteNetSpy
 
         private void memoryViewButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_app == null)
-            {
-                MessageBox.Show("You must attach to a process first", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            MemoryViewWindow mvw = new MemoryViewWindow(DataContext as RemoteAppModel);
-            mvw.Show();
+            _remoteAppModel.ShowMemoryView(this);
         }
 
         private void CopyAddressMenuItem_Click(object sender, RoutedEventArgs e)
