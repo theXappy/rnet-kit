@@ -58,6 +58,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="3*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="23"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -210,83 +211,84 @@
                     </Border>
                 </TabItem>
 
-                <!-- Watched Instances -->
-                <!-- Watched Instances -->
-                <!-- Watched Instances -->
-                <TabItem Header="Watched Instances {DUMMY}">
-                    <ListBox x:Name="watchedObjectsListBox" Margin="0" DockPanel.Dock="Top" PreviewMouseMove="watchedObjectsListBox_PreviewMouseMove">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type models:HeapObject}">
-                                <Grid>
-                                    <Grid.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                            <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast"/>
-                                            <MenuItem Header="Add to Playground" Click="FrozenObject_AddToPlayground"/>
-                                        </ContextMenu>
-                                    </Grid.ContextMenu>
-                                    <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
-                                    <TextBlock Margin="0"/>
-                                    <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
-                                        <DockPanel.Children>
-                                            <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                                            <TextBlock Foreground="Aquamarine"
+            </TabControl>
+        </Grid>
+        <DockPanel Background="Pink" Grid.Row="2" Grid.Column="0" Visibility="Collapsed">
+            <!-- Watched Instances (Hidden) -->
+            <ListBox x:Name="watchedObjectsListBox" Margin="0" DockPanel.Dock="Top" PreviewMouseMove="watchedObjectsListBox_PreviewMouseMove">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:HeapObject}">
+                        <Grid>
+                            <Grid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
+                                    <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast"/>
+                                    <MenuItem Header="Add to Playground" Click="FrozenObject_AddToPlayground"/>
+                                </ContextMenu>
+                            </Grid.ContextMenu>
+
+                            <!--This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
+
+                            <TextBlock Margin="0"/>
+                            <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
+                                <DockPanel.Children>
+                                    <TextBlock Text="{Binding Path=Description}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                                    <TextBlock Foreground="Aquamarine"
                                                        Visibility="{Binding Path=Frozen, Converter={StaticResource boolToCollapsabilityConverter}}"
                                                        VerticalAlignment="Center"
                                                        Margin="10,0"> (Frozen)</TextBlock>
-                                            <Button DockPanel.Dock="Right"
+                                    <Button DockPanel.Dock="Right"
                                                    IsEnabled="{Binding Path=Frozen}"
                                                    Padding="8,0"
                                                    Margin="0,0,0,0"
                                                    Click="InspectButtonBaseOnClick">
-                                                <Button.Content>
-                                                    <DockPanel>
-                                                        <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
-                                                        <TextBlock Text="Inspect"/>
-                                                    </DockPanel>
-                                                </Button.Content>
-                                            </Button>
-                                            <Button DockPanel.Dock="Right" Click="FreezeUnfreezeHeapObjectButtonClicked" Padding="8,0" Margin="0,0,4,0" MinWidth="85">
-                                                <Button.Content>
-                                                    <Grid>
-                                                        <DockPanel>
-                                                            <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
-                                                            <!--<TextBlock Text="Interact in rnet-explore"/>-->
-                                                            <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
-                                                        </DockPanel>
-                                                        <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
-                                                            <Image.RenderTransform>
-                                                                <!-- giving the transform a name tells the framework not to freeze it -->
-                                                                <RotateTransform x:Name="noFreeze" />
-                                                            </Image.RenderTransform>
-                                                            <Image.Triggers>
-                                                                <EventTrigger RoutedEvent="Loaded">
-                                                                    <BeginStoryboard>
-                                                                        <Storyboard>
-                                                                            <DoubleAnimation Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)" To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                                                        </Storyboard>
-                                                                    </BeginStoryboard>
-                                                                </EventTrigger>
-                                                            </Image.Triggers>
-                                                        </Image>
-                                                    </Grid>
-                                                </Button.Content>
-                                            </Button>
-                                        </DockPanel.Children>
-                                    </DockPanel>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </TabItem>
+                                        <Button.Content>
+                                            <DockPanel>
+                                                <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
+                                                <TextBlock Text="Inspect"/>
+                                            </DockPanel>
+                                        </Button.Content>
+                                    </Button>
+                                    <Button DockPanel.Dock="Right" Click="FreezeUnfreezeHeapObjectButtonClicked" Padding="8,0" Margin="0,0,4,0" MinWidth="85">
+                                        <Button.Content>
+                                            <Grid>
+                                                <DockPanel>
+                                                    <Image DockPanel.Dock="Left" Source="{Binding Path=Frozen, Converter={StaticResource boolToFreezeIcon}}" Margin="0,2,3,2" Height="16"/>
 
-            </TabControl>
-        </Grid>
+                                                    <TextBlock Text="Interact in rnet-explore"/>
+
+                                                    <TextBlock Text="{Binding Path=Frozen, Converter={StaticResource boolToFreezeButtonText}}"/>
+                                                </DockPanel>
+                                                <Image RenderTransformOrigin="0.5, 0.5" Source="icons/Loading.png" Visibility="Collapsed" Height="16">
+                                                    <!--<Image.RenderTransform>
+                                                        giving the transform a name tells the framework not to freeze it
+                                                        <RotateTransform x:Name="noFreeze" />
+                                                    </Image.RenderTransform>-->
+                                                    <Image.Triggers>
+                                                        <EventTrigger RoutedEvent="Loaded">
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)" To="-360" Duration="0:0:1" RepeatBehavior="Forever" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </Image.Triggers>
+                                                </Image>
+                                            </Grid>
+                                        </Button.Content>
+                                    </Button>
+                                </DockPanel.Children>
+                            </DockPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
         <DockPanel Background="#424242" Grid.Row="3" Grid.Column="0"/>
     </Grid>
 </Window>
