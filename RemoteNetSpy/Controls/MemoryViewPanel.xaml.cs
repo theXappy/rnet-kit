@@ -235,7 +235,6 @@ namespace RemoteNetSpy.Controls
         int updater = 1;
         public async Task LoadBytesAsync()
         {
-            Debug.WriteLine($"{DateTime.Now.ToLongTimeString()} Boop!");
             // Atomicly increase the updater and keep the old value as our "id"
             int id = System.Threading.Interlocked.Increment(ref updater);
             // Sleep to let "Address" update
@@ -258,8 +257,6 @@ namespace RemoteNetSpy.Controls
             //using (fetchSpinner.TemporarilyShow())
             {
                 // Debug print that we just starting THE REAL DEAL:
-                Debug.WriteLine($"{DateTime.Now.ToLongTimeString()} Started the real deal");
-
                 byte[] temp = new byte[mvpModel.Size];
                 try
                 {
@@ -317,7 +314,6 @@ namespace RemoteNetSpy.Controls
                     _highlightsCountdown = 10;
                 }
                 _lastLoadedBuffer = (byte[])temp.Clone();
-                Debug.WriteLine($"{DateTime.Now.ToLongTimeString()} Ended the real deal");
             }
         }
 
