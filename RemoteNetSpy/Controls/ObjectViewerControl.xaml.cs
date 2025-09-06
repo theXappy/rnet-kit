@@ -1,9 +1,6 @@
 ﻿using RemoteNET;
 using RemoteNET.Common;
-using RemoteNET.Internal;
 using RemoteNET.Internal.Reflection;
-using RemoteNET.Internal.Reflection.DotNet;
-using RemoteNetSpy.Controls;
 using RemoteNetSpy.Models;
 using RnetKit.Common;
 using System;
@@ -14,34 +11,118 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Xml.Linq;
+using static ScubaDiver.API.Interactions.Dumps.HeapDump;
+using HeapObject = RemoteNetSpy.Models.HeapObject;
 
-namespace RemoteNetSpy
+namespace RemoteNetSpy.Controls
 {
     /// <summary>
-    /// Interaction logic for ObjectViewer.xaml
+    /// Interaction logic for ObjectViewerControl.xaml
     /// </summary>
-    public partial class ObjectViewer : Window
+    public partial class ObjectViewerControl : UserControl
     {
-        private RemoteObject _ro;
-        private Type _type;
+        private HeapObject _heapObject;
+        private RemoteObject _ro => _heapObject.RemoteObject;
+        private Type _type => _ro.GetType();
         ObservableCollection<MembersGridItem> _items;
+        private Window _parent;
 
         private RemoteAppModel _appModel;
 
-        public ObjectViewer(Window parent, RemoteAppModel appModel, HeapObject ho)
+        public ObjectViewerControl()
         {
             InitializeComponent();
-            double multiplier = parent is ObjectViewer ? 1 : 0.9;
-            if (parent != null)
+        }
+
+        public void Init(Window parent, RemoteAppModel appModel, HeapObject _ho)
+        {
+            _appModel = appModel;
+            _parent = parent;
+
+            _heapObject = _ho;
+
+            RefreshControls();
+        }
+
+        private void RefreshControls()
+        {
+            objTypeTextBox.Text = TypeNameUtils.Normalize(_ro.GetType().FullName);
+            objAddrTextBox.Text = $"0x{_ro.RemoteToken:x8}";
+
+            DynamicRemoteObject dro = _ro.Dynamify() as DynamicRemoteObject;
+
+            List<MembersGridItem> tempItems = new List<MembersGridItem>();
+            List<MemberInfo> ordered = _type.GetMembers(~(BindingFlags.DeclaredOnly)).OrderBy(m => m.Name).ToList();
+            foreach (MemberInfo member in ordered)
             {
-                this.Height = Math.Max(parent.Height * multiplier, 800);
-                this.Width = Math.Max(parent.Width * multiplier, 1200);
+                MembersGridItem mgi = new MembersGridItem(member)
+                {
+                    Name = member.Name,
+                };
+                if (member is FieldInfo fi)
+                {
+                    mgi.MemberType = "Field";
+                    mgi.Type = TypeNameUtils.Normalize(fi.FieldType.ToString()); // Specifying expected type
+                }
+                else if (member is PropertyInfo pi)
+                {
+                    mgi.MemberType = "Property";
+                    mgi.Type = TypeNameUtils.Normalize(pi.PropertyType.ToString()); // Specifying expected type
+                }
+                else if (member is MethodInfo mi)
+                {
+                    if (mi is IRttiMethodBase rmi)
+                    {
+                        mgi.Name = rmi.UndecoratedSignature;
+                        mgi.Type = TypeNameUtils.Normalize(rmi.LazyRetType.TypeName);
+                    }
+                    else
+                    {
+                        // TODO: This triggers a cascade of recursive calls to the resolve remote Types.
+                        mgi.Type = TypeNameUtils.Normalize(mi.ReturnType.ToString());
+                    }
+
+                    mgi.MemberType = "Method";
+                }
+                else
+                {
+                    continue;
+                }
+
+                try
+                {
+                    GetMemberValue(dro, member, mgi);
+                }
+                catch (Exception ex)
+                {
+                    mgi.RawValue = ex;
+                    mgi.Value = ex.Message;
+                    mgi.IsThrownException = true;
+                }
+                tempItems.Add(mgi);
             }
-            objViewerControl.Init(this, appModel, ho);
+
+            _items = new ObservableCollection<MembersGridItem>(tempItems);
+
+            // Try to spot IEnumerables
+            IEnumerable<MemberInfo> methods = _type.GetMethods(~(BindingFlags.DeclaredOnly));
+            if (methods.Any(mi => mi.Name == "GetEnumerator"))
+            {
+                MembersGridItem iEnumerableMgi = new MembersGridItem(null)
+                {
+                    MemberType = "Field",
+                    Name = "Raw View",
+                    Value = "",
+                    Type = "IEnumerable",
+                };
+                _items.Add(iEnumerableMgi);
+            }
+
+            membersGrid.ItemsSource = _items;
         }
 
         private static void GetMemberValue(DynamicRemoteObject dro, MemberInfo member, MembersGridItem mgi)
@@ -110,10 +191,6 @@ namespace RemoteNetSpy
             }
         }
 
-        private void CloseButtonClicked(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
 
         private void InvokeClicked(object sender, RoutedEventArgs e)
         {
@@ -185,7 +262,12 @@ namespace RemoteNetSpy
             }
 
             //MessageBox.Show("Value is not a Remote Object.\nHere's a ToString():\n" + ro);
-            CreateViewerWindow(this, _appModel, obj).ShowDialog();
+            HeapObject ho = new HeapObject
+            {
+                RemoteObject = ro,
+                FullTypeName = mgi.Type,
+            };
+            CreateViewerWindow(_parent, _appModel, obj).ShowDialog();
         }
 
         private void ViewMemoryClicked(object sender, RoutedEventArgs e)
@@ -322,5 +404,189 @@ namespace RemoteNetSpy
             MemoryViewWindow mvw = new MemoryViewWindow(_appModel, address);
             mvw.Show();
         }
+
+        private async void castButtonClicked(object sender, RoutedEventArgs e)
+        {
+            await PromptForVariableCastInnerAsync(_heapObject);
+            RefreshControls();
+        }
+
+        private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
+        {
+            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_appModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
+            Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
+            var typesModel = new TypesModel();
+            List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
+            {
+                return task.Result.Select((DumpedTypeModel newTypeDump) =>
+                {
+                    if (mainControlFullTypeNameToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
+                    {
+                        return existingTypeDump;
+                    }
+                    return newTypeDump;
+                }).ToList();
+            }, TaskScheduler.Default);
+            typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
+
+            bool? res = false;
+
+            Dispatcher.Invoke(() =>
+            {
+                var typeSelectionWindow = new TypeSelectionWindow();
+                typeSelectionWindow.DataContext = typesModel;
+
+                string currFullTypeName = heapObject.FullTypeName;
+                if (currFullTypeName.Contains("::"))
+                {
+                    string currTypeName = currFullTypeName.Split("::").Last();
+                    string regex = "::" + currTypeName + @"$";
+                    typeSelectionWindow.ApplyRegexFilter(regex);
+                }
+
+                res = typeSelectionWindow.ShowDialog();
+            });
+
+            if (res != true)
+                return;
+
+            DumpedTypeModel selectedType = typesModel.SelectedType;
+            if (selectedType == null)
+                return;
+
+            try
+            {
+                Type newType = _appModel.App.GetRemoteType(selectedType.FullTypeName);
+                var newRemoteObject = heapObject.RemoteObject.Cast(newType);
+                heapObject.RemoteObject = newRemoteObject;
+                heapObject.FullTypeName = selectedType.FullTypeName;
+                _appModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task<List<DumpedTypeModel>> GetTypesListAsync(bool all)
+        {
+            IEnumerable<DumpedTypeModel> types = null;
+            if (all)
+            {
+                await Task.Run(() =>
+                {
+                    types = _appModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                });
+            }
+            else
+            {
+                throw new ArgumentException();
+            }
+
+            var tempList = types.ToHashSet().ToList();
+            tempList.Sort((dt1, dt2) => dt1.FullTypeName.CompareTo(dt2.FullTypeName));
+            return tempList;
+        }
     }
+    [DebuggerDisplay("MemberGridItem: {MemberType} {Name}")]
+    public class MembersGridItem : INotifyPropertyChanged
+    {
+        private object _rawValue;
+        public object RawValue
+        {
+            get { return _rawValue; }
+            set
+            {
+                if (_rawValue != value)
+                {
+                    _rawValue = value;
+                    NotifyPropertyChanged(nameof(RawValue));
+                }
+            }
+        }
+
+        private string _memberType;
+        public string MemberType
+        {
+            get { return _memberType; }
+            set
+            {
+                if (_memberType != value)
+                {
+                    _memberType = value;
+                    NotifyPropertyChanged(nameof(MemberType));
+                }
+            }
+        }
+
+        private string _name;
+        public string Name
+        {
+            get { return _name; }
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    NotifyPropertyChanged(nameof(Name));
+                }
+            }
+        }
+
+        private string _value;
+        public string Value
+        {
+            get { return _value; }
+            set
+            {
+                if (_value != value)
+                {
+                    _value = value;
+                    NotifyPropertyChanged(nameof(Value));
+                }
+            }
+        }
+
+        private string _type;
+        public string Type
+        {
+            get { return _type; }
+            set
+            {
+                if (_type != value)
+                {
+                    _type = value;
+                    NotifyPropertyChanged(nameof(Type));
+                }
+            }
+        }
+
+        private bool _isThrownException;
+        public bool IsThrownException
+        {
+            get => _isThrownException;
+            set
+            {
+                _isThrownException = value;
+                NotifyPropertyChanged(nameof(IsThrownException));
+            }
+        }
+
+        private MemberInfo _memInfo;
+
+        public MembersGridItem(MemberInfo memInfo)
+        {
+            _memInfo = memInfo;
+        }
+
+        public MemberInfo GetOriginalMemberInfo() => _memInfo;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void NotifyPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
 }

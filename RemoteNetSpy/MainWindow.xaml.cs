@@ -535,9 +535,33 @@ namespace RemoteNetSpy
             MyTabControl.Items.Add(tab);
         }
 
-        private void TypeView_ObjectFreezeRequested(HeapObject ho)
+        public void CreateNewInstanceTab(HeapObject heapObject)
         {
-            var _ = FreezeUnfreezeAsync(ho);
+            var instanceView = new ObjectViewerControl();
+            instanceView.Init(this, _remoteAppModel, heapObject);
+
+            // Create a header with binding to FullTypeName and object.png icon
+            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            headerPanel.Children.Add(new Image { Height = 16, Source = new BitmapImage(new Uri("icons/object.png", UriKind.Relative)) });
+
+            var typeNameTextBlock = new TextBlock { Margin = new Thickness(4, 0, 0, 0) };
+            var typeBinding = new Binding("FullTypeName") { Source = heapObject };
+            typeNameTextBlock.SetBinding(TextBlock.TextProperty, typeBinding);
+
+            var addressTextBlock = new TextBlock { Margin = new Thickness(8, 0, 0, 0) };
+            addressTextBlock.Text = $"(0x{heapObject.Address:X16})";
+
+            headerPanel.Children.Add(typeNameTextBlock);
+            headerPanel.Children.Add(addressTextBlock);
+
+            TabItem tab = new TabItem()
+            {
+                Header = headerPanel,
+                Content = instanceView
+            };
+
+            MyTabControl.Items.Add(tab);
+            MyTabControl.SelectedItem = tab; // Switch to the new tab
         }
 
         private void PromptForVariableCast(object sender, RoutedEventArgs e)
@@ -673,6 +697,20 @@ namespace RemoteNetSpy
                 };
                 DragDrop.DoDragDrop(listBox, instance, DragDropEffects.Copy);
             }
+        }
+
+        private void TypeView_ObjectFreezeRequested(HeapObject ho)
+        {
+            _ = FreezeUnfreezeAsync(ho); // Already have this method in MainWindow
+
+            CreateNewInstanceTab(ho);
+
+            RemoteObject ro = ho.RemoteObject;
+
+            Type t = ro.GetRemoteType();
+            ushort shortTag = (ushort)ho.Address;
+            string tag = $"{t.Name}_0x{shortTag:X4}";
+            dragDropPlayground.AddObject(ro, tag, t);
         }
     }
 }

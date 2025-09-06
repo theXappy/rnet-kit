@@ -38,6 +38,7 @@
 		<None Remove="icons\ModulePublic_grayed.png" />
 		<None Remove="icons\Modules_Refresh.png" />
 		<None Remove="icons\NewMethod.png" />
+		<None Remove="icons\object.png" />
 		<None Remove="icons\OpenFolder.png" />
 		<None Remove="icons\Property.png" />
 		<None Remove="icons\Refresh.png" />
@@ -129,6 +130,9 @@
 		</Content>
 		<Content Include="icons\NewMethod.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\object.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="icons\OpenFolder.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

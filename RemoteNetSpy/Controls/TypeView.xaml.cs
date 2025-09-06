@@ -40,7 +40,6 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-
         public void Init(DumpedTypeModel model, RemoteAppModel appModel)
         {
             _remoteAppModel = appModel;
@@ -594,6 +593,18 @@ namespace RemoteNetSpy.Controls
             var tempList = types.ToHashSet().ToList();
             tempList.Sort((dt1, dt2) => dt1.FullTypeName.CompareTo(dt2.FullTypeName));
             return tempList;
+        }
+
+        private async void heapInstancesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (heapInstancesListBox.SelectedItem is not HeapObject selectedHeapObject)
+                return;
+
+            if (!selectedHeapObject.Frozen)
+            {
+                // Attempt to freeze the object first
+                ObjectFreezeRequested?.Invoke(selectedHeapObject);
+            }
         }
     }
 }

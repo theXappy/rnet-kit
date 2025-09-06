@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
 using RemoteNET.Internal.Reflection;
+using RemoteNetSpy.Controls;
 
 namespace RemoteNetSpy.Converters;
 
@@ -14,7 +15,7 @@ public class StrValueToInvokeButtonVisibilityConverter : IValueConverter
         if (value == null)
             return Visibility.Collapsed;
 
-        if (value is ObjectViewer.MembersGridItem mgi)
+        if (value is MembersGridItem mgi)
         {
             if (mgi.GetOriginalMemberInfo() is MethodInfo mi)
             {

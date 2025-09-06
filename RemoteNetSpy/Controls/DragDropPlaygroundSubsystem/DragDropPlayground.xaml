@@ -18,10 +18,11 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <!--<ColumnDefinition Width="200" />-->
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <!-- Reservoir -->
-        <GroupBox Header="Reservoir" Grid.Column="0" Margin="8" Visibility="Collapsed">
+        <GroupBox Header="Reservoir" Grid.Column="0" Margin="8">
             <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}">
                 <ListBox.Resources>
                     <DataTemplate DataType="{x:Type local:MethodInfoWrapper}">
@@ -41,7 +42,7 @@
             </ListBox>
         </GroupBox>
         <!-- Main Area -->
-        <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8" Background="Transparent">
+        <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8" Background="Transparent" Grid.Column="1">
             <Canvas x:Name="MainAreaCanvas">
                 <ItemsControl x:Name="MainAreaItemsControl" ItemsSource="{Binding DroppedMethods}">
                     <ItemsControl.ItemsPanel>

@@ -121,7 +121,7 @@
                     </Grid>
                 </Button>
             </DockPanel>
-            <ListBox x:Name="heapInstancesListBox" Margin="0">
+            <ListBox x:Name="heapInstancesListBox" Margin="0" MouseDoubleClick="heapInstancesListBox_MouseDoubleClick">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
