@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
@@ -32,6 +32,7 @@
 		<None Remove="icons\Memory.png" />
 		<None Remove="icons\Method.png" />
 		<None Remove="icons\MethodTable.png" />
+		<None Remove="icons\microscope-24.png" />
 		<None Remove="icons\MissingFile.png" />
 		<None Remove="icons\ModulePublic.png" />
 		<None Remove="icons\ModulePublic_grayed.png" />
@@ -41,13 +42,16 @@
 		<None Remove="icons\Property.png" />
 		<None Remove="icons\Refresh.png" />
 		<None Remove="icons\Remove.png" />
+		<None Remove="icons\rocking-horse-24.png" />
 		<None Remove="icons\Run.png" />
 		<None Remove="icons\Save.png" />
+		<None Remove="icons\search-24.png" />
 		<None Remove="icons\Search.png" />
 		<None Remove="icons\SearchClass.png" />
 		<None Remove="icons\Snowflake.png" />
 		<None Remove="icons\StatusBarSearch1.png" />
 		<None Remove="icons\StatusError.png" />
+		<None Remove="icons\terminal-16.png" />
 		<None Remove="icons\TraceClass.png" />
 		<None Remove="icons\TraceMethod.png" />
 		<None Remove="icons\TracepointEnabled.png" />
@@ -108,6 +112,9 @@
 		<Content Include="icons\MethodTable.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<Content Include="icons\microscope-24.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="icons\MissingFile.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
@@ -135,11 +142,17 @@
 		<Content Include="icons\Remove.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<Content Include="icons\rocking-horse-24.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="icons\Run.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="icons\Save.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\search-24.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="icons\Search.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -155,6 +168,9 @@
 		</Content>
 		<Content Include="icons\StatusError.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\terminal-16.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="icons\TraceClass.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -18,6 +18,7 @@
         d:Background="#1e1e1e"
         PreviewKeyDown="OnKeyDown_DoZoom"
         UseLayoutRounding="True"
+        d:BorderThickness="0"
         >
     <Window.Resources>
         <converters:MemberToIconConverter x:Key="memToIconConverter"/>
@@ -113,7 +114,7 @@
                  SelectedItem="{Binding ElementName=MyTabControl, Path=SelectedItem, Mode=TwoWay}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <ContentControl Content="{Binding Header}" Margin="4,2,0,4"/>
+                            <ContentControl Content="{Binding Header}" Margin="10,6,0,8"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -129,9 +130,14 @@
                 <!-- Tab Item: Types Search -->
                 <!-- Tab Item: Types Search -->
                 <!-- Tab Item: Types Search -->
-                <TabItem Header="Types Search">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="icons/search-24.png" Height="16"/>
+                            <TextBlock Margin="4,0,0,0">Types Search</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
                     <StackPanel>
-                        <TextBlock DockPanel.Dock="Top" Margin="5,2">Search</TextBlock>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -148,7 +154,13 @@
                 <!-- Tab Item: Tracing -->
                 <!-- Tab Item: Tracing -->
                 <!-- Tab Item: Tracing -->
-                <TabItem Header="Tracing">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="icons/microscope-24.png" Height="16"/>
+                            <TextBlock Margin="4,0,0,0">Tracing</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                             <Button Command="{Binding Tracer.RunRemoteNetTracesCommand}" Padding="5,0" Margin="0,2" MinHeight="21">
@@ -195,14 +207,26 @@
                 <!-- Drag and Drop Playground-->
                 <!-- Drag and Drop Playground-->
                 <!-- Drag and Drop Playground-->
-                <TabItem Header="Playground">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="icons/rocking-horse-24.png" Height="16"/>
+                            <TextBlock Margin="4,0,0,0">Playground</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
                     <dragdropexpressionbuilder:DragDropPlayground Grid.Column="1" Grid.Row="0" x:Name="dragDropPlayground" Margin="5,0,0,0"/>
                 </TabItem>
 
                 <!-- C# REPL -->
                 <!-- C# REPL -->
                 <!-- C# REPL -->
-                <TabItem Header="C# REPL">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="icons/terminal-16.png" Height="16"/>
+                            <TextBlock Margin="4,0,0,0">C# REPL</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
                     <Border BorderBrush="#FF3C3C3C" BorderThickness="1" DockPanel.Dock="Right">
                         <Grid>
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">Immediate Window</TextBlock>
