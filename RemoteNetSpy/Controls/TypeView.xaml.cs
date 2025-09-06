@@ -471,5 +471,18 @@ namespace RemoteNetSpy.Controls
             var heapObj = (sender as MenuItem)?.DataContext as HeapObject;
             _remoteAppModel.ShowMemoryView(Window.GetWindow(this), heapObj?.Address);
         }
+
+        private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
+        {
+            Button senderButton = sender as Button;
+            HeapObject dataContext = senderButton.DataContext as HeapObject;
+            if (!dataContext.Frozen || dataContext.RemoteObject == null)
+            {
+                MessageBox.Show("ERROR: Object must be frozen.");
+                return;
+            }
+
+            (ObjectViewer.CreateViewerWindow(null, _remoteAppModel, dataContext.RemoteObject)).Show();
+        }
     }
 }

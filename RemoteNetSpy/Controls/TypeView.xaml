@@ -141,11 +141,22 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <!-- TextBlock fills remaining space -->
                                     <ColumnDefinition Width="Auto" />
-                                    <!-- Button keeps fixed size -->
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Button Grid.Column="1"
+                                                   IsEnabled="{Binding Path=Frozen}"
+                                                   Padding="8,0"
+                                                   Margin="0,0,0,0"
+                                                   Click="InspectButtonBaseOnClick">
+                                    <Button.Content>
+                                        <DockPanel>
+                                            <Image DockPanel.Dock="Left" Source="/icons/Search.png" Margin="0,2,3,2" Height="16"/>
+                                            <TextBlock Text="Inspect"/>
+                                        </DockPanel>
+                                    </Button.Content>
+                                </Button>
+                                <Button Grid.Column="2"
                                         Click="FreezeHeapObjectButtonClicked"
                                         Padding="8,0"
                                         Margin="0,0,4,0"
@@ -187,6 +198,7 @@
                                 <TextBlock Foreground="Aquamarine"
                                                                     Visibility="{Binding Path=Frozen, Converter={StaticResource boolToCollapsabilityConverter}}"
                                                                     VerticalAlignment="Center"
+                                                                    HorizontalAlignment="Right"
                                                                     Margin="10,0"> (Frozen)</TextBlock>
                             </Grid>
                         </Grid>
