@@ -133,7 +133,16 @@
                             <Grid.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Copy Address" Click="CopyAddressMenuItem_Click"/>
-                                    <MenuItem Header="Open in Memory View" Click="ShowMemoryView_Click"/>
+                                    <MenuItem Header="Open in Memory View" Click="ShowMemoryView_Click">
+                                        <MenuItem.Icon>
+                                            <Image Source="../icons/Memory.png" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Cast to Another Type" Click="PromptForVariableCast">
+                                        <MenuItem.Icon>
+                                            <Image Source="../icons/Class.png" Height="16"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
                                 </ContextMenu>
                             </Grid.ContextMenu>
                             <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->

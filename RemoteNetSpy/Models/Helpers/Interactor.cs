@@ -109,13 +109,16 @@ $"{droVarName} = null;\r\n";
 $"{roVarName} = {roVarName}.Cast(app.GetRemoteType(\"{fullTypeName}\"));\r\n" +
 $"{droVarName} = {roVarName}.Dynamify();\r\n";
 
-            _ = _interactiveWindowInitTask.ContinueWith(_ =>
+            if (_interactiveWindowInitTask != null)
             {
-                _ = _interactivePanel.Dispatcher.Invoke(async () =>
+                _ = _interactiveWindowInitTask.ContinueWith(_ =>
                 {
-                    await _interactivePanel.WriteInputTextAsync(objectScript);
-                });
-            }, TaskScheduler.Default);
+                    _ = _interactivePanel.Dispatcher.Invoke(async () =>
+                    {
+                        await _interactivePanel.WriteInputTextAsync(objectScript);
+                    });
+                }, TaskScheduler.Default);
+            }
         }
     }
 }
