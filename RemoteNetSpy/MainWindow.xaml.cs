@@ -537,7 +537,7 @@ namespace RemoteNetSpy
 
         private void TypeView_ObjectFreezeRequested(HeapObject ho)
         {
-            FreezeUnfreezeAsync(ho).Wait();
+            var _ = FreezeUnfreezeAsync(ho);
         }
 
         private void PromptForVariableCast(object sender, RoutedEventArgs e)
