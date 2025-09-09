@@ -4,12 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:DragDropExpressionBuilder"
+             xmlns:models="clr-namespace:RemoteNetSpy.Models"
              xmlns:convert="clr-namespace:DragDropExpressionBuilder.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="1000"
              d:Background="{StaticResource ControlDarkerBorderBrush}"
-             d:DataContext="{x:Static local:DesignTimeData.DesignInstance}"
-             >
+             d:DataContext="{x:Static local:DesignTimeData.DesignInstance}">
     <UserControl.Resources>
         <convert:NullToCollapsedConverter x:Key="NullToCollapsedConverter" />
         <convert:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
@@ -17,7 +17,6 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <!--<ColumnDefinition Width="200" />-->
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
@@ -25,22 +24,28 @@
         <GroupBox Header="Reservoir" Grid.Column="0" Margin="8">
             <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}">
                 <ListBox.Resources>
-                    <DataTemplate DataType="{x:Type local:MethodInfoWrapper}">
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="pack://application:,,,/Assets/Method.png" Margin="0,0,6,0"/>
-                            <TextBlock Text="{Binding DisplayName}" />
-                        </StackPanel>
-                    </DataTemplate>
-                    <DataTemplate DataType="{x:Type local:Instance}">
-                        <StackPanel Orientation="Horizontal">
+                    <DataTemplate DataType="{x:Type models:HeapObject}">
+                        <StackPanel Orientation="Horizontal" MouseEnter="HeapObject_MouseEnter" MouseLeave="HeapObject_MouseLeave">
                             <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0"/>
-                            <TextBlock Text="{Binding Type.Name}" FontWeight="Bold" Margin="0,0,6,0"/>
-                            <TextBlock Text="{Binding Tag}" />
+                            <TextBlock Text="{Binding Description}" FontWeight="Bold"/>
+                            <Button Content="⋮" Width="22" Height="22" Margin="6,0,0,0" Padding="0" Cursor="Hand"
+                                    Click="HeapObjectMethodsButton_Click">
+                                <Button.ContextMenu>
+                                    <ContextMenu ItemsSource="{Binding TypeMethods}">
+                                        <ContextMenu.ItemTemplate>
+                                            <DataTemplate>
+                                                <MenuItem Header="{Binding Name}" Click="MenuItem_Click"/>
+                                            </DataTemplate>
+                                        </ContextMenu.ItemTemplate>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.Resources>
             </ListBox>
         </GroupBox>
+        
         <!-- Main Area -->
         <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8" Background="Transparent" Grid.Column="1">
             <Canvas x:Name="MainAreaCanvas">
@@ -222,6 +227,5 @@
                 </ItemsControl>
             </Canvas>
         </Border>
-
     </Grid>
 </UserControl>

@@ -1,10 +1,14 @@
 ﻿using RemoteNetSpy.Controls.DragDropPlaygroundSubsystem;
+using RemoteNetSpy.Models;
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace DragDropExpressionBuilder
 {
@@ -32,9 +36,16 @@ namespace DragDropExpressionBuilder
         public void AddObject(object obj, string tag) => _viewModel.AddObject(obj, tag);
         public void AddObject(object obj, string tag, Type forcedType) => _viewModel.AddObject(obj, tag, forcedType);
         public void AddMethod(MethodInfo mi) => _viewModel.AddMethod(mi);
+        public void AddHeapObject(HeapObject heapObj) => _viewModel.AddHeapObject(heapObj);
 
         private void ReservoirListBox_PreviewMouseMove(object sender, MouseEventArgs e)
         {
+            if (e.OriginalSource is Button)
+            {
+                // Leave along clicks on the "methods list button"
+                return;
+            }
+
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 var listBox = sender as ListBox;
@@ -47,12 +58,16 @@ namespace DragDropExpressionBuilder
                 {
                     DragDrop.DoDragDrop(listBox, instance, DragDropEffects.Copy);
                 }
+                else if (item is HeapObject heapObj)
+                {
+                    DragDrop.DoDragDrop(listBox, heapObj, DragDropEffects.Copy);
+                }
             }
         }
 
         private void MainAreaBorder_DragOver(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(typeof(MethodInfoWrapper)))
+            if (e.Data.GetDataPresent(typeof(MethodInfoWrapper)) || e.Data.GetDataPresent(typeof(MethodInfo)))
             {
                 return;
             }
@@ -72,6 +87,39 @@ namespace DragDropExpressionBuilder
                     _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, pos.X, pos.Y));
                 }
             }
+            else if (e.Data.GetDataPresent(typeof(MethodInfo)))
+            {
+                var method = e.Data.GetData(typeof(MethodInfo)) as MethodInfo;
+                if (method != null)
+                {
+                    var pos = e.GetPosition(MainAreaCanvas);
+                    var invocation = new MethodInvocation(new MethodInfoWrapper(method));
+                    _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, pos.X, pos.Y));
+                }
+            }
+        }
+
+        private void HeapObject_MouseEnter(object sender, MouseEventArgs e)
+        {
+            var stackPanel = sender as StackPanel;
+            if (stackPanel?.DataContext is HeapObject heapObj && !heapObj.Frozen)
+            {
+                // Do not show methods for unfrozen objects
+                return;
+            }
+
+            if (stackPanel?.DataContext is HeapObject heapObject && heapObject.RemoteObject != null)
+            {
+                var type = heapObject.RemoteObject.GetRemoteType();
+                heapObject.TypeMethods = new ObservableCollection<MethodInfo>(
+                    type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(m => !m.IsSpecialName) // Filter out property accessors etc.
+                );
+            }
+        }
+
+        private void HeapObject_MouseLeave(object sender, MouseEventArgs e)
+        {
         }
 
         // Drag logic for DroppedMethodItem
@@ -125,7 +173,7 @@ namespace DragDropExpressionBuilder
 
         private void ParameterTextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(typeof(Instance)))
+            if (!e.Data.GetDataPresent(typeof(Instance)) && !e.Data.GetDataPresent(typeof(HeapObject)))
             {
                 e.Effects = DragDropEffects.None;
                 e.Handled = true;
@@ -150,21 +198,32 @@ namespace DragDropExpressionBuilder
                     e.Handled = true;
                 }
             }
+            else if (e.Data.GetDataPresent(typeof(HeapObject)))
+            {
+                var heapObj = e.Data.GetData(typeof(HeapObject)) as HeapObject;
+                var element = sender as FrameworkElement;
+                if (heapObj != null && heapObj.Frozen && element != null)
+                {
+                    var parameter = element.DataContext as MethodInvocationParameter;
+                    parameter.AssignedInstance = new Instance
+                    {
+                        Obj = heapObj.RemoteObject,
+                        Type = heapObj.RemoteObject.GetRemoteType(),
+                        Tag = heapObj.Description
+                    };
+                    e.Handled = true;
+                }
+            }
         }
 
         private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // lol
             e.Handled = true;
 
             object? context = (sender as FrameworkElement)?.DataContext;
-            if (context is MethodInvocationParameter mip)
+            if (context is MethodInvocationParameter mip && mip.AssignedInstance is Instance instance)
             {
-                var item = mip.AssignedInstance;
-                if (item is Instance instance)
-                {
-                    DragDrop.DoDragDrop(sender as DependencyObject, instance, DragDropEffects.Copy);
-                }
+                DragDrop.DoDragDrop(sender as DependencyObject, instance, DragDropEffects.Copy);
             }
         }
 
@@ -212,6 +271,30 @@ namespace DragDropExpressionBuilder
         {
             if ((sender as FrameworkElement)?.DataContext is DroppedMethodItem itemToRemove)
                 _viewModel.DroppedMethods.Remove(itemToRemove);
+        }
+
+        private void HeapObjectMethodsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button?.ContextMenu != null)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is MethodInfo mi)
+            {
+                var methodWrapper = new MethodInfoWrapper(mi);
+                if (methodWrapper != null)
+                {
+                    var invocation = new MethodInvocation(methodWrapper);
+                    _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, 40, 40));
+                }
+            }
         }
     }
 }

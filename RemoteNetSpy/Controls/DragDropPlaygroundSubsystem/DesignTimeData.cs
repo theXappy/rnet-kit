@@ -1,4 +1,7 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Reflection;
+using RemoteNetSpy.Models;
 
 namespace DragDropExpressionBuilder
 {
@@ -11,44 +14,32 @@ namespace DragDropExpressionBuilder
             var vm = new PlaygroundViewModel();
             vm.ReservoirItems.Clear();
             vm.DroppedMethods.Clear();
+
+            // Create mock HeapObjects
+            var stringMethods = new ObservableCollection<MethodInfo>(typeof(string).GetMethods(BindingFlags.Public | BindingFlags.Instance));
+            var intMethods = new ObservableCollection<MethodInfo>(typeof(int).GetMethods(BindingFlags.Public | BindingFlags.Instance));
+            var dateTimeMethods = new ObservableCollection<MethodInfo>(typeof(DateTime).GetMethods(BindingFlags.Public | BindingFlags.Instance));
+
+            var heapObj1 = new HeapObject { Address = 0x1000, FullTypeName = "System.String", TypeMethods = stringMethods };
+            var heapObj2 = new HeapObject { Address = 0x2000, FullTypeName = "System.Int32", TypeMethods = intMethods };
+            var heapObj3 = new HeapObject { Address = 0x3000, FullTypeName = "System.DateTime", TypeMethods = dateTimeMethods };
+            heapObj1.RemoteObject = null; // Not frozen for design
+            heapObj2.RemoteObject = null;
+            heapObj3.RemoteObject = null;
+
+            vm.ReservoirItems.Add(heapObj1);
+            vm.ReservoirItems.Add(heapObj2);
+            vm.ReservoirItems.Add(heapObj3);
+
+            // DroppedMethods example (using HeapObject as AssignedInstance)
             var methodInfo1 = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-            var methodInfo2 = typeof(string).GetMethod("Replace", new[] { typeof(string), typeof(string) });
-            var methodInfo3 = typeof(string).GetMethod("ToString", new Type[0]);
-            vm.ReservoirItems.Add(new MethodInfoWrapper(methodInfo1));
-            vm.ReservoirItems.Add(new MethodInfoWrapper(methodInfo2));
-            var instance1 = new Instance { Type = typeof(string), Tag = "StringInstance" };
-            var instance2 = new Instance { Type = typeof(int), Tag = "IntInstance" };
-            var instance3 = new Instance { Type = typeof(DateTime), Tag = "DateTimeInstance" };
-            var instance4 = new Instance { Type = typeof(bool), Tag = "BooleanInstance" };
-            vm.ReservoirItems.Add(instance1);
-            vm.ReservoirItems.Add(instance2);
-            vm.ReservoirItems.Add(instance3);
-            vm.ReservoirItems.Add(instance4);
-            // Add a dropped method for design
             var dropped = new DroppedMethodItem(new MethodInvocation(new MethodInfoWrapper(methodInfo1)), 100, 100);
             dropped.Invocation.ReturnValue = new MethodInvocationParameter(type: typeof(bool), paramName: "ReturnValue")
             {
-                AssignedInstance = instance4,
+                AssignedInstance = new Instance { Type = typeof(bool), Tag = "True" },
             };
-            dropped.Invocation.Parameters[0].AssignedInstance = instance1;
+            dropped.Invocation.Parameters[0].AssignedInstance = new Instance { Type = typeof(string), Tag = "Hello" };
             vm.DroppedMethods.Add(dropped);
-
-            // Add a dropped method for design
-            var dropped2 = new DroppedMethodItem(new MethodInvocation(new MethodInfoWrapper(methodInfo2)), 150, 180);
-            dropped2.Invocation.ReturnValue = new MethodInvocationParameter(type: typeof(string), paramName: "ReturnValue")
-            {
-                AssignedInstance = instance1,
-            };
-            dropped2.Invocation.Parameters[0].AssignedInstance = instance1;
-            vm.DroppedMethods.Add(dropped2);
-
-            // Add a dropped method for design
-            var dropped3 = new DroppedMethodItem(new MethodInvocation(new MethodInfoWrapper(methodInfo3)), 200, 270);
-            dropped3.Invocation.ReturnValue = new MethodInvocationParameter(type: typeof(string), paramName: "ReturnValue")
-            {
-                AssignedInstance = instance1,
-            };
-            vm.DroppedMethods.Add(dropped3);
 
             return vm;
         }

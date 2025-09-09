@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using RemoteNET;
 
@@ -13,6 +15,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
     private string _fullTypeName;
     private string _interactiveRoVarName;
     private string _interactiveDroVarName;
+    private ObservableCollection<MethodInfo> _typeMethods;
 
     public ulong Address
     {
@@ -75,6 +78,16 @@ public class HeapObject : INotifyPropertyChanged, IComparable
             OnPropertyChanged();
             OnPropertyChanged(nameof(Frozen));
             OnPropertyChanged(nameof(Description));
+        }
+    }
+
+    public ObservableCollection<MethodInfo> TypeMethods
+    {
+        get => _typeMethods;
+        set
+        {
+            _typeMethods = value;
+            OnPropertyChanged();
         }
     }
 

@@ -114,7 +114,7 @@
                  SelectedItem="{Binding ElementName=MyTabControl, Path=SelectedItem, Mode=TwoWay}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                            <ContentControl Content="{Binding Header}" Margin="10,6,0,8"/>
+                        <ContentControl Content="{Binding Header}" Margin="10,6,0,8"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -137,18 +137,10 @@
                             <TextBlock Margin="4,0,0,0">Types Search</TextBlock>
                         </StackPanel>
                     </TabItem.Header>
-                    <StackPanel>
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Grid x:Name="AssembliesValuesArea" DockPanel.Dock="Left" MinHeight="200" Margin="2,2,0,2">
-                                <controls:TypeSystemTreeView x:Name="typeSystemTreeView"/>
-                                <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
-                            </Grid>
-                        </Grid>
-                    </StackPanel>
+                    <Grid x:Name="AssembliesValuesArea" Margin="2,2,0,2">
+                        <controls:TypeSystemTreeView x:Name="typeSystemTreeView"/>
+                        <remoteNetSpy:Spinner x:Name="assembliesSpinner" Margin="1" Visibility="Collapsed"/>
+                    </Grid>
                 </TabItem>
 
                 <!-- Tab Item: Tracing -->

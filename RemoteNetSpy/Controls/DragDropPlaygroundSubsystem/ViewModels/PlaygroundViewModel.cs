@@ -1,4 +1,5 @@
 using Microsoft.Diagnostics.Runtime.AbstractDac;
+using RemoteNetSpy.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -10,27 +11,27 @@ namespace DragDropExpressionBuilder
         public ObservableCollection<object> ReservoirItems { get; } = new();
         public ObservableCollection<DroppedMethodItem> DroppedMethods { get; } = new();
 
-        //
         public void LoadDemoData()
         {
             ReservoirItems.Clear();
             DroppedMethods.Clear();
-            var methodInfo1 = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-            var methodInfo2 = typeof(string).GetMethod("Replace", new[] { typeof(string), typeof(string) });
-            var staticMethodInfo = typeof(string).GetMethod("IsNullOrEmpty", new[] { typeof(string) });
-            AddMethod(methodInfo1);
-            AddMethod(methodInfo2);
-            AddMethod(staticMethodInfo);
-            AddObject("Hello!", "StringInstance");
-            //ReservoirItems.Add(new Instance { Type = typeof(string), Tag = "EmptyString", Obj = string.Empty });
-            AddObject(string.Empty, "EmptyString");
-            AddObject(1, "IntInstance");
-            AddObject(DateTime.Now, "DateTimeInstance");
         }
 
+        public void AddHeapObject(HeapObject heapObj)
+        {
+            if (!ReservoirItems.Contains(heapObj))
+            {
+                ReservoirItems.Add(heapObj);
+            }
+        }
+
+        [Obsolete("Use AddHeapObject instead")]
         public void AddObject(object o, string tag) => ReservoirItems.Add(new Instance { Type = o.GetType(), Tag = tag, Obj = o });
+
+        [Obsolete("Use AddHeapObject instead")]
         public void AddObject(object o, string tag, Type forcedType) => ReservoirItems.Add(new Instance { Type = forcedType, Tag = tag, Obj = o });
 
+        [Obsolete("Methods should be accessed through HeapObject")]
         public void AddMethod(System.Reflection.MethodInfo mi) => ReservoirItems.Add(new MethodInfoWrapper(mi));
     }
 }

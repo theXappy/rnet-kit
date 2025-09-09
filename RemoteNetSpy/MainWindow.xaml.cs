@@ -533,6 +533,7 @@ namespace RemoteNetSpy
             tab.Content = typeView;
 
             MyTabControl.Items.Add(tab);
+            MyTabControl.SelectedItem = tab; // Switch to the new tab
         }
 
         public void CreateNewInstanceTab(HeapObject heapObject)
@@ -666,12 +667,7 @@ namespace RemoteNetSpy
 
         private void FrozenObject_AddToPlayground(HeapObject heapObj)
         {
-            RemoteObject ro = heapObj.RemoteObject;
-
-            Type t = ro.GetRemoteType();
-            ushort shortTag = (ushort)heapObj.Address;
-            string tag = $"{t.Name}_0x{shortTag:X4}";
-            dragDropPlayground.AddObject(ro, tag , t);
+            dragDropPlayground.AddHeapObject(heapObj);
         }
 
         private void watchedObjectsListBox_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -699,18 +695,12 @@ namespace RemoteNetSpy
             }
         }
 
-        private void TypeView_ObjectFreezeRequested(HeapObject ho)
+        private async void TypeView_ObjectFreezeRequested(HeapObject ho)
         {
-            _ = FreezeUnfreezeAsync(ho); // Already have this method in MainWindow
+            await FreezeUnfreezeAsync(ho); // Already have this method in MainWindow
 
             CreateNewInstanceTab(ho);
-
-            RemoteObject ro = ho.RemoteObject;
-
-            Type t = ro.GetRemoteType();
-            ushort shortTag = (ushort)ho.Address;
-            string tag = $"{t.Name}_0x{shortTag:X4}";
-            dragDropPlayground.AddObject(ro, tag, t);
+            dragDropPlayground.AddHeapObject(ho);
         }
     }
 }
