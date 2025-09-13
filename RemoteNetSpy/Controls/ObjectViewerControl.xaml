@@ -17,6 +17,7 @@
         <converters:RawViewToVisibilityConverter x:Key="rawViewToVisibilityConverter"/>
         <converters:RawViewItemToVisibilityConverter x:Key="rawViewItemToVisibilityConverter"/>
         <converters:CollectionEmptyToVisibilityConverter x:Key="collectionEmptyToVisibilityConverter"/>
+        <converters:MemberNameToFormattedTextConverter x:Key="memberNameToFormattedTextConverter"/>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>
@@ -103,8 +104,15 @@
                                     </Button>
                                     <Image DockPanel.Dock="Left"
                                   Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16"/>
-                                    <TextBlock DockPanel.Dock="Left"
-                                  Text="{Binding Path=Name}"/>
+                                    <!-- Updated to use the formatted text converter -->
+                                    <ContentPresenter DockPanel.Dock="Left">
+                                        <ContentPresenter.Content>
+                                            <MultiBinding Converter="{StaticResource memberNameToFormattedTextConverter}">
+                                                <Binding Path="Name"/>
+                                                <Binding Path="MemberType"/>
+                                            </MultiBinding>
+                                        </ContentPresenter.Content>
+                                    </ContentPresenter>
                                 </DockPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -166,7 +174,8 @@
             </DataGrid>
             
             <!-- Members Empty Overlay -->
-            <Grid Visibility="{Binding ItemsSource, ElementName=membersGrid, Converter={StaticResource collectionEmptyToVisibilityConverter}}">
+            <Grid Visibility="{Binding ItemsSource, ElementName=membersGrid, Converter={StaticResource collectionEmptyToVisibilityConverter}}"
+                  d:Visibility="Hidden">
                 <!-- Background overlay - non-interactive -->
                 <Border Background="#40404040" 
                         IsHitTestVisible="False"/>
