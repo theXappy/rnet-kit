@@ -107,6 +107,7 @@
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="4*"/>
             </Grid.ColumnDefinitions>
             <ListBox FontSize="14"
@@ -118,7 +119,8 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TabControl x:Name="MyTabControl" Grid.Column="1" SelectedIndex="0">
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>
+            <TabControl x:Name="MyTabControl" Grid.Column="2" SelectedIndex="0">
                 <TabControl.Template>
                     <ControlTemplate TargetType="TabControl">
                         <Grid>
