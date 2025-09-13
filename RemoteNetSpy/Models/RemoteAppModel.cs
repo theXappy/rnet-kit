@@ -6,6 +6,7 @@ using RemoteNetSpy.Models.Helpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -114,7 +115,7 @@ public class RemoteAppModel : INotifyPropertyChanged
     #endregion
 
 
-    public async Task<IEnumerable<HeapObject>> SearchHeap(string fullTypeNameQuery)
+    public async Task<IEnumerable<HeapObjectViewModel>> SearchHeap(string fullTypeNameQuery)
     {
         var x = CliWrap.Cli.Wrap("rnet-dump.exe")
                     .WithArguments($"heap -t {TargetPid} -q \"{fullTypeNameQuery}\" " + UnmanagedFlagIfNeeded())
@@ -125,8 +126,67 @@ public class RemoteAppModel : INotifyPropertyChanged
             .SkipWhile(line => !line.Contains("Found "))
             .Skip(1)
             .Select(str => str.Trim())
-            .Select(HeapObject.Parse);
+            .Select(HeapObjectViewModel.Parse);
 
         return newInstances;
+    }
+
+    public async Task<bool> PromptForVariableCastAsync(HeapObjectViewModel heapObject, System.Windows.Threading.Dispatcher dispatcher)
+    {
+        // Preparting a "Types Model" for the TypeSelectionWindow
+        ObservableCollection<DumpedTypeModel> types = new ObservableCollection<DumpedTypeModel>(ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
+        //Dictionary<string, DumpedTypeModel> fullNamesToTypes = types.ToDictionary(x => x.FullTypeName);
+        //List<DumpedTypeModel> deepCopiesTypesList = types.ToList();
+        //deepCopiesTypesList = deepCopiesTypesList.Select((DumpedTypeModel newTypeDump) =>
+        //{
+        //    if (fullNamesToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
+        //    {
+        //        return existingTypeDump;
+        //    }
+        //    return newTypeDump;
+        //}).ToList();
+        List<DumpedTypeModel> deduplicatedList = types.GroupBy(x => x.FullTypeName)
+                                                      .Select(group => group.First())
+                                                      .ToList();
+
+        var typesModel = new TypesModel();
+        typesModel.Types = new ObservableCollection<DumpedTypeModel>(deduplicatedList);
+
+        bool? res = false;
+        await dispatcher.InvokeAsync(() =>
+        {
+            var typeSelectionWindow = new TypeSelectionWindow();
+            typeSelectionWindow.DataContext = typesModel;
+
+            string currFullTypeName = heapObject.FullTypeName;
+            if (currFullTypeName.Contains("::"))
+            {
+                string currTypeName = currFullTypeName.Split("::").Last();
+                string regex = "::" + currTypeName + @"$";
+                typeSelectionWindow.ApplyRegexFilter(regex);
+            }
+
+            res = typeSelectionWindow.ShowDialog();
+        });
+
+        if (res != true)
+            return false;
+
+        DumpedTypeModel selectedType = typesModel.SelectedType;
+        if (selectedType == null)
+            return false;
+
+        try
+        {
+            Type newType = App.GetRemoteType(selectedType.FullTypeName);
+            heapObject.Cast(newType);
+            Interactor.CastVar(heapObject, selectedType.FullTypeName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
     }
 }

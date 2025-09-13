@@ -20,9 +20,12 @@ namespace DragDropExpressionBuilder
             var intMethods = new ObservableCollection<MethodInfo>(typeof(int).GetMethods(BindingFlags.Public | BindingFlags.Instance));
             var dateTimeMethods = new ObservableCollection<MethodInfo>(typeof(DateTime).GetMethods(BindingFlags.Public | BindingFlags.Instance));
 
-            var heapObj1 = new HeapObject { Address = 0x1000, FullTypeName = "System.String", TypeMethods = stringMethods };
-            var heapObj2 = new HeapObject { Address = 0x2000, FullTypeName = "System.Int32", TypeMethods = intMethods };
-            var heapObj3 = new HeapObject { Address = 0x3000, FullTypeName = "System.DateTime", TypeMethods = dateTimeMethods };
+            var heapObj1 = new HeapObjectViewModel { Address = 0x1000, FullTypeName = "System.String" };
+            var heapObj2 = new HeapObjectViewModel { Address = 0x2000, FullTypeName = "System.Int32" };
+            var heapObj3 = new HeapObjectViewModel { Address = 0x3000, FullTypeName = "System.DateTime" };
+            heapObj1.SetTypeMethodsForDesign(stringMethods);
+            heapObj2.SetTypeMethodsForDesign(intMethods);
+            heapObj3.SetTypeMethodsForDesign(dateTimeMethods);
             heapObj1.RemoteObject = null; // Not frozen for design
             heapObj2.RemoteObject = null;
             heapObj3.RemoteObject = null;

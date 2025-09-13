@@ -26,7 +26,7 @@ namespace RemoteNetSpy.Models.Helpers
         {
             Parent = parent;
             _interactivePanel = null;
-            AddVarCommand = new RelayCommand<HeapObject>(AddVar);
+            AddVarCommand = new RelayCommand<HeapObjectViewModel>(AddVar);
         }
 
         public async Task InitAsync(MainWindow mw)
@@ -56,7 +56,7 @@ $"var app = RemoteAppFactory.Connect(Process.GetProcessById({Parent.TargetPid}),
             return;
         }
 
-        public void AddVar(HeapObject dataContext)
+        public void AddVar(HeapObjectViewModel dataContext)
         {
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
@@ -81,7 +81,7 @@ $"dynamic {droVarName} = {roVarName}.Dynamify();\r\n";
             }, TaskScheduler.Default);
         }
 
-        public void DeleteVar(HeapObject dataContext)
+        public void DeleteVar(HeapObjectViewModel dataContext)
         {
             string roVarName = dataContext.InteractiveRoVarName;
             string droVarName = dataContext.InteractiveDroVarName;
@@ -96,7 +96,7 @@ $"{droVarName} = null;\r\n";
             });
         }
 
-        public void CastVar(HeapObject dataContext, string fullTypeName)
+        public void CastVar(HeapObjectViewModel dataContext, string fullTypeName)
         {
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {

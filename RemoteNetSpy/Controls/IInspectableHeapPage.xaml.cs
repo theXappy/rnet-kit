@@ -18,7 +18,7 @@ namespace RemoteNetSpy.Controls
     /// </summary>
     public partial class IInspectableHeapPage : UserControl
     {
-        private List<HeapObject> _instancesList;
+        private List<HeapObjectViewModel> _instancesList;
 
         public IInspectableHeapPage()
         {
@@ -42,7 +42,7 @@ namespace RemoteNetSpy.Controls
             findHeapInstancesButtonSpinner.Visibility = Visibility.Visible;
             findHeapInstancesButtonTextPanel.Visibility = Visibility.Collapsed;
 
-            List<HeapObject> newInstances = new List<HeapObject>();
+            List<HeapObjectViewModel> newInstances = new List<HeapObjectViewModel>();
             foreach (CandidateObject candidate in candidates)
             {
                 RemoteObject ro;
@@ -72,7 +72,7 @@ namespace RemoteNetSpy.Controls
                         $"[IInspectable Heap Search] Failed to examine name of remote object: {ro}.\nEx:\n{ex}");
                 }
 
-                newInstances.Add(new HeapObject()
+                newInstances.Add(new HeapObjectViewModel()
                 {
                     FullTypeName = name,
                     Address = ro.RemoteToken
@@ -83,7 +83,7 @@ namespace RemoteNetSpy.Controls
             // Carry with us all previously frozen objects
             if (_instancesList != null)
             {
-                List<HeapObject> combined = new List<HeapObject>(_instancesList.Where(oldObj => oldObj.Frozen));
+                List<HeapObjectViewModel> combined = new List<HeapObjectViewModel>(_instancesList.Where(oldObj => oldObj.Frozen));
                 foreach (var instance in newInstances)
                 {
                     if (!combined.Contains(instance))

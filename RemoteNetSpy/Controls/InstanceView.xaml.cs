@@ -22,7 +22,7 @@ namespace RemoteNetSpy.Controls
     public partial class InstanceView : UserControl
     {
         private RemoteAppModel _remoteAppModel;
-        private HeapObject _heapObject;
+        private HeapObjectViewModel _heapObject;
         private ObservableCollection<MembersGridItem> _items;
 
         public InstanceView()
@@ -30,7 +30,7 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-        public void Init(RemoteAppModel remoteAppModel, HeapObject heapObject)
+        public void Init(RemoteAppModel remoteAppModel, HeapObjectViewModel heapObject)
         {
             _remoteAppModel = remoteAppModel;
             _heapObject = heapObject;
@@ -159,61 +159,9 @@ namespace RemoteNetSpy.Controls
             RefreshMembersGrid();
         }
 
-        private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
+        private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
         {
-            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_remoteAppModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
-            Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
-            var typesModel = new TypesModel();
-            List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
-            {
-                return task.Result.Select((DumpedTypeModel newTypeDump) =>
-                {
-                    if (mainControlFullTypeNameToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
-                    {
-                        return existingTypeDump;
-                    }
-                    return newTypeDump;
-                }).ToList();
-            }, TaskScheduler.Default);
-            typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
-
-            bool? res = false;
-
-            Dispatcher.Invoke(() =>
-            {
-                var typeSelectionWindow = new TypeSelectionWindow();
-                typeSelectionWindow.DataContext = typesModel;
-
-                string currFullTypeName = heapObject.FullTypeName;
-                if (currFullTypeName.Contains("::"))
-                {
-                    string currTypeName = currFullTypeName.Split("::").Last();
-                    string regex = "::" + currTypeName + @"$";
-                    typeSelectionWindow.ApplyRegexFilter(regex);
-                }
-
-                res = typeSelectionWindow.ShowDialog();
-            });
-
-            if (res != true)
-                return;
-
-            DumpedTypeModel selectedType = typesModel.SelectedType;
-            if (selectedType == null)
-                return;
-
-            try
-            {
-                Type newType = _remoteAppModel.App.GetRemoteType(selectedType.FullTypeName);
-                var newRemoteObject = heapObject.RemoteObject.Cast(newType);
-                heapObject.RemoteObject = newRemoteObject;
-                heapObject.FullTypeName = selectedType.FullTypeName;
-                _remoteAppModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            await _remoteAppModel.PromptForVariableCastAsync(heapObject, Dispatcher);
         }
 
         private async Task<List<DumpedTypeModel>> GetTypesListAsync(bool all)

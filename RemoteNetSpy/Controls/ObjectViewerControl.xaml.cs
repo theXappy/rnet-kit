@@ -16,7 +16,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using static ScubaDiver.API.Interactions.Dumps.HeapDump;
-using HeapObject = RemoteNetSpy.Models.HeapObject;
+using HeapObjectViewModel = RemoteNetSpy.Models.HeapObjectViewModel;
 
 namespace RemoteNetSpy.Controls
 {
@@ -25,7 +25,7 @@ namespace RemoteNetSpy.Controls
     /// </summary>
     public partial class ObjectViewerControl : UserControl
     {
-        private HeapObject _heapObject;
+        private HeapObjectViewModel _heapObject;
         private RemoteObject _ro => _heapObject.RemoteObject;
         private Type _type => _ro.GetType();
         ObservableCollection<MembersGridItem> _items;
@@ -38,7 +38,7 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-        public void Init(Window parent, RemoteAppModel appModel, HeapObject _ho)
+        public void Init(Window parent, RemoteAppModel appModel, HeapObjectViewModel _ho)
         {
             _appModel = appModel;
             _parent = parent;
@@ -262,7 +262,7 @@ namespace RemoteNetSpy.Controls
             }
 
             //MessageBox.Show("Value is not a Remote Object.\nHere's a ToString():\n" + ro);
-            HeapObject ho = new HeapObject
+            HeapObjectViewModel ho = new HeapObjectViewModel
             {
                 RemoteObject = ro,
                 FullTypeName = mgi.Type,
@@ -383,7 +383,7 @@ namespace RemoteNetSpy.Controls
                 else
                 {
                     // TODO: I hope it's ok to create this VM here
-                    var ho = new HeapObject()
+                    var ho = new HeapObjectViewModel()
                     {
                         FullTypeName = remoteType?.FullName,
                         Address = ro.RemoteToken,
@@ -411,7 +411,7 @@ namespace RemoteNetSpy.Controls
             RefreshControls();
         }
 
-        private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
+        private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
         {
             ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_appModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
             Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
@@ -457,9 +457,7 @@ namespace RemoteNetSpy.Controls
             try
             {
                 Type newType = _appModel.App.GetRemoteType(selectedType.FullTypeName);
-                var newRemoteObject = heapObject.RemoteObject.Cast(newType);
-                heapObject.RemoteObject = newRemoteObject;
-                heapObject.FullTypeName = selectedType.FullTypeName;
+                heapObject.Cast(newType);
                 _appModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
             }
             catch (Exception ex)

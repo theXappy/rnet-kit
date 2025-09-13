@@ -51,7 +51,7 @@
                 </Style>
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type models:HeapObject}">
+                <DataTemplate DataType="{x:Type models:HeapObjectViewModel}">
                     <DockPanel Margin="0" LastChildFill="False" MinHeight="16">
                         <TextBlock Text="{Binding Path=.}" DockPanel.Dock="Left"
                                VerticalAlignment="Center"/>

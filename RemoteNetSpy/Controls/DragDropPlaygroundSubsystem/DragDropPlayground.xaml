@@ -24,7 +24,7 @@
         <GroupBox Header="Reservoir" Grid.Column="0" Margin="8">
             <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}">
                 <ListBox.Resources>
-                    <DataTemplate DataType="{x:Type models:HeapObject}">
+                    <DataTemplate DataType="{x:Type models:HeapObjectViewModel}">
                         <StackPanel Orientation="Horizontal" MouseEnter="HeapObject_MouseEnter" MouseLeave="HeapObject_MouseLeave">
                             <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding Description}" FontWeight="Bold"/>

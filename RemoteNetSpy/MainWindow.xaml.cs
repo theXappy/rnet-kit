@@ -25,7 +25,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using HeapObject = RemoteNetSpy.Models.HeapObject;
+using HeapObjectViewModel = RemoteNetSpy.Models.HeapObjectViewModel;
 
 namespace RemoteNetSpy
 {
@@ -247,7 +247,7 @@ namespace RemoteNetSpy
         }
 
 
-        private List<HeapObject> _watchedInstancesList;
+        private List<HeapObjectViewModel> _watchedInstancesList;
         private async Task RefreshSearchAndWatchedListsAsync()
         {
             await Dispatcher.InvokeAsync(() =>
@@ -259,7 +259,7 @@ namespace RemoteNetSpy
 
                 var instancesListCopy = _watchedInstancesList.ToList();
                 ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
-                frozens.Filter = (item) => (item as HeapObject).Frozen;
+                frozens.Filter = (item) => (item as HeapObjectViewModel).Frozen;
                 watchedObjectsListBox.ItemsSource = frozens;
             });
         }
@@ -309,7 +309,7 @@ namespace RemoteNetSpy
             dPanel.Visibility = Visibility.Collapsed;
             loadingImage.Visibility = Visibility.Visible;
 
-            HeapObject ho = senderButton.DataContext as HeapObject;
+            HeapObjectViewModel ho = senderButton.DataContext as HeapObjectViewModel;
 
             // Heavy operation
             Task<bool> freezeUnfreezeTask = FreezeUnfreezeAsync(ho);
@@ -346,7 +346,7 @@ namespace RemoteNetSpy
             }, TaskScheduler.Default);
         }
 
-        private async Task<bool> FreezeUnfreezeAsync(HeapObject dataContext)
+        private async Task<bool> FreezeUnfreezeAsync(HeapObjectViewModel dataContext)
         {
             bool isFrozen = dataContext.Frozen;
             try
@@ -437,7 +437,7 @@ namespace RemoteNetSpy
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
-            HeapObject dataContext = senderButton.DataContext as HeapObject;
+            HeapObjectViewModel dataContext = senderButton.DataContext as HeapObjectViewModel;
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
                 MessageBox.Show("ERROR: Object must be frozen.");
@@ -495,7 +495,7 @@ namespace RemoteNetSpy
 
         private void CopyAddressMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var heapObj = (sender as MenuItem).DataContext as HeapObject;
+            var heapObj = (sender as MenuItem).DataContext as HeapObjectViewModel;
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
 
@@ -536,7 +536,7 @@ namespace RemoteNetSpy
             MyTabControl.SelectedItem = tab; // Switch to the new tab
         }
 
-        public void CreateNewInstanceTab(HeapObject heapObject)
+        public void CreateNewInstanceTab(HeapObjectViewModel heapObject)
         {
             var instanceView = new ObjectViewerControl();
             instanceView.Init(this, _remoteAppModel, heapObject);
@@ -567,13 +567,13 @@ namespace RemoteNetSpy
 
         private void PromptForVariableCast(object sender, RoutedEventArgs e)
         {
-            var heapObject = (sender as MenuItem).DataContext as HeapObject;
+            var heapObject = (sender as MenuItem).DataContext as HeapObjectViewModel;
             if (heapObject == null)
                 return;
             PromptForVariableCastInnerAsync(heapObject);
         }
 
-        private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
+        private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
         {
             //
             // Prepare new "Type Selection Window" to select the target type
@@ -640,9 +640,7 @@ namespace RemoteNetSpy
             try
             {
                 Type newType = _app.GetRemoteType(selectedType.FullTypeName);
-                var newRemoteObject = heapObject.RemoteObject.Cast(newType);
-                heapObject.RemoteObject = newRemoteObject;
-                heapObject.FullTypeName = selectedType.FullTypeName;
+                heapObject.Cast(newType);
                 _remoteAppModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
             }
             catch (Exception ex)
@@ -660,12 +658,12 @@ namespace RemoteNetSpy
         {
             if (sender is not MenuItem menuItem)
                 return;
-            if (menuItem.DataContext is not HeapObject heapObj)
+            if (menuItem.DataContext is not HeapObjectViewModel heapObj)
                 return;
             FrozenObject_AddToPlayground(heapObj);
         }
 
-        private void FrozenObject_AddToPlayground(HeapObject heapObj)
+        private void FrozenObject_AddToPlayground(HeapObjectViewModel heapObj)
         {
             dragDropPlayground.AddHeapObject(heapObj);
         }
@@ -676,7 +674,7 @@ namespace RemoteNetSpy
             {
                 var listBox = sender as ListBox;
                 var item = listBox?.SelectedItem;
-                if (item is not HeapObject ho)
+                if (item is not HeapObjectViewModel ho)
                     return;
                 
                 RemoteObject ro = ho.RemoteObject;
@@ -695,7 +693,7 @@ namespace RemoteNetSpy
             }
         }
 
-        private async void TypeView_ObjectFreezeRequested(HeapObject ho)
+        private async void TypeView_ObjectFreezeRequested(HeapObjectViewModel ho)
         {
             await FreezeUnfreezeAsync(ho); // Already have this method in MainWindow
 

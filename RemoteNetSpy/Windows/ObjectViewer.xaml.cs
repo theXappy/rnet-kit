@@ -32,7 +32,7 @@ namespace RemoteNetSpy
 
         private RemoteAppModel _appModel;
 
-        public ObjectViewer(Window parent, RemoteAppModel appModel, HeapObject ho)
+        public ObjectViewer(Window parent, RemoteAppModel appModel, HeapObjectViewModel ho)
         {
             InitializeComponent();
             double multiplier = parent is ObjectViewer ? 1 : 0.9;
@@ -301,7 +301,7 @@ namespace RemoteNetSpy
                 else
                 {
                     // TODO: I hope it's ok to create this VM here
-                    var ho = new HeapObject()
+                    var ho = new HeapObjectViewModel()
                     {
                         FullTypeName = remoteType?.FullName,
                         Address = ro.RemoteToken,

@@ -17,7 +17,7 @@ namespace DragDropExpressionBuilder
             DroppedMethods.Clear();
         }
 
-        public void AddHeapObject(HeapObject heapObj)
+        public void AddHeapObject(HeapObjectViewModel heapObj)
         {
             if (!ReservoirItems.Contains(heapObj))
             {

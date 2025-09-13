@@ -36,7 +36,7 @@ namespace DragDropExpressionBuilder
         public void AddObject(object obj, string tag) => _viewModel.AddObject(obj, tag);
         public void AddObject(object obj, string tag, Type forcedType) => _viewModel.AddObject(obj, tag, forcedType);
         public void AddMethod(MethodInfo mi) => _viewModel.AddMethod(mi);
-        public void AddHeapObject(HeapObject heapObj) => _viewModel.AddHeapObject(heapObj);
+        public void AddHeapObject(HeapObjectViewModel heapObj) => _viewModel.AddHeapObject(heapObj);
 
         private void ReservoirListBox_PreviewMouseMove(object sender, MouseEventArgs e)
         {
@@ -58,7 +58,7 @@ namespace DragDropExpressionBuilder
                 {
                     DragDrop.DoDragDrop(listBox, instance, DragDropEffects.Copy);
                 }
-                else if (item is HeapObject heapObj)
+                else if (item is HeapObjectViewModel heapObj)
                 {
                     DragDrop.DoDragDrop(listBox, heapObj, DragDropEffects.Copy);
                 }
@@ -102,19 +102,19 @@ namespace DragDropExpressionBuilder
         private void HeapObject_MouseEnter(object sender, MouseEventArgs e)
         {
             var stackPanel = sender as StackPanel;
-            if (stackPanel?.DataContext is HeapObject heapObj && !heapObj.Frozen)
+            if (stackPanel?.DataContext is HeapObjectViewModel heapObj && !heapObj.Frozen)
             {
                 // Do not show methods for unfrozen objects
                 return;
             }
 
-            if (stackPanel?.DataContext is HeapObject heapObject && heapObject.RemoteObject != null)
+            if (stackPanel?.DataContext is HeapObjectViewModel heapObject && heapObject.RemoteObject != null)
             {
                 var type = heapObject.RemoteObject.GetRemoteType();
-                heapObject.TypeMethods = new ObservableCollection<MethodInfo>(
+                heapObject.SetTypeMethodsForDesign(new ObservableCollection<MethodInfo>(
                     type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                        .Where(m => !m.IsSpecialName) // Filter out property accessors etc.
-                );
+                        .Where(m => !m.IsSpecialName)
+                ));
             }
         }
 
@@ -173,7 +173,7 @@ namespace DragDropExpressionBuilder
 
         private void ParameterTextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(typeof(Instance)) && !e.Data.GetDataPresent(typeof(HeapObject)))
+            if (!e.Data.GetDataPresent(typeof(Instance)) && !e.Data.GetDataPresent(typeof(HeapObjectViewModel)))
             {
                 e.Effects = DragDropEffects.None;
                 e.Handled = true;
@@ -198,9 +198,9 @@ namespace DragDropExpressionBuilder
                     e.Handled = true;
                 }
             }
-            else if (e.Data.GetDataPresent(typeof(HeapObject)))
+            else if (e.Data.GetDataPresent(typeof(HeapObjectViewModel)))
             {
-                var heapObj = e.Data.GetData(typeof(HeapObject)) as HeapObject;
+                var heapObj = e.Data.GetData(typeof(HeapObjectViewModel)) as HeapObjectViewModel;
                 var element = sender as FrameworkElement;
                 if (heapObj != null && heapObj.Frozen && element != null)
                 {

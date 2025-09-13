@@ -33,7 +33,7 @@ namespace RemoteNetSpy.Controls
     {
         private DumpedTypeModel _model;
         private RemoteAppModel _remoteAppModel;
-        private List<HeapObject> _instancesList;
+        private List<HeapObjectViewModel> _instancesList;
 
         public TypeView()
         {
@@ -128,7 +128,7 @@ namespace RemoteNetSpy.Controls
                 // TODO: This code is silly LOL.
                 if (_instancesList != null)
                 {
-                    List<HeapObject> combined = [.. _instancesList.Where(oldObj => oldObj.Frozen)];
+                    List<HeapObjectViewModel> combined = [.. _instancesList.Where(oldObj => oldObj.Frozen)];
                     foreach (var instance in newInstances)
                     {
                         if (!combined.Contains(instance))
@@ -156,7 +156,7 @@ namespace RemoteNetSpy.Controls
             await Dispatcher.InvokeAsync(() =>
             {
                 ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-                unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
+                unfrozens.Filter = (item) => (item as HeapObjectViewModel).Frozen == false;
                 heapInstancesListBox.ItemsSource = unfrozens;
             });
         }
@@ -304,7 +304,7 @@ namespace RemoteNetSpy.Controls
             {
                 StringBuilder csv = new StringBuilder();
                 csv.AppendLine("Address,Type,Frozen");
-                foreach (HeapObject heapObject in _instancesList)
+                foreach (HeapObjectViewModel heapObject in _instancesList)
                 {
                     csv.AppendLine($"{heapObject.Address},{heapObject.FullTypeName},{heapObject.Frozen}");
                 }
@@ -392,7 +392,7 @@ namespace RemoteNetSpy.Controls
             MethodSentToPlayground(methodInfo);
         }
 
-        private void FrozenObject_AddToPlayground(HeapObject heapObj)
+        private void FrozenObject_AddToPlayground(HeapObjectViewModel heapObj)
         {
             RemoteObject ro = heapObj.RemoteObject;
 
@@ -416,7 +416,7 @@ namespace RemoteNetSpy.Controls
             dPanel.Visibility = Visibility.Collapsed;
             loadingImage.Visibility = Visibility.Visible;
 
-            HeapObject ho = senderButton.DataContext as HeapObject;
+            HeapObjectViewModel ho = senderButton.DataContext as HeapObjectViewModel;
 
             // Heavy operation
             ObjectFreezeRequested(ho);
@@ -447,7 +447,7 @@ namespace RemoteNetSpy.Controls
             RefreshSearchAndWatchedListsAsync();
         }
 
-        public event Action<HeapObject> ObjectFreezeRequested;
+        public event Action<HeapObjectViewModel> ObjectFreezeRequested;
 
 
         private async Task RefreshSearchAndWatchedListsAsync()
@@ -455,27 +455,27 @@ namespace RemoteNetSpy.Controls
             await Dispatcher.InvokeAsync(() =>
             {
                 ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-                unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
+                unfrozens.Filter = (item) => (item as HeapObjectViewModel).Frozen == false;
                 heapInstancesListBox.ItemsSource = unfrozens;
             });
         }
 
         private void CopyAddressMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var heapObj = (sender as MenuItem).DataContext as HeapObject;
+            var heapObj = (sender as MenuItem).DataContext as HeapObjectViewModel;
             Clipboard.SetText($"0x{heapObj.Address:X16}");
         }
 
         private void ShowMemoryView_Click(object sender, RoutedEventArgs e)
         {
-            var heapObj = (sender as MenuItem)?.DataContext as HeapObject;
+            var heapObj = (sender as MenuItem)?.DataContext as HeapObjectViewModel;
             _remoteAppModel.ShowMemoryView(Window.GetWindow(this), heapObj?.Address);
         }
 
         private void InspectButtonBaseOnClick(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
-            HeapObject dataContext = senderButton.DataContext as HeapObject;
+            HeapObjectViewModel dataContext = senderButton.DataContext as HeapObjectViewModel;
             if (!dataContext.Frozen || dataContext.RemoteObject == null)
             {
                 MessageBox.Show("ERROR: Object must be frozen.");
@@ -487,13 +487,13 @@ namespace RemoteNetSpy.Controls
 
         private void PromptForVariableCast(object sender, RoutedEventArgs e)
         {
-            var heapObject = (sender as MenuItem).DataContext as HeapObject;
+            var heapObject = (sender as MenuItem).DataContext as HeapObjectViewModel;
             if (heapObject == null)
                 return;
             PromptForVariableCastInnerAsync(heapObject);
         }
 
-        private async Task PromptForVariableCastInnerAsync(HeapObject heapObject)
+        private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
         {
             //
             // Prepare new "Type Selection Window" to select the target type
@@ -560,9 +560,7 @@ namespace RemoteNetSpy.Controls
             try
             {
                 Type newType = _remoteAppModel.App.GetRemoteType(selectedType.FullTypeName);
-                var newRemoteObject = heapObject.RemoteObject.Cast(newType);
-                heapObject.RemoteObject = newRemoteObject;
-                heapObject.FullTypeName = selectedType.FullTypeName;
+                heapObject.Cast(newType);
                 _remoteAppModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
             }
             catch (Exception ex)
@@ -597,7 +595,7 @@ namespace RemoteNetSpy.Controls
 
         private async void heapInstancesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (heapInstancesListBox.SelectedItem is not HeapObject selectedHeapObject)
+            if (heapInstancesListBox.SelectedItem is not HeapObjectViewModel selectedHeapObject)
                 return;
 
             if (!selectedHeapObject.Frozen)

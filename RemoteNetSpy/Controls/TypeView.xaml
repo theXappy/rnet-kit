@@ -128,7 +128,7 @@
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type models:HeapObject}">
+                    <DataTemplate DataType="{x:Type models:HeapObjectViewModel}">
                         <Grid>
                             <Grid.ContextMenu>
                                 <ContextMenu>

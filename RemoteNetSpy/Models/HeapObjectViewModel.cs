@@ -8,14 +8,14 @@ using RemoteNET;
 
 namespace RemoteNetSpy.Models;
 
-public class HeapObject : INotifyPropertyChanged, IComparable
+public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
 {
     private ulong _address;
     private RemoteObject remoteObject;
     private string _fullTypeName;
     private string _interactiveRoVarName;
     private string _interactiveDroVarName;
-    private ObservableCollection<MethodInfo> _typeMethods;
+    private ObservableCollection<MethodInfo> _typeMethodsCache;
 
     public ulong Address
     {
@@ -42,8 +42,10 @@ public class HeapObject : INotifyPropertyChanged, IComparable
         {
             if (value == _fullTypeName) return;
             _fullTypeName = value;
+            _typeMethodsCache = null; // Invalidate cache on type change
             OnPropertyChanged();
             OnPropertyChanged(nameof(Description));
+            OnPropertyChanged(nameof(TypeMethods));
         }
     }
     public string InteractiveRoVarName
@@ -75,19 +77,26 @@ public class HeapObject : INotifyPropertyChanged, IComparable
         set
         {
             remoteObject = value;
+            _typeMethodsCache = null; // Invalidate cache on type change
             OnPropertyChanged();
             OnPropertyChanged(nameof(Frozen));
             OnPropertyChanged(nameof(Description));
+            OnPropertyChanged(nameof(TypeMethods));
         }
     }
 
     public ObservableCollection<MethodInfo> TypeMethods
     {
-        get => _typeMethods;
-        set
+        get
         {
-            _typeMethods = value;
-            OnPropertyChanged();
+            if (_typeMethodsCache == null && RemoteObject != null)
+            {
+                // Load and cache methods for the current type
+                var type = RemoteObject.GetRemoteType();
+                var methods = type?.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                _typeMethodsCache = methods != null ? new ObservableCollection<MethodInfo>(methods) : new ObservableCollection<MethodInfo>();
+            }
+            return _typeMethodsCache;
         }
     }
 
@@ -95,7 +104,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
 
     public string Description => $"0x{Address:X16} {FullTypeName}";
 
-    public static HeapObject Parse(string text)
+    public static HeapObjectViewModel Parse(string text)
     {
         string[] splitted = text.Split(' ');
         string addressStr = splitted[0];
@@ -103,7 +112,7 @@ public class HeapObject : INotifyPropertyChanged, IComparable
             addressStr = addressStr[2..];
         ulong address = Convert.ToUInt64(addressStr, 16);
 
-        return new HeapObject() { Address = address, FullTypeName = splitted[1] };
+        return new HeapObjectViewModel() { Address = address, FullTypeName = splitted[1] };
     }
 
     public override string ToString()
@@ -113,14 +122,14 @@ public class HeapObject : INotifyPropertyChanged, IComparable
 
     public int CompareTo(object obj)
     {
-        if (obj is HeapObject casted)
+        if (obj is HeapObjectViewModel casted)
             return _address.CompareTo(casted._address);
         return -1;
     }
 
     public override bool Equals(object obj)
     {
-        if (obj is HeapObject casted)
+        if (obj is HeapObjectViewModel casted)
             return _address.Equals(casted._address);
         return false;
     }
@@ -144,4 +153,17 @@ public class HeapObject : INotifyPropertyChanged, IComparable
     }
 
     #endregion
+
+    // For design-time/test data only
+    internal void SetTypeMethodsForDesign(ObservableCollection<MethodInfo> methods)
+    {
+        _typeMethodsCache = methods;
+        OnPropertyChanged(nameof(TypeMethods));
+    }
+
+    public void Cast(Type newType)
+    {
+        RemoteObject = RemoteObject.Cast(newType);
+        FullTypeName = newType.FullName;
+    }
 }
