@@ -134,17 +134,7 @@ public class RemoteAppModel : INotifyPropertyChanged
     public async Task<bool> PromptForVariableCastAsync(HeapObjectViewModel heapObject, System.Windows.Threading.Dispatcher dispatcher)
     {
         // Preparting a "Types Model" for the TypeSelectionWindow
-        ObservableCollection<DumpedTypeModel> types = new ObservableCollection<DumpedTypeModel>(ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
-        //Dictionary<string, DumpedTypeModel> fullNamesToTypes = types.ToDictionary(x => x.FullTypeName);
-        //List<DumpedTypeModel> deepCopiesTypesList = types.ToList();
-        //deepCopiesTypesList = deepCopiesTypesList.Select((DumpedTypeModel newTypeDump) =>
-        //{
-        //    if (fullNamesToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
-        //    {
-        //        return existingTypeDump;
-        //    }
-        //    return newTypeDump;
-        //}).ToList();
+        IEnumerable<DumpedTypeModel> types = ClassesModel.FilteredAssemblies.SelectMany(a => a.Types);
         List<DumpedTypeModel> deduplicatedList = types.GroupBy(x => x.FullTypeName)
                                                       .Select(group => group.First())
                                                       .ToList();
