@@ -522,15 +522,71 @@ namespace RemoteNetSpy
             typeView.ObjectSentToPlayground += dragDropPlayground.AddObject;
             typeView.ObjectFreezeRequested += TypeView_ObjectFreezeRequested;
 
-            StackPanel header = new StackPanel() { Orientation = Orientation.Horizontal };
-            header.Children.Add(new Image() { Height = 16, Source = new BitmapImage(new Uri("icons/Class.png", UriKind.Relative)) });
-            header.Children.Add(new TextBlock() { Text = model.FullTypeName, Margin = new Thickness(4,0,0,0) });
-
+            DockPanel header = new DockPanel() 
+            {
+                Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            
+            // Add close button first and dock it to the right
+            Button closeButton = new Button()
+            {
+                Content = "X",
+                Width = 32,
+                Height = 34,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+                FontSize = 14,
+                Background = System.Windows.Media.Brushes.Transparent,
+                BorderBrush = System.Windows.Media.Brushes.Transparent,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(closeButton, Dock.Right);
+            header.Children.Add(closeButton);
+            
+            // Add icon and text (these will fill the remaining space on the left)
+            Image icon = new Image() 
+            {
+                Height = 16,
+                Margin = new Thickness(0, 6, 0, 8),
+                Source = new BitmapImage(new Uri("icons/Class.png", UriKind.Relative))
+            };
+            header.Children.Add(icon);
+            
+            TextBlock textBlock = new TextBlock() 
+            {
+                Text = model.FullTypeName,
+                Margin = new Thickness(4,6,8,8),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            header.Children.Add(textBlock);
+            
             TabItem tab = new TabItem()
             {
                 Header = header
             };
             tab.Content = typeView;
+            
+            // Set up close button click handler
+            closeButton.Click += (sender, e) =>
+            {
+                MyTabControl.Items.Remove(tab);
+                e.Handled = true; // Prevent tab selection when clicking close button
+            };
+            
+            // Add hover effects to close button
+            closeButton.MouseEnter += (sender, e) =>
+            {
+                closeButton.Foreground = System.Windows.Media.Brushes.White;
+                closeButton.Background = System.Windows.Media.Brushes.Red;
+            };
+            
+            closeButton.MouseLeave += (sender, e) =>
+            {
+                closeButton.Foreground = System.Windows.Media.Brushes.Gray;
+                closeButton.Background = System.Windows.Media.Brushes.Transparent;
+            };
 
             MyTabControl.Items.Add(tab);
             MyTabControl.SelectedItem = tab; // Switch to the new tab
@@ -542,23 +598,73 @@ namespace RemoteNetSpy
             instanceView.Init(this, _remoteAppModel, heapObject);
 
             // Create a header with binding to FullTypeName and object.png icon
-            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            headerPanel.Children.Add(new Image { Height = 16, Source = new BitmapImage(new Uri("icons/object.png", UriKind.Relative)) });
+            var headerPanel = new DockPanel() 
+            {
+                Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            
+            // Add close button first and dock it to the right
+            Button closeButton = new Button()
+            {
+                Content = "X",
+                Width = 32,
+                Height = 34,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+                FontSize = 14,
+                Background = System.Windows.Media.Brushes.Transparent,
+                BorderBrush = System.Windows.Media.Brushes.Transparent,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(closeButton, Dock.Right);
+            headerPanel.Children.Add(closeButton);
 
-            var typeNameTextBlock = new TextBlock { Margin = new Thickness(4, 0, 0, 0) };
+            // Add icon
+            Image icon = new Image
+            {
+                Height = 16,
+                Margin = new Thickness(0, 6, 0, 8),
+                Source = new BitmapImage(new Uri("icons/object.png", UriKind.Relative))
+            };
+            headerPanel.Children.Add(icon);
+
+            // Add type name text block
+            var typeNameTextBlock = new TextBlock { Margin = new Thickness(4, 6, 0, 8), VerticalAlignment = VerticalAlignment.Center };
             var typeBinding = new Binding("FullTypeName") { Source = heapObject };
             typeNameTextBlock.SetBinding(TextBlock.TextProperty, typeBinding);
-
-            var addressTextBlock = new TextBlock { Margin = new Thickness(8, 0, 0, 0) };
-            addressTextBlock.Text = $"(0x{heapObject.Address:X16})";
-
             headerPanel.Children.Add(typeNameTextBlock);
+
+            // Add address text block
+            var addressTextBlock = new TextBlock { Margin = new Thickness(8, 6, 8, 8), VerticalAlignment = VerticalAlignment.Center };
+            addressTextBlock.Text = $"(0x{heapObject.Address:X16})";
             headerPanel.Children.Add(addressTextBlock);
 
             TabItem tab = new TabItem()
             {
                 Header = headerPanel,
                 Content = instanceView
+            };
+            
+            // Set up close button click handler
+            closeButton.Click += (sender, e) =>
+            {
+                MyTabControl.Items.Remove(tab);
+                e.Handled = true; // Prevent tab selection when clicking close button
+            };
+            
+            // Add hover effects to close button
+            closeButton.MouseEnter += (sender, e) =>
+            {
+                closeButton.Foreground = System.Windows.Media.Brushes.White;
+                closeButton.Background = System.Windows.Media.Brushes.Red;
+            };
+            
+            closeButton.MouseLeave += (sender, e) =>
+            {
+                closeButton.Foreground = System.Windows.Media.Brushes.Gray;
+                closeButton.Background = System.Windows.Media.Brushes.Transparent;
             };
 
             MyTabControl.Items.Add(tab);
@@ -697,8 +803,16 @@ namespace RemoteNetSpy
         {
             await FreezeUnfreezeAsync(ho); // Already have this method in MainWindow
 
-            CreateNewInstanceTab(ho);
-            dragDropPlayground.AddHeapObject(ho);
+            if (ho.Frozen)
+            {
+                CreateNewInstanceTab(ho);
+                dragDropPlayground.AddHeapObject(ho);
+            }
+            else
+            {
+                // TODO: Remove tab
+                // TODO: Remvoe from playground
+            }
         }
     }
 }

@@ -111,11 +111,12 @@
                 <ColumnDefinition Width="4*"/>
             </Grid.ColumnDefinitions>
             <ListBox FontSize="14"
+                 HorizontalContentAlignment="Stretch"
                  ItemsSource="{Binding ElementName=MyTabControl, Path=Items}"
                  SelectedItem="{Binding ElementName=MyTabControl, Path=SelectedItem, Mode=TwoWay}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <ContentControl Content="{Binding Header}" Margin="10,6,0,8"/>
+                        <ContentControl Content="{Binding Header}"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -130,11 +131,9 @@
                     </ControlTemplate>
                 </TabControl.Template>
                 <!-- Tab Item: Types Search -->
-                <!-- Tab Item: Types Search -->
-                <!-- Tab Item: Types Search -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="10,6,0,8">
                             <Image Source="icons/search-24.png" Height="16"/>
                             <TextBlock Margin="4,0,0,0">Types Search</TextBlock>
                         </StackPanel>
@@ -146,11 +145,9 @@
                 </TabItem>
 
                 <!-- Tab Item: Tracing -->
-                <!-- Tab Item: Tracing -->
-                <!-- Tab Item: Tracing -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="10,6,0,8">
                             <Image Source="icons/microscope-24.png" Height="16"/>
                             <TextBlock Margin="4,0,0,0">Tracing</TextBlock>
                         </StackPanel>
@@ -199,24 +196,20 @@
                 </TabItem>
 
                 <!-- Drag and Drop Playground-->
-                <!-- Drag and Drop Playground-->
-                <!-- Drag and Drop Playground-->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="10,6,0,8">
                             <Image Source="icons/rocking-horse-24.png" Height="16"/>
                             <TextBlock Margin="4,0,0,0">Playground</TextBlock>
                         </StackPanel>
                     </TabItem.Header>
-                    <dragdropexpressionbuilder:DragDropPlayground Grid.Column="1" Grid.Row="0" x:Name="dragDropPlayground" Margin="5,0,0,0"/>
+                    <dragdropexpressionbuilder:DragDropPlayground Grid.Column="1" Grid.Row="0" x:Name="dragDropPlayground"/>
                 </TabItem>
 
                 <!-- C# REPL -->
-                <!-- C# REPL -->
-                <!-- C# REPL -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="10,6,0,8">
                             <Image Source="icons/terminal-16.png" Height="16"/>
                             <TextBlock Margin="4,0,0,0">C# REPL</TextBlock>
                         </StackPanel>

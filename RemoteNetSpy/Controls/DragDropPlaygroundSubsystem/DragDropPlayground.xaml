@@ -21,8 +21,8 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <!-- Reservoir -->
-        <GroupBox Header="Reservoir" Grid.Column="0" Margin="8">
-            <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}">
+        <GroupBox Header="Reservoir" Grid.Column="0" Margin="1">
+            <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}" MinWidth="200">
                 <ListBox.Resources>
                     <DataTemplate DataType="{x:Type models:HeapObjectViewModel}">
                         <StackPanel Orientation="Horizontal" MouseEnter="HeapObject_MouseEnter" MouseLeave="HeapObject_MouseLeave">
