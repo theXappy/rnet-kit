@@ -23,6 +23,7 @@
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
         <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
         <converters:CollectionEmptyToVisibilityConverter x:Key="collectionEmptyToVisibilityConverter"/>
+        <converters:MemberNameToFormattedTextConverter x:Key="memberNameToFormattedTextConverter"/>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -95,16 +96,23 @@
                         <DataTemplate DataType="{x:Type models:DumpedMember}">
                             <DockPanel>
                                 <Image Source="{Binding Path=MemberType, Converter={StaticResource memToIconConverter}}" Margin="0,0,3,0" Height="16" Width="17"/>
-                                <TextBlock Text="{Binding Path=NormalizedName}" MouseDown="MemberListItemMouseDown">
-                                    <TextBlock.ContextMenu>
+                                <!-- Updated to use the formatted text converter -->
+                                <ContentPresenter MouseDown="MemberListItemMouseDown">
+                                    <ContentPresenter.Content>
+                                        <MultiBinding Converter="{StaticResource memberNameToFormattedTextConverter}">
+                                            <Binding Path="NormalizedName"/>
+                                            <Binding Path="MemberType"/>
+                                        </MultiBinding>
+                                    </ContentPresenter.Content>
+                                    <ContentPresenter.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Copy Member" DataContext="{Binding Mode=OneWay}"
                                                                   Click="MemberMenuItem_OnClick"/>
                                             <MenuItem Header="Add to Playground" DataContext="{Binding Mode=OneWay}"
                                                                   Click="MemberMenuItem_AddToPlayground"/>
                                         </ContextMenu>
-                                    </TextBlock.ContextMenu>
-                                </TextBlock>
+                                    </ContentPresenter.ContextMenu>
+                                </ContentPresenter>
                             </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

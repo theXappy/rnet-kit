@@ -9,6 +9,21 @@ using System.Windows.Media;
 
 namespace RemoteNetSpy.Converters
 {
+    /// <summary>
+    /// Multi-value converter that colorizes method signatures with Visual Studio-like syntax highlighting.
+    /// Used in both ObjectViewerControl (for member grid) and TypeView (for members list).
+    /// 
+    /// Takes two inputs:
+    /// 1. Member name/signature (string)
+    /// 2. Member type (string) - "Method", "Field", "Property", etc.
+    /// 
+    /// Returns a TextBlock with colored syntax for methods:
+    /// - Return types: Blue
+    /// - Method names: Bright Yellow  
+    /// - Parameter types: Green
+    /// - Parameter names: Gray
+    /// - Non-methods: Default light gray
+    /// </summary>
     public class MemberNameToFormattedTextConverter : IMultiValueConverter
     {
         // Visual Studio C# colors (approximation for dark theme)

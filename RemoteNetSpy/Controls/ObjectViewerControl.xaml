@@ -65,6 +65,12 @@
             <DockPanel DockPanel.Dock="Top" Margin="0,5">
                 <TextBlock>Members:</TextBlock>
             </DockPanel>
+            <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
+                <TextBox x:Name="membersFilterBox" TextChanged="membersFilterBox_TextChanged" Height="26" VerticalContentAlignment="Center" Background="#07ffffff"/>
+                <Button x:Name="clearMembersFilterButton" 
+                        DockPanel.Dock="Right" 
+                        Click="clearMembersFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
+            </Grid>
         </DockPanel>
         <Grid>
             <DataGrid x:Name="membersGrid" DockPanel.Dock="Top" Margin="0,5" 

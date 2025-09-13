@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using static ScubaDiver.API.Interactions.Dumps.HeapDump;
 using HeapObjectViewModel = RemoteNetSpy.Models.HeapObjectViewModel;
@@ -138,6 +139,9 @@ namespace RemoteNetSpy.Controls
             }
 
             membersGrid.ItemsSource = _items;
+
+            // Apply any existing filter
+            ApplyMembersFilter();
 
             // Check for sister types if no members found
             if (_items.Count == 0)
@@ -448,6 +452,46 @@ namespace RemoteNetSpy.Controls
             (sender as TextBox).Visibility = Visibility.Hidden;
         }
 
+        private void membersFilterBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplyMembersFilter();
+        }
+
+        private void clearMembersFilterButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            membersFilterBox.Clear();
+        }
+
+        private void ApplyMembersFilter()
+        {
+            if (membersGrid.ItemsSource == null)
+                return;
+
+            string filter = membersFilterBox?.Text;
+            ICollectionView view = CollectionViewSource.GetDefaultView(membersGrid.ItemsSource);
+            
+            if (view == null) 
+                return;
+                
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                view.Filter = null;
+            }
+            else
+            {
+                // Case-insensitive filtering on the Name property only
+                StringComparison comp = StringComparison.CurrentCultureIgnoreCase;
+                view.Filter = (o) =>
+                {
+                    if (o is MembersGridItem item)
+                    {
+                        return item.Name?.Contains(filter, comp) == true;
+                    }
+                    return false;
+                };
+            }
+        }
+
         private void EnumerateRawValueButton_OnClick(object sender, RoutedEventArgs e)
         {
             // TODO: Add children to that _items source thingy
@@ -476,6 +520,9 @@ namespace RemoteNetSpy.Controls
             }
 
             (sender as Button).IsEnabled = false;
+            
+            // Reapply filter to include the newly added items
+            ApplyMembersFilter();
         }
 
 
@@ -529,6 +576,7 @@ namespace RemoteNetSpy.Controls
         {
             await PromptForVariableCastInnerAsync(_heapObject);
             RefreshControls();
+            // Filter is already applied in RefreshControls()
         }
 
         private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
