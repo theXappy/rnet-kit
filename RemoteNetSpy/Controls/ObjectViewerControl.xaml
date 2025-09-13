@@ -38,7 +38,7 @@
         <!-- Style for Buttons -->
         <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}"/>
     </UserControl.Resources>
-    <DockPanel Margin="7">
+    <DockPanel>
         <DockPanel DockPanel.Dock="Top">
             <DockPanel DockPanel.Dock="Top" Margin="0,2">
                 <DockPanel DockPanel.Dock="Top" Margin="0,3" LastChildFill="False">
@@ -154,10 +154,8 @@
                                           Padding="2,1"
                                           VerticalContentAlignment="Center">
                                         <DockPanel>
-                                            <Image Margin="0,0,3,0" Height="14" 
-                                                 Source="/icons/Memory.png"
-                                                 />
-                                            <TextBlock Padding="5,1">View</TextBlock>
+                                            <Image Margin="0,0,3,0" Height="16" Source="/icons/Memory.png"/>
+                                            <TextBlock Padding="3,0">Memory View</TextBlock>
                                         </DockPanel>
                                     </Button>
                                     <!-- (X) icon for thrown exceptions when accessing/invoking the member/method -->
