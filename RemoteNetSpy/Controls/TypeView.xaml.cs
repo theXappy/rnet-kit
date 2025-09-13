@@ -31,20 +31,21 @@ namespace RemoteNetSpy.Controls
     /// </summary>
     public partial class TypeView : UserControl
     {
-        private DumpedTypeModel _model;
         private RemoteAppModel _remoteAppModel;
         private List<HeapObjectViewModel> _instancesList;
+        private TypeViewState _viewState;
 
         public TypeView()
         {
             InitializeComponent();
+            _viewState = new TypeViewState();
+            DataContext = _viewState;
         }
 
         public void Init(DumpedTypeModel model, RemoteAppModel appModel)
         {
             _remoteAppModel = appModel;
-            _model = model;
-            this.DataContext = model;
+            _viewState.TypeModel = model;
 
             //
             // (1)
@@ -100,15 +101,7 @@ namespace RemoteNetSpy.Controls
         private void FindHeapInstancesButtonClicked(object sender, RoutedEventArgs e) => FindHeapInstancesAsync();
         private async Task FindHeapInstancesAsync()
         {
-            if (_model == null)
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show("You must select a type from the \"Types\" list first.", $"Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                });
-                return;
-            }
+            _viewState.IsHeapSearchInProgress = true;
 
             Dispatcher.Invoke(() =>
             {
@@ -119,7 +112,7 @@ namespace RemoteNetSpy.Controls
             using (findHeapInstancesButtonSpinner.TemporarilyShow())
             {
 
-                string type = (_model)?.FullTypeName;
+                string type = (this._viewState.TypeModel)?.FullTypeName;
 
 
                 var newInstances = await _remoteAppModel.SearchHeap(type);
@@ -149,6 +142,8 @@ namespace RemoteNetSpy.Controls
                 findHeapInstancesButtonSpinner.Width = findHeapInstancesButtonTextPanel.ActualWidth;
                 findHeapInstancesButtonTextPanel.Visibility = Visibility.Visible;
             });
+
+            _viewState.IsHeapSearchInProgress = false;
         }
 
         private async Task RefreshSearchListsAsync()
@@ -158,6 +153,7 @@ namespace RemoteNetSpy.Controls
                 ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
                 unfrozens.Filter = (item) => (item as HeapObjectViewModel).Frozen == false;
                 heapInstancesListBox.ItemsSource = unfrozens;
+                _viewState.HeapInstancesSource = unfrozens;
             });
         }
 
@@ -225,13 +221,6 @@ namespace RemoteNetSpy.Controls
 
         private void TraceTypeFull_OnClick(object sender, RoutedEventArgs e)
         {
-            if (_model == null)
-            {
-                MessageBox.Show("You must select a type from the \"Types\" list first.", $"Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
             // The type is selected, so all of its members should be dumped on the members list
             foreach (object member in membersListBox.Items)
             {
@@ -240,13 +229,6 @@ namespace RemoteNetSpy.Controls
         }
         private void TraceTypeOptimal_OnClick(object sender, RoutedEventArgs e)
         {
-            if (_model == null)
-            {
-                MessageBox.Show("You must select a type from the \"Types\" list first.", $"Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
             string[] forbidden =
             {
                 "System.Boolean Equals(",
@@ -316,7 +298,6 @@ namespace RemoteNetSpy.Controls
                 }
             });
         }
-
 
 
         private void membersListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -457,6 +438,7 @@ namespace RemoteNetSpy.Controls
                 ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
                 unfrozens.Filter = (item) => (item as HeapObjectViewModel).Frozen == false;
                 heapInstancesListBox.ItemsSource = unfrozens;
+                _viewState.HeapInstancesSource = unfrozens;
             });
         }
 
@@ -584,7 +566,7 @@ namespace RemoteNetSpy.Controls
                 throw new ArgumentException();
                 //await Task.Run(() =>
                 //{
-                //    types = _remoteAppModel.Assemblies[assembly].Types;
+                //    types = _remoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
                 //});
             }
 

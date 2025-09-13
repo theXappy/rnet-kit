@@ -23,7 +23,7 @@ namespace RemoteNetSpy.Controls
     /// <summary>
     /// Interaction logic for ObjectViewerControl.xaml
     /// </summary>
-    public partial class ObjectViewerControl : UserControl
+    public partial class ObjectViewerControl : UserControl, INotifyPropertyChanged
     {
         private HeapObjectViewModel _heapObject;
         private RemoteObject _ro => _heapObject.RemoteObject;
@@ -33,9 +33,24 @@ namespace RemoteNetSpy.Controls
 
         private RemoteAppModel _appModel;
 
+        private DumpedTypeModel _suggestedSisterType;
+        public DumpedTypeModel SuggestedSisterType
+        {
+            get => _suggestedSisterType;
+            set
+            {
+                _suggestedSisterType = value;
+                OnPropertyChanged(nameof(SuggestedSisterType));
+                OnPropertyChanged(nameof(HasSuggestedSisterType));
+            }
+        }
+
+        public bool HasSuggestedSisterType => _suggestedSisterType != null;
+
         public ObjectViewerControl()
         {
             InitializeComponent();
+            DataContext = this;
         }
 
         public void Init(Window parent, RemoteAppModel appModel, HeapObjectViewModel _ho)
@@ -123,6 +138,111 @@ namespace RemoteNetSpy.Controls
             }
 
             membersGrid.ItemsSource = _items;
+
+            // Check for sister types if no members found
+            if (_items.Count == 0)
+            {
+                _ = Task.Run(FindSuggestedSisterTypeAsync);
+            }
+            else
+            {
+                SuggestedSisterType = null;
+            }
+        }
+
+        private async Task FindSuggestedSisterTypeAsync()
+        {
+            try
+            {
+                string currentTypeName = _heapObject.FullTypeName;
+                if (string.IsNullOrEmpty(currentTypeName))
+                    return;
+
+                // Extract the class name (last part after :: or .)
+                string className = currentTypeName;
+                if (currentTypeName.Contains("::"))
+                {
+                    className = currentTypeName.Split("::").Last();
+                }
+                else if (currentTypeName.Contains("."))
+                {
+                    className = currentTypeName.Split(".").Last();
+                }
+
+                // Find sister types with the same class name
+                var allTypes = _appModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                var sisterTypes = allTypes.Where(t => 
+                {
+                    string otherClassName = t.FullTypeName;
+                    if (otherClassName.Contains("::"))
+                    {
+                        otherClassName = otherClassName.Split("::").Last();
+                    }
+                    else if (otherClassName.Contains("."))
+                    {
+                        otherClassName = otherClassName.Split(".").Last();
+                    }
+                    
+                    return otherClassName == className && t.FullTypeName != currentTypeName;
+                }).ToList();
+
+                // Check each sister type for members
+                DumpedTypeModel suggestedType = null;
+                int typesWithMembers = 0;
+
+                foreach (var sisterType in sisterTypes)
+                {
+                    try
+                    {
+                        Type remoteType = _appModel.App.GetRemoteType(sisterType.FullTypeName);
+                        MemberInfo[] members = remoteType.GetMembers(~(BindingFlags.DeclaredOnly));
+                        
+                        if (members.Length > 0)
+                        {
+                            typesWithMembers++;
+                            if (typesWithMembers == 1)
+                            {
+                                suggestedType = sisterType;
+                            }
+                            else
+                            {
+                                // More than one sister type has members, don't suggest any
+                                suggestedType = null;
+                                break;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore types we can't load
+                        continue;
+                    }
+                }
+
+                // Only suggest if exactly one sister type has members
+                if (typesWithMembers == 1 && suggestedType != null)
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        SuggestedSisterType = suggestedType;
+                    });
+                }
+            }
+            catch
+            {
+                // Ignore any errors in this suggestion logic
+            }
+        }
+
+        private async void SuggestedSisterType_Click(object sender, RoutedEventArgs e)
+        {
+            if (SuggestedSisterType == null) return;
+
+            bool success = _appModel.CastHeapObjectToType(_heapObject, SuggestedSisterType.FullTypeName);
+            if (success)
+            {
+                RefreshControls();
+            }
         }
 
         private static void GetMemberValue(DynamicRemoteObject dro, MemberInfo member, MembersGridItem mgi)
@@ -413,57 +533,8 @@ namespace RemoteNetSpy.Controls
 
         private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
         {
-            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_appModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
-            Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
-            var typesModel = new TypesModel();
-            List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
-            {
-                return task.Result.Select((DumpedTypeModel newTypeDump) =>
-                {
-                    if (mainControlFullTypeNameToTypes.TryGetValue(newTypeDump.FullTypeName, out DumpedTypeModel existingTypeDump))
-                    {
-                        return existingTypeDump;
-                    }
-                    return newTypeDump;
-                }).ToList();
-            }, TaskScheduler.Default);
-            typesModel.Types = new ObservableCollection<DumpedTypeModel>(deepCopiesTypesList);
-
-            bool? res = false;
-
-            Dispatcher.Invoke(() =>
-            {
-                var typeSelectionWindow = new TypeSelectionWindow();
-                typeSelectionWindow.DataContext = typesModel;
-
-                string currFullTypeName = heapObject.FullTypeName;
-                if (currFullTypeName.Contains("::"))
-                {
-                    string currTypeName = currFullTypeName.Split("::").Last();
-                    string regex = "::" + currTypeName + @"$";
-                    typeSelectionWindow.ApplyRegexFilter(regex);
-                }
-
-                res = typeSelectionWindow.ShowDialog();
-            });
-
-            if (res != true)
-                return;
-
-            DumpedTypeModel selectedType = typesModel.SelectedType;
-            if (selectedType == null)
-                return;
-
-            try
-            {
-                Type newType = _appModel.App.GetRemoteType(selectedType.FullTypeName);
-                heapObject.Cast(newType);
-                _appModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            bool success = await _appModel.PromptForVariableCastAsync(heapObject, Dispatcher);
+            // The RefreshControls() will be called by the caller if needed
         }
 
         private async Task<List<DumpedTypeModel>> GetTypesListAsync(bool all)
@@ -484,6 +555,13 @@ namespace RemoteNetSpy.Controls
             var tempList = types.ToHashSet().ToList();
             tempList.Sort((dt1, dt2) => dt1.FullTypeName.CompareTo(dt2.FullTypeName));
             return tempList;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
     [DebuggerDisplay("MemberGridItem: {MemberType} {Name}")]

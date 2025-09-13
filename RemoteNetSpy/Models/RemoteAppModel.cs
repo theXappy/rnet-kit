@@ -166,16 +166,21 @@ public class RemoteAppModel : INotifyPropertyChanged
         if (selectedType == null)
             return false;
 
+        return CastHeapObjectToType(heapObject, selectedType.FullTypeName);
+    }
+
+    public bool CastHeapObjectToType(HeapObjectViewModel heapObject, string targetTypeName)
+    {
         try
         {
-            Type newType = App.GetRemoteType(selectedType.FullTypeName);
+            Type newType = App.GetRemoteType(targetTypeName);
             heapObject.Cast(newType);
-            Interactor.CastVar(heapObject, selectedType.FullTypeName);
+            Interactor.CastVar(heapObject, targetTypeName);
             return true;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to cast object: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Failed to cast object to {targetTypeName}: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
     }
