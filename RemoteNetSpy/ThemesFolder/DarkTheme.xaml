@@ -4478,7 +4478,7 @@
         </Style.Triggers>
     </Style>
 
-    <Style TargetType="{x:Type DataGrid}">
+    <Style x:Key="darkThemeDataGridStyleKey"  TargetType="{x:Type DataGrid}">
         <Setter Property="Background" Value="{StaticResource ControlDefaultBackground}" />
         <Setter Property="BorderBrush" Value="{StaticResource ControlBrightDefaultBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />

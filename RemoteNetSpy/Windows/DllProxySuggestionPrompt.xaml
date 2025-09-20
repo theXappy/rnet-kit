@@ -1,0 +1,76 @@
+﻿<Window x:Class="RemoteNetSpy.Windows.DllProxySuggestionPrompt"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RemoteNetSpy.Windows"
+        mc:Ignorable="d"
+        Title="DLL Injection Failed" Height="350" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Style="{DynamicResource CustomWindowStyle}">
+    <Window.Resources>
+        <!-- Style for Buttons -->
+        <Style TargetType="Button" BasedOn="{StaticResource darkThemeButtonStyleKey}">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+            <Image Source="../icons/StatusError.png" Width="32" Height="32" VerticalAlignment="Top" Margin="0,0,10,0"/>
+            <TextBlock Text="DLL Injection Failed" FontSize="18" FontWeight="Bold" 
+                       VerticalAlignment="Center" Foreground="{DynamicResource ControlPrimaryColourBackground}"/>
+        </StackPanel>
+        
+        <!-- Problem Description -->
+        <TextBlock Grid.Row="1" TextWrapping="Wrap" Margin="0,0,0,15" FontSize="12">
+            <Run Text="Regular DLL injection failed for process "/>
+            <Run Text="{Binding ProcessName}" FontWeight="Bold"/>
+            <Run Text=" (PID: "/>
+            <Run Text="{Binding ProcessId}" FontWeight="Bold"/>
+            <Run Text=")."/>
+            <LineBreak/><LineBreak/>
+            <Run Text="This can happen due to anti-virus software, process protection, or security policies."/>
+        </TextBlock>
+        
+        <!-- Alternative Solution -->
+        <GroupBox Grid.Row="2" Header="Alternative Solution" Margin="0,0,0,15">
+            <StackPanel Margin="10">
+                <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" FontSize="12">
+                    <Run Text="DLL Proxying" FontWeight="Bold"/>
+                    <Run Text=" is an alternative injection technique that can bypass some protection mechanisms by:"/>
+                </TextBlock>
+                
+                <StackPanel Margin="20,0,0,0">
+                    <TextBlock Text="• Hijacking a legitimate DLL loaded by the target process" FontSize="11" Margin="0,2"/>
+                    <TextBlock Text="• Creating a proxy DLL that forwards calls to the original" FontSize="11" Margin="0,2"/>
+                    <TextBlock Text="• Executing our payload when the DLL is loaded" FontSize="11" Margin="0,2"/>
+                </StackPanel>
+                
+                <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" FontSize="11" 
+                           Foreground="{DynamicResource ControlBrightPrimaryColourBackground}" FontStyle="Italic">
+                    <Run Text="Note: This method requires restarting the target process and may modify files on disk."/>
+                </TextBlock>
+            </StackPanel>
+        </GroupBox>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Name="TryProxyButton" Content="Try DLL Proxying" Width="120" Height="30" 
+                    Margin="0,0,10,0" Click="TryProxyButton_Click" IsDefault="True"
+                    Background="{DynamicResource ControlPrimaryColourBackground}" 
+                    Foreground="White" 
+                    BorderBrush="{DynamicResource ControlBrightPrimaryColourBorderBrush}"/>
+            <Button Name="CancelButton" Content="Cancel" Width="80" Height="30" 
+                    Click="CancelButton_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

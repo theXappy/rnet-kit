@@ -116,7 +116,19 @@ namespace RemoteNetSpy
                 }
                 catch (Exception ex)
                 {
-                    ShowError($"Failed to connect to target {_targetProcess.Name}\nException:\n" + ex);
+                    // Check if this is an injection failure that could benefit from DLL proxying
+                    if (IsInjectionFailure(ex))
+                    {
+                        if (await OfferDllProxyingAsync(ex))
+                        {
+                            // User chose to try DLL proxying, attempt it
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        ShowError($"Failed to connect to target {_targetProcess.Name}\nException:\n" + ex);
+                    }
                     return;
                 }
                 Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> >> View Model Update");
@@ -130,6 +142,111 @@ namespace RemoteNetSpy
             _ = _remoteAppModel.Interactor.InitAsync(this);
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async), task started");
 
+
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync");
+            await _remoteAppModel.ClassesModel.LoadAssembliesAsync(Dispatcher);
+            typeSystemTreeView.EnableSearch();
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync done");
+
+            _aliveCheckTimer.Stop();
+            _aliveCheckTimer.Start();
+
+            // Disable the Frida tracing button for managed apps
+            RunFridaTracesButton.IsEnabled = _remoteAppModel.TargetRuntime == RuntimeType.Unmanaged;
+        }
+
+        private bool IsInjectionFailure(Exception ex)
+        {
+            // Check if the exception indicates an injection failure that could benefit from DLL proxying
+            string message = ex.Message.ToLowerInvariant();
+
+            return message.Contains("injector returned error") ||
+                   message.Contains("injection failed") ||
+                   message.Contains("access denied") ||
+                   message.Contains("failed to inject") ||
+                   message.Contains("registering our current app as a client in the diver failed") ||
+                   message.Contains("readprocessmemory failed to read") ||
+                   message.Contains("injectionfailederror");
+        }
+
+        private async Task<bool> OfferDllProxyingAsync(Exception originalException)
+        {
+            return await Dispatcher.InvokeAsync(() =>
+            {
+                var suggestionPrompt = new DllProxySuggestionPrompt(_targetProcess.Name, _targetProcess.Pid)
+                {
+                    Owner = this
+                };
+
+                if (suggestionPrompt.ShowDialog() == true && suggestionPrompt.ShouldTryProxy)
+                {
+                    return TryDllProxyingWorkflow();
+                }
+
+                return false;
+            });
+        }
+
+        private bool TryDllProxyingWorkflow()
+        {
+            try
+            {
+                Process targetProcess = Process.GetProcessById(_targetProcess.Pid);
+                var proxyWizard = new DllProxyWizard(targetProcess)
+                {
+                    Owner = this
+                };
+
+                if (proxyWizard.ShowDialog() == true)
+                {
+                    // User completed the proxy creation successfully
+                    // Get the selected DLL path from the wizard
+                    string selectedDllPath = proxyWizard.SelectedDllPath;
+                    
+                    // Now try connecting with DLL hijacking strategy using the selected DLL
+                    return AttemptDllHijackConnection(targetProcess, selectedDllPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Error in DLL Proxy workflow:\n{ex.Message}");
+            }
+
+            return false;
+        }
+
+        private bool AttemptDllHijackConnection(Process targetProcess, string targetDllToProxy = null)
+        {
+            try
+            {
+                RuntimeType selectedRuntime = ChooseTargetRuntime();
+                if (selectedRuntime == RuntimeType.Unknown)
+                    return false;
+
+                var config = ConnectionConfig.DllHijack(targetDllToProxy);
+                var newApp = RemoteAppFactory.Connect(targetProcess, selectedRuntime, config);
+                
+                Dispatcher.Invoke(() =>
+                {
+                    _remoteAppModel.Update(newApp, targetProcess.Id);
+                    // Continue with the rest of the connection process
+                    _ = CompleteConnectionAsync();
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ShowError($"DLL Hijacking also failed:\n{ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task CompleteConnectionAsync()
+        {
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async)");
+            _ = _remoteAppModel.Interactor.InitAsync(this);
+            Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> Initializing Interactive Window (Async), task started");
 
             Debug.WriteLine($"[{DateTime.Now.ToLongTimeString()}] >> LoadAssembliesAsync");
             await _remoteAppModel.ClassesModel.LoadAssembliesAsync(Dispatcher);
