@@ -712,7 +712,29 @@ namespace RemoteNetSpy
         public void CreateNewInstanceTab(HeapObjectViewModel heapObject)
         {
             var instanceView = new ObjectViewerControl();
+            instanceView.Margin = new Thickness(2); // Add consistent margin
             instanceView.Init(this, _remoteAppModel, heapObject);
+            CreateNewInstanceTabWithControl(heapObject, instanceView);
+        }
+
+        public void CreateNewInstanceTabWithControl(HeapObjectViewModel heapObject, ObjectViewerControl existingControl)
+        {
+            // Ensure the control is properly removed from its current parent
+            if (existingControl.Parent != null)
+            {
+                if (existingControl.Parent is Panel panel)
+                {
+                    panel.Children.Remove(existingControl);
+                }
+                else if (existingControl.Parent is ContentControl contentControl)
+                {
+                    contentControl.Content = null;
+                }
+                else if (existingControl.Parent is DockPanel dockPanel)
+                {
+                    dockPanel.Children.Remove(existingControl);
+                }
+            }
 
             // Create a header with binding to FullTypeName and object.png icon
             var headerPanel = new DockPanel() 
@@ -761,7 +783,7 @@ namespace RemoteNetSpy
             TabItem tab = new TabItem()
             {
                 Header = headerPanel,
-                Content = instanceView
+                Content = existingControl
             };
             
             // Set up close button click handler
@@ -786,6 +808,10 @@ namespace RemoteNetSpy
 
             MyTabControl.Items.Add(tab);
             MyTabControl.SelectedItem = tab; // Switch to the new tab
+            
+            // Focus the main window and activate it
+            this.Activate();
+            this.Focus();
         }
 
         private void PromptForVariableCast(object sender, RoutedEventArgs e)

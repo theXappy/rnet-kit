@@ -42,7 +42,8 @@
     <DockPanel>
             <DockPanel Dock="Bottom" HorizontalAlignment="Right">
                 <Button DockPanel.Dock="Right" Height="30" Width="120" Click="CloseButtonClicked">Close</Button>
+                <Button DockPanel.Dock="Right" Height="30" Width="120" Margin="0,0,3,0" Click="dockButton_Click">Dock</Button>
             </DockPanel>
-            <controls:ObjectViewerControl x:Name="objViewerControl"/>
+            <controls:ObjectViewerControl x:Name="objViewerControl" Margin="2"/>
     </DockPanel>
 </Window>

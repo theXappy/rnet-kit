@@ -62,6 +62,19 @@ namespace RemoteNetSpy.Controls
             _heapObject = _ho;
 
             RefreshControls();
+            
+            // Set focus to search box when the control is loaded
+            Loaded += (s, e) => FocusSearchBox();
+        }
+
+        public void FocusSearchBox()
+        {
+            membersFilterBox.Focus();
+        }
+
+        public HeapObjectViewModel GetHeapObject()
+        {
+            return _heapObject;
         }
 
         private void RefreshControls()
@@ -246,6 +259,7 @@ namespace RemoteNetSpy.Controls
             if (success)
             {
                 RefreshControls();
+                FocusSearchBox();
             }
         }
 
@@ -333,7 +347,7 @@ namespace RemoteNetSpy.Controls
                 {
                     if (_ro is UnmanagedRemoteObject)
                     {
-                        var arguments = PromptForArguments(memInfo.GetParameters().Length);
+                        var arguments = PromptForArguments(memInfo.GetParameters(), memInfo.Name);
                         if (arguments != null)
                         {
                             object results = memInfo.Invoke(_ro, arguments);
@@ -356,9 +370,9 @@ namespace RemoteNetSpy.Controls
             }
         }
 
-        private object[] PromptForArguments(int parameterCount)
+        private object[] PromptForArguments(ParameterInfo[] parameters, string methodName)
         {
-            ArgumentPromptWindow promptWindow = new ArgumentPromptWindow(parameterCount);
+            ArgumentPromptWindow promptWindow = new ArgumentPromptWindow(parameters, _appModel.App, methodName);
             if (promptWindow.ShowDialog() == true)
             {
                 return promptWindow.Arguments;
@@ -460,6 +474,7 @@ namespace RemoteNetSpy.Controls
         private void clearMembersFilterButton_OnClick(object sender, RoutedEventArgs e)
         {
             membersFilterBox.Clear();
+            membersFilterBox.Focus();
         }
 
         private void ApplyMembersFilter()
@@ -572,17 +587,25 @@ namespace RemoteNetSpy.Controls
             mvw.Show();
         }
 
-        private async void castButtonClicked(object sender, RoutedEventArgs e)
+        private void copyAddressButton_Click(object sender, RoutedEventArgs e)
         {
-            await PromptForVariableCastInnerAsync(_heapObject);
-            RefreshControls();
-            // Filter is already applied in RefreshControls()
+            string address = $"0x{_ro.RemoteToken:X16}";
+            Clipboard.SetText(address);
         }
 
-        private async Task PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
+        private async void castButtonClicked(object sender, RoutedEventArgs e)
         {
-            bool success = await _appModel.PromptForVariableCastAsync(heapObject, Dispatcher);
-            // The RefreshControls() will be called by the caller if needed
+            bool success = await PromptForVariableCastInnerAsync(_heapObject);
+            if (success)
+            {
+                RefreshControls();
+                FocusSearchBox();
+            }
+        }
+
+        private async Task<bool> PromptForVariableCastInnerAsync(HeapObjectViewModel heapObject)
+        {
+            return await _appModel.PromptForVariableCastAsync(heapObject, Dispatcher);
         }
 
         private async Task<List<DumpedTypeModel>> GetTypesListAsync(bool all)

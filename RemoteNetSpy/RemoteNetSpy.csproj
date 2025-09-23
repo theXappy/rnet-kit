@@ -20,6 +20,7 @@
 		<None Remove="icons\Cancelled_Snowflake.png" />
 		<None Remove="icons\Class.png" />
 		<None Remove="icons\ClearWindowContent.png" />
+		<None Remove="icons\Copy.png" />
 		<None Remove="icons\CPPProjectNode.png" />
 		<None Remove="icons\CPPProjectNode_grayed.png" />
 		<None Remove="icons\DeleteWatch.png" />
@@ -76,6 +77,9 @@
 		</Content>
 		<Content Include="icons\ClearWindowContent.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="icons\Copy.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="icons\CPPProjectNode.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

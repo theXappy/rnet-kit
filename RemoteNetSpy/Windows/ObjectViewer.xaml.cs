@@ -115,6 +115,29 @@ namespace RemoteNetSpy
             Close();
         }
 
+        private void dockButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Find the MainWindow
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            if (mainWindow == null)
+            {
+                MessageBox.Show("Could not find main window.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Get the heap object from the control
+            var heapObject = objViewerControl.GetHeapObject();
+            
+            // Get the control reference before removing it
+            var control = objViewerControl;
+            
+            // Create new tab in main window with existing control
+            mainWindow.CreateNewInstanceTabWithControl(heapObject, control);
+
+            // Close this ObjectViewer window
+            this.Close();
+        }
+
         private void InvokeClicked(object sender, RoutedEventArgs e)
         {
             MembersGridItem mgi = (sender as Button)?.DataContext as MembersGridItem;
@@ -132,7 +155,7 @@ namespace RemoteNetSpy
                 {
                     if (_ro is UnmanagedRemoteObject)
                     {
-                        var arguments = PromptForArguments(memInfo.GetParameters().Length);
+                        var arguments = PromptForArguments(memInfo.GetParameters(), memInfo.Name);
                         if (arguments != null)
                         {
                             object results = memInfo.Invoke(_ro, arguments);
@@ -155,9 +178,9 @@ namespace RemoteNetSpy
             }
         }
 
-        private object[] PromptForArguments(int parameterCount)
+        private object[] PromptForArguments(ParameterInfo[] parameters, string methodName)
         {
-            ArgumentPromptWindow promptWindow = new ArgumentPromptWindow(parameterCount);
+            ArgumentPromptWindow promptWindow = new ArgumentPromptWindow(parameters, _appModel.App, methodName);
             if (promptWindow.ShowDialog() == true)
             {
                 return promptWindow.Arguments;

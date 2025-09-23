@@ -44,6 +44,9 @@
                 <DockPanel DockPanel.Dock="Top" Margin="0,3" LastChildFill="False">
                     <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0">Address:</TextBlock>
                     <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center"  x:Name="objAddrTextBox" d:Text="0x0000aabbccdd"/>
+                    <Button VerticalAlignment="Center" DockPanel.Dock="Left" Margin="3,0,0,0" Click="copyAddressButton_Click" VerticalContentAlignment="Center" ToolTip="Copy address to clipboard">
+                        <Image Source="../icons/Copy.png" Height="16"/>
+                    </Button>
                     <Button  VerticalAlignment="Center" DockPanel.Dock="Left" Margin="3,0" Click="memoryViewButton_Click" VerticalContentAlignment="Center">
                         <StackPanel Orientation="Horizontal" Margin="4,0">
                             <Image Source="../icons/Memory.png" Height="16"/>
@@ -52,7 +55,7 @@
                     </Button>
                 </DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,3" LastChildFill="False">
-                    <TextBlock DockPanel.Dock="Left" Padding="0,0,5,0">Type:</TextBlock>
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0">Type:</TextBlock>
                     <Image DockPanel.Dock="Left" MaxHeight="14" Source="/icons/Class.png" Margin="0,0,3,0" />
                     <TextBlock x:Name="objTypeTextBox" d:Text="Namespace.ClassName"/>
                     <Button  VerticalAlignment="Center" DockPanel.Dock="Left" Margin="3,0" Click="castButtonClicked" VerticalContentAlignment="Center">
@@ -66,7 +69,8 @@
                 <TextBlock>Members:</TextBlock>
             </DockPanel>
             <Grid DockPanel.Dock="Top" Margin="0,2" MinHeight="20">
-                <TextBox x:Name="membersFilterBox" TextChanged="membersFilterBox_TextChanged" Height="26" VerticalContentAlignment="Center" Background="#07ffffff"/>
+                <TextBox x:Name="membersFilterBox" TextChanged="membersFilterBox_TextChanged" Height="26" VerticalContentAlignment="Center" 
+                         Background="#07ffffff" BorderBrush="{StaticResource ControlBrightDefaultBorderBrush}" BorderThickness="1"/>
                 <Button x:Name="clearMembersFilterButton" 
                         DockPanel.Dock="Right" 
                         Click="clearMembersFilterButton_OnClick" Width="24" HorizontalAlignment="Right" Background="{x:Null}" BorderBrush="{x:Null}">X</Button>
@@ -174,7 +178,8 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Type" Binding="{Binding Type}"
-                                      MinWidth="50" Width="6*"/>
+                                        Foreground="{StaticResource ControlDefaultForeground}"
+                                        MinWidth="50" Width="6*"/>
                 </DataGrid.Columns>
             </DataGrid>
             
