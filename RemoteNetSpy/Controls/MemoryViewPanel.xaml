@@ -8,7 +8,7 @@
              xmlns:local="clr-namespace:RemoteNetSpy.Controls" xmlns:remotenetspy="clr-namespace:RemoteNetSpy"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=local:MemoryViewPanelModel, IsDesignTimeCreatable=False}"
-             d:DesignHeight="450" d:DesignWidth="450"
+             d:DesignHeight="450" d:DesignWidth="650"
              DataContextChanged="UserControl_DataContextChanged">
     <UserControl.Resources>
         <local:ULongToHexConverter x:Key="ULongToHexConverter" />
@@ -60,6 +60,11 @@
                         BorderThickness="1"
                         IsEnabled="{Binding DetectedType, Converter={StaticResource nullToBoolConverter}}"
                         >Inspect Object</Button>
+                <Button Padding="20,0" Margin="5,2,0,2" Click="ForceTypeClicked"
+                        VerticalAlignment="Stretch"
+                        BorderBrush="#555555"
+                        BorderThickness="1"
+                        >Force Type</Button>
             </StackPanel>
             <!-- Fourth Row: Bytes Per Line Buttons -->
             <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">

@@ -321,6 +321,12 @@ namespace RemoteNetSpy.Controls
         {
             _ = Task.Run(InspectObject);
         }
+
+        private void ForceTypeClicked(object sender, RoutedEventArgs e)
+        {
+            _ = Task.Run(ForceTypeInspectObject);
+        }
+
         private void InspectObject()
         {
             using (fetchSpinner.TemporarilyShow())
@@ -358,6 +364,70 @@ namespace RemoteNetSpy.Controls
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
+                    return;
+                }
+            }
+        }
+
+        private void ForceTypeInspectObject()
+        {
+            using (fetchSpinner.TemporarilyShow())
+            {
+                MemoryViewPanelModel mvpModel = null;
+                Dispatcher.Invoke(() => { mvpModel = DataContext as MemoryViewPanelModel; });
+                if (mvpModel == null)
+                {
+                    MessageBox.Show("DataContext is not a MemoryViewPanelModel");
+                    return;
+                }
+
+                try
+                {
+                    // Prepare the type selection window with all available types
+                    var app = mvpModel.RemoteAppModel.App;
+                    var typesModel = new RemoteNetSpy.Models.TypesModel();
+                    
+                    Dispatcher.Invoke(() =>
+                    {
+                        // Get all types from the ClassesModel
+                        var allTypes = mvpModel.RemoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                        var deduplicatedList = allTypes.GroupBy(x => x.FullTypeName)
+                                                      .Select(group => group.First())
+                                                      .ToList();
+                        typesModel.Types = new System.Collections.ObjectModel.ObservableCollection<RemoteNetSpy.Models.DumpedTypeModel>(deduplicatedList);
+                    });
+
+                    bool? dialogResult = false;
+                    RemoteNetSpy.Models.DumpedTypeModel selectedType = null;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        var typeSelectionWindow = new RemoteNetSpy.TypeSelectionWindow();
+                        typeSelectionWindow.DataContext = typesModel;
+                        dialogResult = typeSelectionWindow.ShowDialog();
+                        selectedType = typesModel.SelectedType;
+                    });
+
+                    if (dialogResult != true || selectedType == null)
+                        return;
+
+                    // Get the selected type and create a RemoteObject with it
+                    Type objType = app.GetRemoteType(selectedType.FullTypeName);
+                    app.Communicator.StartOffensiveGC(objType.Assembly.GetName().FullName);
+
+                    // Get remote object from address + selected type (forced cast)
+                    RemoteNET.RemoteObject obj = app.GetRemoteObject(mvpModel.Address, selectedType.FullTypeName);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        Window ownerWindow = Window.GetWindow(this);
+                        Window objectViewer = ObjectViewer.CreateViewerWindow(ownerWindow, mvpModel.RemoteAppModel, obj);
+                        objectViewer.Show();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to force type and inspect object: {ex.Message}");
                     return;
                 }
             }

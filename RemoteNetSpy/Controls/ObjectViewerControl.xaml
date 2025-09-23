@@ -78,6 +78,7 @@
                     IsReadOnly="True"
                     RowHeaderWidth="0"
                     AutoGenerateColumns="False"
+                    Background="{StaticResource ControlDefaultBackground}"
                     >
                 <DataGrid.Resources>
                     <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" TargetType="{x:Type DataGridColumnHeader}">
@@ -166,7 +167,7 @@
                                     <!-- View textblock/textbox. At all times, only one of them is visible.-->
                                     <Grid DockPanel.Dock="Left">
                                         <TextBlock Text="{Binding Path=Value}"  MouseLeftButtonDown="UIElement_OnPreviewMouseRightButtonDown"/>
-                                        <TextBox Visibility="Hidden" Text="{Binding Path=Value}" LostFocus="UIElement_OnLostFocus" Background="White" Foreground="Black"/>
+                                        <TextBox Visibility="Hidden" Text="{Binding Path=Value}" LostFocus="UIElement_OnLostFocus" Background="{StaticResource ControlDefaultBackground}" Foreground="{StaticResource ControlDefaultForeground}"/>
                                     </Grid>
                                 </DockPanel>
                             </DataTemplate>

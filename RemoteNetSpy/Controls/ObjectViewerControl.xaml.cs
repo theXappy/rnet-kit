@@ -391,7 +391,7 @@ namespace RemoteNetSpy.Controls
                 RemoteObject = ro,
                 FullTypeName = mgi.Type,
             };
-            CreateViewerWindow(_parent, _appModel, obj).ShowDialog();
+            CreateViewerWindow(_parent, _appModel, obj).Show();
         }
 
         private void ViewMemoryClicked(object sender, RoutedEventArgs e)

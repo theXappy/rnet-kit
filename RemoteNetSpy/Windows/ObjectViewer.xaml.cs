@@ -185,7 +185,7 @@ namespace RemoteNetSpy
             }
 
             //MessageBox.Show("Value is not a Remote Object.\nHere's a ToString():\n" + ro);
-            CreateViewerWindow(this, _appModel, obj).ShowDialog();
+            CreateViewerWindow(this, _appModel, obj).Show();
         }
 
         private void ViewMemoryClicked(object sender, RoutedEventArgs e)
