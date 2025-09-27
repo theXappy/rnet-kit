@@ -23,6 +23,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Xml.Linq;
 
 namespace RemoteNetSpy.Controls
 {
@@ -208,7 +209,7 @@ namespace RemoteNetSpy.Controls
         {
             if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2)
             {
-                var memberTextBlock = sender as TextBlock;
+                var memberTextBlock = sender as FrameworkContentElement;
                 TraceMember(memberTextBlock.DataContext as DumpedMember);
             }
         }
@@ -302,40 +303,7 @@ namespace RemoteNetSpy.Controls
 
         private void membersListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            // We want to allow the user to drag and drop Members into the Drag And Drop Playground.
-            // BUT this mechanism interferes with the ListBox scroll bar dragging
-            // The code below make sure we're only starting a drag operation if the mouse is over the selected listbox item
-
-            if (e.LeftButton != MouseButtonState.Pressed)
-                return;
-
-            var listBox = sender as ListBox;
-            if (listBox == null)
-                return;
-
-            // Get the element under the mouse
-            var point = e.GetPosition(listBox);
-            var element = listBox.InputHitTest(point) as DependencyObject;
-
-            // Traverse up the visual tree to find the ListBoxItem
-            while (element != null && element is not ListBoxItem)
-            {
-                element = System.Windows.Media.VisualTreeHelper.GetParent(element);
-            }
-            if (element is not ListBoxItem listBoxItem)
-                return;
-
-            // Only start drag if the item under the mouse is the selected item
-            if (listBoxItem.DataContext != listBox.SelectedItem)
-                return;
-
-            if (listBox.SelectedItem is not DumpedMember dumpedMember)
-                return;
-            if (dumpedMember.MemberInfo is not System.Reflection.MethodInfo methodInfo)
-                return;
-
-            var miw = new MethodInfoWrapper(methodInfo);
-            DragDrop.DoDragDrop(listBox, miw, DragDropEffects.Copy);
+            // Used to allow drag-drop from the members listbox, we don't do that anymore
         }
 
         private void ShowTraceTypeContextMenu(object sender, RoutedEventArgs e)
