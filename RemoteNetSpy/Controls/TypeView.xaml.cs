@@ -209,8 +209,14 @@ namespace RemoteNetSpy.Controls
         {
             if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2)
             {
-                var memberTextBlock = sender as FrameworkContentElement;
-                TraceMember(memberTextBlock.DataContext as DumpedMember);
+                DumpedMember dumpedMember = (sender as FrameworkContentElement)?.DataContext as DumpedMember ??
+                                            (sender as ContentPresenter)?.DataContext as DumpedMember;
+                if (dumpedMember == null)
+                {
+                    MessageBox.Show("Error: Could not get the selected member.");
+                    return;
+                }
+                TraceMember(dumpedMember);
             }
         }
         private void TraceMember(DumpedMember sender) => _remoteAppModel.Tracer.AddFunc(sender);
