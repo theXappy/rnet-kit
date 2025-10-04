@@ -1,7 +1,8 @@
 {
   "profiles": {
     "remotenet-trace": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": " -u -t Repro -i *!*.UwpPrintf"
     }
   }
 }

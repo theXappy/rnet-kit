@@ -349,7 +349,7 @@ namespace QuickStart
 
 
 
-                var script = HandlersRepo.Get(className, method.Name, paramTypes.Length);
+                var script = HandlersRepo.Get(className, method.Name, method.IsStatic, paramTypes.Length);
                 ScriptRunner<object> handlerScript = HandlersRepo.Compile(script);
 
 
