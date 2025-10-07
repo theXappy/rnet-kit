@@ -32,6 +32,7 @@
         <converters:IsProcessDeadToBackgroundColor x:Key="isProcessDeadToBackgroundColor"/>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
         <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
+        <converters:CountToVisibilityConverter x:Key="countToVisibilityConverter"/>
         <Style TargetType="ToolBar">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>
