@@ -79,6 +79,16 @@ namespace rnet_class_dump
             }
             Console.WriteLine($"__RemoteNET_Obj_Base|{helperClassFileName}");
 
+            // Write the global app helper class
+            string globalAppHelperFileName = Path.Combine(tempDir, "__RemoteNET_Global_App.cs");
+            if (!File.Exists(globalAppHelperFileName) || new FileInfo(globalAppHelperFileName).Length == 0)
+            {
+                StringBuilder globalAppHelperBuilder = new StringBuilder();
+                WriteGlobalAppHelperClass(globalAppHelperBuilder);
+                File.WriteAllText(globalAppHelperFileName, globalAppHelperBuilder.ToString());
+            }
+            Console.WriteLine($"__RemoteNET_Global_App|{globalAppHelperFileName}");
+
             // Collect all type candidates
             List<RemoteTypeBase> queriedTypes = GetTypesToDump(filters, app);
 
@@ -283,34 +293,102 @@ namespace rnet_class_dump
             writer.AppendLine(@"using System;
 using System.Linq;
 using RemoteNET;
+using RemoteNET.Common;
+using RemoteNET.RttiReflection;
+using ScubaDiver.API.Extensions;
 
 namespace RemoteNET.ClassDump.Internal
 {
 	public abstract class __RemoteNET_Obj_Base
 	{
 		public dynamic __dro;
-		public Type __remoteType = null;
-
-		public __RemoteNET_Obj_Base() => 
-			throw new Exception(""Bad __RemoteNET_Obj_Base ctor called"");
+		protected abstract RemoteTypeBase InstanceRemoteType { get; }
 
 		public __RemoteNET_Obj_Base(DynamicRemoteObject dro)
 		{
 			__dro = dro;
 		}
 
-		public __RemoteNET_Obj_Base(RemoteApp app, string fullTypeName, string dllName)
+		public __RemoteNET_Obj_Base()
 		{
-			if (__remoteType == null)
-			{
-				__remoteType = app.GetRemoteType(app.QueryTypes(fullTypeName).Single());
-				app.Communicator.StartOffensiveGC(dllName);
-			}
-
-			RemoteObject ro = app.Activator.CreateInstance(__remoteType);
+            var app = __RemoteNET_Global_App.App;
+			RemoteObject ro = app.Activator.CreateInstance(InstanceRemoteType);
 			__dro = ro.Dynamify();
 		}
+
+        protected static object __invokeStatic(RemoteTypeBase remoteType, string methodName, Type[] argTypes, object[] args)
+        {
+            for(int i = 0; i < args.Length; i++)
+            {
+                var curr = args[i];
+                if (curr is __RemoteNET_Obj_Base objBase)
+                    args[i] = (objBase).__dro;
+            }
+
+            var matches = remoteType.GetMethods().Where(mi => mi.Name == methodName);
+            matches = matches.Where(mi => mi.GetParameters().Length == args.Length);
+            matches = matches.Where(mi => {
+                IEnumerable<Type> expected = argTypes;
+                IEnumerable<Type> actual = mi.GetParameters().Select(pi => pi.ParameterType);
+                return expected.Zip(actual, (e, a) => 
+                                                a.FullName == e.FullName || 
+                                                (a is PointerType ptr && ptr.Inner.FullName == e.FullName) || 
+                                                e == typeof(WildCardType))
+                               .All(x => x);
+            });
+            if (!matches.Any())
+                throw new Exception(""No matching static method found"");
+            List<string> errors = new List<string>();
+            foreach (var mi in matches)
+            {
+                try
+                {
+                    return mi.Invoke(null, args); 
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(ex.Message);
+                }
+            }
+            throw new Exception(""All candidate methods failed. Errors:\n"" + string.Join(""\n"", errors));
+        }
 	}
+
+	public interface __RemoteNET_IObj_Base
+	{
+		abstract static RemoteTypeBase RemoteType { get; }
+	}
+}");
+        }
+
+        private void WriteGlobalAppHelperClass(StringBuilder writer)
+        {
+            writer.AppendLine(@"using System.Runtime.CompilerServices;
+using RemoteNET.Access;
+
+namespace RemoteNET.ClassDump.Internal
+{
+    internal static class __RemoteNET_Global_App
+    {
+        private static RemoteApp _app;
+        
+        public static RemoteApp App 
+        { 
+            get 
+            { 
+                if (_app == null)
+                    throw new System.InvalidOperationException(""Use RemoteAppFactory.Connect before using the generated RemoteNET API"");
+                return _app;
+            } 
+            set => _app = value; 
+        }
+
+        [ModuleInitializer]
+        internal static void Initialize()
+        {
+            RemoteAppFactory.NewAppCreated += (app) => { App = app; };
+        }
+    }
 }");
         }
 
@@ -336,7 +414,9 @@ namespace RemoteNET.ClassDump.Internal
                 AppendLine(writer, $"using System;", 0);
                 AppendLine(writer, $"using System.Linq;", 0);
                 AppendLine(writer, $"using RemoteNET;", 0);
+                AppendLine(writer, $"using RemoteNET.Common;", 0);
                 AppendLine(writer, $"using RemoteNET.ClassDump.Internal;", 0);
+                AppendLine(writer, $"using ScubaDiver.API.Extensions;", 0);
                 AppendLine(writer, "", 0);
 
                 int indentCount = 0;
@@ -370,11 +450,34 @@ namespace RemoteNET.ClassDump.Internal
                     AppendLine(writer, "// No namespace", indentCount);
                 }
 
-                AppendLine(writer, $"public partial class {className} : __RemoteNET_Obj_Base", indentCount);
+                AppendLine(writer, $"public partial class {className} : __RemoteNET_Obj_Base, __RemoteNET_IObj_Base", indentCount);
                 AppendLine(writer, "{", indentCount);
                 indentCount++;
 
                 AppendLine(writer, "public ulong __address => (__dro as DynamicRemoteObject).__ro.RemoteToken;", indentCount);
+                AppendLine(writer, "", indentCount);
+                AppendLine(writer, "private static RemoteTypeBase __remoteType;", indentCount);
+                AppendLine(writer, "public static RemoteTypeBase RemoteType", indentCount);
+                AppendLine(writer, "{", indentCount);
+                indentCount++;
+                AppendLine(writer, "get", indentCount);
+                AppendLine(writer, "{", indentCount);
+                indentCount++;
+                AppendLine(writer, $"if (__remoteType == null)", indentCount);
+                AppendLine(writer, "{", indentCount);
+                indentCount++;
+                AppendLine(writer, $"var app = __RemoteNET_Global_App.App;", indentCount);
+                AppendLine(writer, $"__remoteType = (RemoteTypeBase)app.GetRemoteType(app.QueryTypes(\"{fullName}\").Single());", indentCount);
+                AppendLine(writer, $"app.Communicator.StartOffensiveGC(\"{dllName}\");", indentCount);
+                indentCount--;
+                AppendLine(writer, "}", indentCount);
+                AppendLine(writer, "return __remoteType;", indentCount);
+                indentCount--;
+                AppendLine(writer, "}", indentCount);
+                indentCount--;
+                AppendLine(writer, "}", indentCount);
+                AppendLine(writer, "", indentCount);
+                AppendLine(writer, "protected override RemoteTypeBase InstanceRemoteType => RemoteType;", indentCount);
                 AppendLine(writer, "", indentCount);
 
                 // Write a CTOR that accepts a DRO
@@ -382,8 +485,8 @@ namespace RemoteNET.ClassDump.Internal
                 AppendLine(writer, "{", indentCount);
                 AppendLine(writer, "}", indentCount);
 
-                // Write a CTOR that accepts a RemoteApp (Allocates remote object automatically)
-                AppendLine(writer, $"public {className}(RemoteApp app) : base(app, \"{fullName}\", \"{dllName}\")", indentCount);
+                // Write a CTOR that accepts a Allocates remote object automatically
+                AppendLine(writer, $"public {className}() : base()", indentCount);
                 AppendLine(writer, "{", indentCount);
                 AppendLine(writer, "}", indentCount);
                 AppendLine(writer, "", indentCount);
@@ -396,9 +499,8 @@ namespace RemoteNET.ClassDump.Internal
                 indentCount++;
                 AppendLine(writer, $"DynamicRemoteObject objDro = obj.__dro as DynamicRemoteObject;", indentCount);
                 AppendLine(writer, $"RemoteApp app = objDro.__ra;", indentCount);
-                AppendLine(writer, $"__remoteType = app.GetRemoteType(app.QueryTypes(\"{fullName}\").Single());", indentCount);
                 AppendLine(writer, "var objRo = objDro.__ro;", indentCount);
-                AppendLine(writer, "var castedRo = objRo.Cast(__remoteType);", indentCount);
+                AppendLine(writer, "var castedRo = objRo.Cast(RemoteType);", indentCount);
                 AppendLine(writer, $"__dro = castedRo.Dynamify();", indentCount);
                 indentCount--;
                 AppendLine(writer, "}", indentCount);
@@ -641,35 +743,8 @@ namespace RemoteNET.ClassDump.Internal
                 bool isConstructor = rttiMethod.Name == className;
                 bool isStatic = rttiMethod is RemoteRttiMethodInfo mi && mi.IsStatic;
 
-                if (isConstructor)
-                {
-                    // It's a constructor
-                    AppendLine(writer, $"// Constructor (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
-                else if (rttiMethod.Name.StartsWith("~"))
-                {
-                    // It's a destructor
-                    AppendLine(writer, $"// Destructor (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
-                else if (isStatic)
-                {
-                    // It's a static method
-                    AppendLine(writer, $"// Static Method (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
-                // Catch C++ operator overloading methods.
-                // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
-                else if (rttiMethod.Name.StartsWith("operator") &&
-                         rttiMethod.Name.Length > 8 &&
-                         !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
-                {
-                    AppendLine(writer, $"// Operator (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
 
-
+                // Arguments list
                 int argsSkip = 1; // Skipping 'this' for instance methods
                 if (isStatic)
                     argsSkip = 0;
@@ -692,12 +767,59 @@ namespace RemoteNET.ClassDump.Internal
                     if (isObject)
                         invocationArgs += ".__dro";
                 }
+
+                if (isConstructor)
+                {
+                    // It's a constructor
+                    AppendLine(writer, $"// Constructor (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+                else if (rttiMethod.Name.StartsWith("~"))
+                {
+                    // It's a destructor
+                    AppendLine(writer, $"// Destructor (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+                // Catch C++ operator overloading methods.
+                // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
+                else if (rttiMethod.Name.StartsWith("operator") &&
+                         rttiMethod.Name.Length > 8 &&
+                         !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
+                {
+                    AppendLine(writer, $"// Operator (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+
+                // Return Type
                 (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRet);
                 string formattedRetType = FormatTypeIdentifier(declaredRetType, csharpExpressionRetType) + " ";
                 if (isConstructor)
                     formattedRetType = string.Empty; // Constructors don't have return type
 
-                string body = $"__dro.{rttiMethod.Name}({invocationArgs})";
+                string body;
+                if (isStatic)
+                {
+                    string argTypes = string.Join(", ", paramInfos.Select(p =>
+                    {
+                        (string declared, string csharpExpression) = GetTypeIdentifier(p, out bool isObj);
+                        if (csharpExpression == "dynamic")
+                            csharpExpression = $"typeof(WildCardType) /* {declared} */";
+                        else if(isObj)
+                            csharpExpression = csharpExpression + ".RemoteType";
+                        else
+                            csharpExpression = $"typeof({csharpExpression})";
+                        return csharpExpression;
+                    }));
+
+                    body = $"__invokeStatic(RemoteType, \"{rttiMethod.Name}\"," +
+                        $"\r\n\t\t\t\t\t new Type[] {{{argTypes}}}," +
+                        $"\r\n\t\t\t\t\t new object[] {{{invocationArgs}}})";
+                }
+                else
+                {
+                    body = $"__dro.{rttiMethod.Name}({invocationArgs})";
+                }
+
                 if (IsPrimitive(csharpExpressionRetType))
                 {
                     // For primitives, add a lousy cast.
