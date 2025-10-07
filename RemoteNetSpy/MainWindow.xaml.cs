@@ -957,5 +957,18 @@ namespace RemoteNetSpy
                 // TODO: Remvoe from playground
             }
         }
+
+        private void MyTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source != MyTabControl) // Make sure this event is from our TabControl, not a nested one
+                return;
+
+            // Check if the Tracing tab is now selected
+            if (MyTabControl.SelectedItem == TracingTabItem)
+            {
+                // Tracing tab gained focus - clear notifications
+                _remoteAppModel.Tracer.ClearNotifications();
+            }
+        }
     }
 }

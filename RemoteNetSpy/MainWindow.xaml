@@ -121,7 +121,7 @@
                 </ListBox.ItemTemplate>
             </ListBox>
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>
-            <TabControl x:Name="MyTabControl" Grid.Column="2" SelectedIndex="0">
+            <TabControl x:Name="MyTabControl" Grid.Column="2" SelectedIndex="0" SelectionChanged="MyTabControl_SelectionChanged">
                 <TabControl.Template>
                     <ControlTemplate TargetType="TabControl">
                         <Grid>
@@ -145,11 +145,19 @@
                 </TabItem>
 
                 <!-- Tab Item: Tracing -->
-                <TabItem>
+                <TabItem x:Name="TracingTabItem">
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal" Margin="10,6,0,8">
                             <Image Source="icons/microscope-24.png" Height="16"/>
                             <TextBlock Margin="4,0,0,0">Tracing</TextBlock>
+                            <Grid x:Name="tracingNotificationIndicator" Visibility="{Binding DataContext.Tracer.NotificationsCount, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource countToVisibilityConverter}}">
+                                <Border BorderThickness="2" BorderBrush="#FF5533" CornerRadius="10" Height="14" Width="14" Margin="4,0,0,0">
+                                    <DockPanel Background="#FF5533"/>
+                                </Border>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
+                                    <TextBlock x:Name="tracingNotificationsCount" Text="{Binding DataContext.Tracer.NotificationsCount, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue=0}" Foreground="White" FontSize="10" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </TabItem.Header>
                     <DockPanel>

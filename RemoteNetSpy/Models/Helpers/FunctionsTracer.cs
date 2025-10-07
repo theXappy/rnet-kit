@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using RnetKit.Common;
 using System;
 using System.Collections.Generic;
@@ -14,6 +14,8 @@ namespace RemoteNetSpy.Models;
 public class FunctionsTracer
 {
     private RemoteAppModel Parent;
+    private int _notificationsCount = 0;
+
     public ICommand RunFridaTracesCommand { get; }
     public ICommand RunRemoteNetTracesCommand { get; }
     public ICommand OpenCommand { get; }
@@ -22,8 +24,23 @@ public class FunctionsTracer
     public ICommand AddFuncCommand { get; }
     public ICommand DeleteFuncCommand { get; }
 
-
     public ObservableCollection<TraceFunction> TraceList { get; } = new();
+
+    public int TotalItemsCount => TraceList.Count;
+
+    public int NotificationsCount 
+    { 
+        get => _notificationsCount;
+        private set
+        {
+            if (_notificationsCount != value)
+            {
+                _notificationsCount = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public FunctionsTracer(RemoteAppModel parent)
     {
         Parent = parent;
@@ -34,6 +51,28 @@ public class FunctionsTracer
         ClearCommand = new RelayCommand<object>(_ => Clear());
         AddFuncCommand = new RelayCommand<object>(o => AddFunc(o as DumpedMember));
         DeleteFuncCommand = new RelayCommand<object>(DeleteFunc);
+
+        // Subscribe to collection changes to update notification count
+        TraceList.CollectionChanged += (sender, e) => 
+        {
+            OnPropertyChanged(nameof(TotalItemsCount));
+            
+            // If items were added, increment notifications count
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                NotificationsCount += e.NewItems?.Count ?? 0;
+            }
+            // If collection was cleared, reset notifications count
+            else if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                NotificationsCount = 0;
+            }
+        };
+    }
+
+    public void ClearNotifications()
+    {
+        NotificationsCount = 0;
     }
 
     public void AddFunc(DumpedMember sender)
@@ -48,7 +87,6 @@ public class FunctionsTracer
 
         string targetClass = Parent.ClassesModel.SelectedType.FullTypeName;
         string module = Parent.ClassesModel.SelectedType.Assembly;
-
 
         // Removing "[Method]" prefix
         string justSignature = member[(member.IndexOf(']') + 1)..].TrimStart();
