@@ -1,5 +1,6 @@
 ﻿using CommandLine;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace rnet_class_dump
@@ -20,12 +21,21 @@ namespace rnet_class_dump
 
         [Option('v', "verbose", Required = false, HelpText = "Enable verbose output.")]
         public bool Verbose { get; set; }
+
+        [Option('d', "launchdebugger", Required = false, HelpText = "Launch debugger and wait for it to attach.")]
+        public bool LaunchDebugger { get; set; }
     }
 
     internal class Program
     {
         static int Main(string[] args)
         {
+            if (args?.Any(a => a == "--launchdebugger" || a == "-d") ?? false)
+            {
+                Debugger.Launch();
+            }
+
+
             return Parser.Default.ParseArguments<Options>(args)
                 .MapResult(
                     RunDump,

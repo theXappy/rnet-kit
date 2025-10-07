@@ -1,7 +1,6 @@
 using RemoteNET;
 using RemoteNET.Common;
 using RemoteNET.Internal.Reflection;
-using RemoteNET.Internal.Reflection.DotNet;
 using RemoteNET.RttiReflection;
 using System.Diagnostics;
 using System.Reflection;
@@ -522,6 +521,12 @@ namespace RemoteNET.ClassDump.Internal
                     prefix = "// ";
                 }
 
+                // Check for C++ operator overloading methods
+                if (IsCppOperatorMethod(memberName))
+                {
+                    AppendLine(writer, $"// WARNING: C++ operator overloading method '{memberName}' is not supported.", indentCount);
+                    prefix = "// ";
+                }
 
                 // Members text might be multiple lines (mostly lines with comments above the actual decleration)
                 foreach (string memberLine in memberDeclaration.ToString().Split("\n"))
@@ -532,6 +537,40 @@ namespace RemoteNET.ClassDump.Internal
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Determines if a method name represents a C++ operator overloading method
+        /// </summary>
+        /// <param name="methodName">The method name to check</param>
+        /// <returns>True if the method is a C++ operator overloading method</returns>
+        private bool IsCppOperatorMethod(string methodName)
+        {
+            if (string.IsNullOrEmpty(methodName))
+                return false;
+
+            // Check if method name starts with "operator"
+            if (!methodName.StartsWith("operator", StringComparison.Ordinal))
+                return false;
+
+            // If it's exactly "operator[]", we already handle this case elsewhere
+            if (methodName == "operator[]")
+                return false;
+
+            // Check for any special characters commonly used in operators
+            // This includes arithmetic, comparison, assignment, and other operators
+            string operatorPart = methodName.Substring(8); // Remove "operator" prefix
+
+            // Check if the remaining part contains any special characters
+            foreach (char c in operatorPart)
+            {
+                if (!char.IsLetterOrDigit(c) && c != '_')
+                {
+                    return true; // Contains special characters, likely an operator
+                }
+            }
+
+            return false;
         }
 
         private bool IsOverlappingMethod(Dictionary<string, HashSet<string>> addedMethodsCache, MemberInfo member)
@@ -597,10 +636,44 @@ namespace RemoteNET.ClassDump.Internal
                 }
                 Append(writer, $"public dynamic {field.Name} {{ get => __dro.{field.Name}; set => __dro.{field.Name} = value; }}", indentCount);
             }
-            else if (member is RemoteRttiMethodInfo rttiMethod)
+            else if (member is IRttiMethodBase rttiMethod)
             {
-                // Skip the first argument as it's the instance itself
-                IEnumerable<RemoteNET.Common.LazyRemoteParameterResolver> paramInfos = rttiMethod.LazyParamInfos.Skip(1);
+                bool isConstructor = rttiMethod.Name == className;
+                bool isStatic = rttiMethod is RemoteRttiMethodInfo mi && mi.IsStatic;
+
+                if (isConstructor)
+                {
+                    // It's a constructor
+                    AppendLine(writer, $"// Constructor (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+                else if (rttiMethod.Name.StartsWith("~"))
+                {
+                    // It's a destructor
+                    AppendLine(writer, $"// Destructor (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+                else if (isStatic)
+                {
+                    // It's a static method
+                    AppendLine(writer, $"// Static Method (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+                // Catch C++ operator overloading methods.
+                // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
+                else if (rttiMethod.Name.StartsWith("operator") &&
+                         rttiMethod.Name.Length > 8 &&
+                         !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
+                {
+                    AppendLine(writer, $"// Operator (Not supported)", indentCount);
+                    Append(writer, $"// ", indentCount);
+                }
+
+
+                int argsSkip = 1; // Skipping 'this' for instance methods
+                if (isStatic)
+                    argsSkip = 0;
+                IEnumerable<LazyRemoteParameterResolver> paramInfos = rttiMethod.LazyParamInfos.Skip(argsSkip);
                 string parameters = string.Join(", ", paramInfos.Select(p =>
                 {
                     (string declared, string csharpExpression) = GetTypeIdentifier(p, out bool _);
@@ -608,69 +681,55 @@ namespace RemoteNET.ClassDump.Internal
                     return formatted + $" {p.Name}";
                 }));
 
-                if (rttiMethod.Name == className)
+                string invocationArgs = string.Empty;
+                foreach (RemoteNET.Common.LazyRemoteParameterResolver param in paramInfos)
                 {
-                    // It's a constructor
-                    Append(writer, $"// Constructor: {rttiMethod.Name}({parameters});", indentCount);
-                }
-                else if (rttiMethod.Name.StartsWith("~"))
-                {
-                    // It's a destructor
-                    Append(writer, $"// Destructor: {rttiMethod.Name}({parameters});", indentCount);
-                }
-                if (rttiMethod.Name == "operator[]")
-                {
-                    Append(writer, $"// Operator[]: {rttiMethod.Name}({parameters});", indentCount);
-                }
-                else
-                {
-                    string invocationArgs = string.Empty;
-                    foreach (RemoteNET.Common.LazyRemoteParameterResolver param in paramInfos)
-                    {
-                        if (invocationArgs.Length > 0)
-                            invocationArgs += ", ";
+                    if (invocationArgs.Length > 0)
+                        invocationArgs += ", ";
 
-                        GetTypeIdentifier(param, out bool isObject);
-                        invocationArgs += param.Name;
-                        if (isObject)
-                            invocationArgs += ".__dro";
-                    }
-                    (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRet);
-                    string formattedRetType = FormatTypeIdentifier(declaredRetType, csharpExpressionRetType);
-
-                    string body = $"__dro.{rttiMethod.Name}({invocationArgs})";
-                    if (IsPrimitive(csharpExpressionRetType))
-                    {
-                        // For primitives, add a lousy cast.
-                        string castToUlong = $"(ulong)(UIntPtr)({body})";
-                        if (csharpExpressionRetType == "bool")
-                        {
-                            body = $"({castToUlong}) != 0";
-                        }
-                        else if (csharpExpressionRetType == "void")
-                        {
-                            // Do nothing. Not return type - no need to cast to anything else.
-                        }
-                        else
-                        {
-                            body = $"({csharpExpressionRetType}){castToUlong}";
-                        }
-                    }
-                    else if (isObjectRet)
-                    {
-                        if (csharpExpressionRetType == "dynamic")
-                        {
-                            // If the return type is dynamic, we can just return the body as is
-                        }
-                        else
-                        {
-                            // For objects, we need to wrap it in a DynamicRemoteObject
-                            body = $"new {csharpExpressionRetType}((DynamicRemoteObject){body})";
-                        }
-                    }
-
-                    Append(writer, $"public {formattedRetType} {rttiMethod.Name}({parameters}) => {body};", indentCount);
+                    GetTypeIdentifier(param, out bool isObject);
+                    invocationArgs += param.Name;
+                    if (isObject)
+                        invocationArgs += ".__dro";
                 }
+                (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRet);
+                string formattedRetType = FormatTypeIdentifier(declaredRetType, csharpExpressionRetType) + " ";
+                if (isConstructor)
+                    formattedRetType = string.Empty; // Constructors don't have return type
+
+                string body = $"__dro.{rttiMethod.Name}({invocationArgs})";
+                if (IsPrimitive(csharpExpressionRetType))
+                {
+                    // For primitives, add a lousy cast.
+                    string castToUlong = $"(ulong)(UIntPtr)({body})";
+                    if (csharpExpressionRetType == "bool")
+                    {
+                        body = $"({castToUlong}) != 0";
+                    }
+                    else if (csharpExpressionRetType == "void")
+                    {
+                        // Do nothing. Not return type - no need to cast to anything else.
+                    }
+                    else
+                    {
+                        body = $"({csharpExpressionRetType}){castToUlong}";
+                    }
+                }
+                else if (isObjectRet)
+                {
+                    if (csharpExpressionRetType == "dynamic")
+                    {
+                        // If the return type is dynamic, we can just return the body as is
+                    }
+                    else
+                    {
+                        // For objects, we need to wrap it in a DynamicRemoteObject
+                        body = $"new {csharpExpressionRetType}((DynamicRemoteObject){body})";
+                    }
+                }
+
+                string staticModifier = isStatic ? "static " : string.Empty;
+                Append(writer, $"public {staticModifier}{formattedRetType}{rttiMethod.Name}({parameters}) => {body};", indentCount);
             }
             else if (member is MethodInfo method)
             {
@@ -797,7 +856,7 @@ namespace RemoteNET.ClassDump.Internal
             else if (str == "System.Char")
                 csharpExpression = "char";
             else
-            { 
+            {
                 // TODO: Used to check "IsPointer" here but something went wrong and the cases combined...
                 csharpExpression = str.Replace("::", ".").TrimEnd('*', '&');
             }
