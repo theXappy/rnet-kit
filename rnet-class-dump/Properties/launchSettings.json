@@ -2,7 +2,7 @@
   "profiles": {
     "rnet-class-dump": {
       "commandName": "Project",
-      "commandLineArgs": " -u -t TestT -f *!*Uuid"
+      "commandLineArgs": " -u -t gN -l C:\\git\\rnet-kit\\NotesPayloadsTester\\InspectedTypes.txt"
     }
   }
 }

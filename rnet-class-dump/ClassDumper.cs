@@ -5,12 +5,24 @@ using RemoteNET.RttiReflection;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using Scriban;
+using Scriban.Runtime;
+using rnet_class_dump.Models;
 
 namespace rnet_class_dump
 {
     internal class ClassDumper
     {
         private bool _isVerbose;
+
+        // Scriban template cache
+        private static readonly Lazy<Template> _baseHelperTemplate = new(() =>
+            Template.Parse(GetEmbeddedTemplate("BaseHelperClass.scriban")));
+        private static readonly Lazy<Template> _globalAppHelperTemplate = new(() =>
+            Template.Parse(GetEmbeddedTemplate("GlobalAppHelperClass.scriban")));
+        private static readonly Lazy<Template> _classWrapperTemplate = new(() =>
+            Template.Parse(GetEmbeddedTemplate("ClassWrapper.scriban")));
+
         public void LogVerbose(string message)
         {
             if (_isVerbose)
@@ -95,10 +107,17 @@ namespace rnet_class_dump
             // Recursively resolve all 
             var allTypesToDump = RecursiveTypesSearch(queriedTypes);
 
+            // Create the HashSet of all dumped type full names ONCE for efficiency
+            var allDumpedTypeFullNames = allTypesToDump.Values
+                .SelectMany(typeList => typeList)
+                .Select(t => t.FullName.Split('!').Last())
+                .Where(name => name != null)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             // Process each candidate group (by key)
             foreach (var kvp in allTypesToDump)
             {
-                (string typeFullName, string fileName) = DumpType(app, tempDir, kvp.Value); // Pass all types for this key
+                (string typeFullName, string fileName) = DumpType(app, tempDir, kvp.Value, allDumpedTypeFullNames); // Pass all types for this key and pre-computed HashSet
 
                 if (typeFullName != null && fileName != null)
                 {
@@ -110,7 +129,7 @@ namespace rnet_class_dump
         }
 
         // Accepts all types for a key, selects the one with the most members, and adds a comment listing all type full names
-        private (string typeFullName, string fileName) DumpType(RemoteApp app, string tempDir, List<RemoteTypeBase> types)
+        private (string typeFullName, string fileName) DumpType(RemoteApp app, string tempDir, List<RemoteTypeBase> types, HashSet<string> allDumpedTypeFullNames)
         {
             if (types == null || types.Count == 0)
                 return (null, null);
@@ -131,19 +150,112 @@ namespace rnet_class_dump
             if (!File.Exists(fileName) || new FileInfo(fileName).Length == 0)
             {
                 StringBuilder codeBuilder = new StringBuilder();
-                // Add comment with all type full names
-                codeBuilder.AppendLine("// All type full names for this class:");
-                foreach (var t in types)
-                {
-                    codeBuilder.AppendLine($"//   {t.FullName}");
-                }
-                codeBuilder.AppendLine();
-                bool worthy = WriteClassCode(selectedType, codeBuilder);
+                
+                // Store overlapping type full names for the current type
+                var overlappingTypeFullNames = types.Select(t => t.FullName).ToList();
+                
+                bool worthy = WriteClassCodeWithTypeNames(selectedType, codeBuilder, overlappingTypeFullNames, allDumpedTypeFullNames);
                 if (!worthy)
                     return (null, null);
                 File.WriteAllText(fileName, codeBuilder.ToString());
             }
             return (typeFullName, fileName);
+        }
+
+        private bool WriteClassCodeWithTypeNames(Type remoteType, StringBuilder writer, List<string> overlappingTypeFullNames, HashSet<string> allDumpedTypeFullNames)
+        {
+            try
+            {
+                // Get the remote type
+                if (remoteType == null)
+                {
+                    LogVerbose($"Null Type as input?");
+                    return false;
+                }
+
+                string? dllName = remoteType.Assembly.GetName().Name;
+                string? fullName = remoteType.FullName;
+                string className = remoteType.Name;
+
+                // Namespace
+                string? namespaceName = remoteType.Namespace;
+                bool hasNamespace = !string.IsNullOrEmpty(namespaceName);
+
+                // Create the model for the template
+                var model = new ClassModel
+                {
+                    OverlappingTypeFullNames = overlappingTypeFullNames,
+                    ClassName = className,
+                    NamespaceName = namespaceName,
+                    HasNamespace = hasNamespace,
+                    FullName = fullName ?? string.Empty,
+                    DllName = dllName ?? string.Empty
+                };
+
+                // Handle namespace parts for nested classes
+                if (hasNamespace)
+                {
+                    string[] nsParts = namespaceName.Split(new[] { "::" }, StringSplitOptions.None);
+                    model.NamespaceParts = nsParts;
+                    
+                    // Check which namespace parts are actually classes
+                    var parentClassFlags = new bool[nsParts.Length];
+                    var indentStrings = new string[nsParts.Length];
+                    
+                    for (int i = 0; i < nsParts.Length; i++)
+                    {
+                        // Build the partial type name up to this point
+                        string partialTypeName = string.Join("::", nsParts.Take(i + 1));
+                        
+                        // Check if this partial name exists as a class in ALL the types we're dumping
+                        parentClassFlags[i] = allDumpedTypeFullNames.Contains(partialTypeName);
+                        
+                        // Pre-calculate indentation strings
+                        indentStrings[i] = new string(' ', i * 4);
+                    }
+                    
+                    model.ParentClassFlags = parentClassFlags;
+                    model.IndentStrings = indentStrings;
+                    
+                    // Calculate indent based on nesting level
+                    if (nsParts.Length == 1)
+                    {
+                        model.Indent = "    "; // Just namespace
+                    }
+                    else
+                    {
+                        model.Indent = new string(' ', (nsParts.Length) * 4); // Namespace + nested classes
+                    }
+                }
+                else
+                {
+                    model.Indent = "";
+                    model.ParentClassFlags = Array.Empty<bool>();
+                    model.IndentStrings = Array.Empty<string>();
+                }
+
+                // Generate members
+                if (!TryDumpMembersToModel(remoteType, className, model))
+                    return false;
+
+                // Render the template
+                var template = _classWrapperTemplate.Value;
+                var scriptObject = new ScriptObject();
+                scriptObject.Import(model, renamer: member => ConvertToSnakeCase(member.Name));
+                
+                var context = new TemplateContext();
+                context.PushGlobal(scriptObject);
+                
+                var result = template.Render(context);
+                writer.Append(result);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogVerbose($"Error writing class code for {remoteType.FullName}: {ex.Message}");
+                return false;
+            }
         }
 
         private Dictionary<string, List<RemoteTypeBase>> RecursiveTypesSearch(List<RemoteTypeBase> queriedTypes)
@@ -289,255 +401,40 @@ namespace rnet_class_dump
 
         private void WriteHelperClass(StringBuilder writer)
         {
-            // TODO: Cache which modules we have already started GC on
-            writer.AppendLine(@"using System;
-using System.Linq;
-using RemoteNET;
-using RemoteNET.Common;
-using RemoteNET.RttiReflection;
-using ScubaDiver.API.Extensions;
-
-namespace RemoteNET.ClassDump.Internal
-{
-	public abstract class __RemoteNET_Obj_Base
-	{
-		public dynamic __dro;
-		protected abstract RemoteTypeBase InstanceRemoteType { get; }
-
-		public __RemoteNET_Obj_Base(DynamicRemoteObject dro)
-		{
-			__dro = dro;
-		}
-
-		public __RemoteNET_Obj_Base()
-		{
-            var app = __RemoteNET_Global_App.App;
-			RemoteObject ro = app.Activator.CreateInstance(InstanceRemoteType);
-			__dro = ro.Dynamify();
-		}
-
-        protected static object __invokeStatic(RemoteTypeBase remoteType, string methodName, Type[] argTypes, object[] args)
-        {
-            for(int i = 0; i < args.Length; i++)
-            {
-                var curr = args[i];
-                if (curr is __RemoteNET_Obj_Base objBase)
-                    args[i] = (objBase).__dro;
-            }
-
-            var matches = remoteType.GetMethods().Where(mi => mi.Name == methodName);
-            matches = matches.Where(mi => mi.GetParameters().Length == args.Length);
-            matches = matches.Where(mi => {
-                IEnumerable<Type> expected = argTypes;
-                IEnumerable<Type> actual = mi.GetParameters().Select(pi => pi.ParameterType);
-                return expected.Zip(actual, (e, a) => 
-                                                a.FullName == e.FullName || 
-                                                (a is PointerType ptr && ptr.Inner.FullName == e.FullName) || 
-                                                e == typeof(WildCardType))
-                               .All(x => x);
-            });
-            if (!matches.Any())
-                throw new Exception(""No matching static method found"");
-            List<string> errors = new List<string>();
-            foreach (var mi in matches)
-            {
-                try
-                {
-                    return mi.Invoke(null, args); 
-                }
-                catch (Exception ex)
-                {
-                    errors.Add(ex.Message);
-                }
-            }
-            throw new Exception(""All candidate methods failed. Errors:\n"" + string.Join(""\n"", errors));
-        }
-	}
-
-	public interface __RemoteNET_IObj_Base
-	{
-		abstract static RemoteTypeBase RemoteType { get; }
-	}
-}");
+            var template = _baseHelperTemplate.Value;
+            var result = template.Render();
+            writer.Append(result);
         }
 
         private void WriteGlobalAppHelperClass(StringBuilder writer)
         {
-            writer.AppendLine(@"using System.Runtime.CompilerServices;
-using RemoteNET.Access;
-
-namespace RemoteNET.ClassDump.Internal
-{
-    internal static class __RemoteNET_Global_App
-    {
-        private static RemoteApp _app;
-        
-        public static RemoteApp App 
-        { 
-            get 
-            { 
-                if (_app == null)
-                    throw new System.InvalidOperationException(""Use RemoteAppFactory.Connect before using the generated RemoteNET API"");
-                return _app;
-            } 
-            set => _app = value; 
+            var template = _globalAppHelperTemplate.Value;
+            var result = template.Render();
+            writer.Append(result);
         }
 
-        [ModuleInitializer]
-        internal static void Initialize()
+        private static string GetEmbeddedTemplate(string templateName)
         {
-            RemoteAppFactory.NewAppCreated += (app) => { App = app; };
-        }
-    }
-}");
-        }
-
-        private bool WriteClassCode(Type remoteType, StringBuilder writer)
-        {
-            try
+            var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", templateName);
+            if (File.Exists(templatePath))
             {
-                // Get the remote type
-                if (remoteType == null)
-                {
-                    LogVerbose($"Null Type as input?");
-                    return false;
-                }
-
-                string? dllName = remoteType.Assembly.GetName().Name;
-                string? fullName = remoteType.FullName;
-                string className = remoteType.Name;
-
-                // Namespace
-                string? namespaceName = remoteType.Namespace;
-                bool hasNamespace = !string.IsNullOrEmpty(namespaceName);
-
-                AppendLine(writer, $"using System;", 0);
-                AppendLine(writer, $"using System.Linq;", 0);
-                AppendLine(writer, $"using RemoteNET;", 0);
-                AppendLine(writer, $"using RemoteNET.Common;", 0);
-                AppendLine(writer, $"using RemoteNET.ClassDump.Internal;", 0);
-                AppendLine(writer, $"using ScubaDiver.API.Extensions;", 0);
-                AppendLine(writer, "", 0);
-
-                int indentCount = 0;
-                if (hasNamespace)
-                {
-                    // Split by '::' for C++-style nested classes, or '.' for C#-style
-                    string[] nsParts = namespaceName.Split(new[] { "::" }, StringSplitOptions.None);
-                    if (nsParts.Length == 1)
-                    {
-                        // Just a regular namespace
-                        AppendLine(writer, $"namespace {nsParts[0]}", indentCount);
-                        AppendLine(writer, "{", indentCount);
-                        indentCount++;
-                    }
-                    else
-                    {
-                        // First part is the namespace, rest are nested classes
-                        AppendLine(writer, $"namespace {nsParts[0]}", indentCount);
-                        AppendLine(writer, "{", indentCount);
-                        indentCount++;
-                        for (int i = 1; i < nsParts.Length; i++)
-                        {
-                            AppendLine(writer, $"public partial class {nsParts[i]}", indentCount);
-                            AppendLine(writer, "{", indentCount);
-                            indentCount++;
-                        }
-                    }
-                }
-                else
-                {
-                    AppendLine(writer, "// No namespace", indentCount);
-                }
-
-                AppendLine(writer, $"public partial class {className} : __RemoteNET_Obj_Base, __RemoteNET_IObj_Base", indentCount);
-                AppendLine(writer, "{", indentCount);
-                indentCount++;
-
-                AppendLine(writer, "public ulong __address => (__dro as DynamicRemoteObject).__ro.RemoteToken;", indentCount);
-                AppendLine(writer, "", indentCount);
-                AppendLine(writer, "private static RemoteTypeBase __remoteType;", indentCount);
-                AppendLine(writer, "public static RemoteTypeBase RemoteType", indentCount);
-                AppendLine(writer, "{", indentCount);
-                indentCount++;
-                AppendLine(writer, "get", indentCount);
-                AppendLine(writer, "{", indentCount);
-                indentCount++;
-                AppendLine(writer, $"if (__remoteType == null)", indentCount);
-                AppendLine(writer, "{", indentCount);
-                indentCount++;
-                AppendLine(writer, $"var app = __RemoteNET_Global_App.App;", indentCount);
-                AppendLine(writer, $"__remoteType = (RemoteTypeBase)app.GetRemoteType(app.QueryTypes(\"{fullName}\").Single());", indentCount);
-                AppendLine(writer, $"app.Communicator.StartOffensiveGC(\"{dllName}\");", indentCount);
-                indentCount--;
-                AppendLine(writer, "}", indentCount);
-                AppendLine(writer, "return __remoteType;", indentCount);
-                indentCount--;
-                AppendLine(writer, "}", indentCount);
-                indentCount--;
-                AppendLine(writer, "}", indentCount);
-                AppendLine(writer, "", indentCount);
-                AppendLine(writer, "protected override RemoteTypeBase InstanceRemoteType => RemoteType;", indentCount);
-                AppendLine(writer, "", indentCount);
-
-                // Write a CTOR that accepts a DRO
-                AppendLine(writer, $"public {className}(DynamicRemoteObject dro) : base(dro)", indentCount);
-                AppendLine(writer, "{", indentCount);
-                AppendLine(writer, "}", indentCount);
-
-                // Write a CTOR that accepts a Allocates remote object automatically
-                AppendLine(writer, $"public {className}() : base()", indentCount);
-                AppendLine(writer, "{", indentCount);
-                AppendLine(writer, "}", indentCount);
-                AppendLine(writer, "", indentCount);
-
-                // Write a CTOR that accepts a DRO. Effectively a "cast" constructor.
-                // Actual cast operators are not allowed because of "casting to/from base class" limitations in C#.
-                // TODO: Maybe assert (original type system's) inheritance here?
-                AppendLine(writer, $"public {className}(__RemoteNET_Obj_Base obj) : this(obj.__dro as DynamicRemoteObject)", indentCount);
-                AppendLine(writer, "{", indentCount);
-                indentCount++;
-                AppendLine(writer, $"DynamicRemoteObject objDro = obj.__dro as DynamicRemoteObject;", indentCount);
-                AppendLine(writer, $"RemoteApp app = objDro.__ra;", indentCount);
-                AppendLine(writer, "var objRo = objDro.__ro;", indentCount);
-                AppendLine(writer, "var castedRo = objRo.Cast(RemoteType);", indentCount);
-                AppendLine(writer, $"__dro = castedRo.Dynamify();", indentCount);
-                indentCount--;
-                AppendLine(writer, "}", indentCount);
-                AppendLine(writer, "", indentCount);
-
-                Dictionary<string, LazyRemoteTypeResolver> otherTypesUsed = new Dictionary<string, LazyRemoteTypeResolver>();
-                // List all members
-                if (!TryDumpMembers(remoteType, writer, className, indentCount))
-                    return false;
-
-                indentCount--;
-                AppendLine(writer, "}", indentCount);
-
-                // Close all opened scopes (nested classes and namespace)
-                if (hasNamespace)
-                {
-                    string[] nsParts = namespaceName.Split(new[] { "::" }, StringSplitOptions.None);
-                    int totalScopes = nsParts.Length; // 1 for namespace, rest for classes
-                    for (int i = 1; i < nsParts.Length; i++)
-                    {
-                        indentCount--;
-                        AppendLine(writer, "}", indentCount);
-                    }
-                    indentCount--;
-                    AppendLine(writer, "}", indentCount); // close namespace
-                }
-
-                return true;
+                return File.ReadAllText(templatePath);
             }
-            catch (Exception ex)
+            
+            // Fallback to embedded resources if needed
+            var assembly = typeof(ClassDumper).Assembly;
+            var resourceName = $"rnet_class_dump.Templates.{templateName}";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream != null)
             {
-                LogVerbose($"Error writing class code for {remoteType.FullName}: {ex.Message}");
-                return false;
+                using var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
             }
+            
+            throw new FileNotFoundException($"Template {templateName} not found");
         }
 
-        private bool TryDumpMembers(Type remoteType, StringBuilder writer, string className, int indentCount)
+        private bool TryDumpMembersToModel(Type remoteType, string className, ClassModel model)
         {
             MemberInfo[] members = remoteType.GetMembers();
             if (members.Length == 0)
@@ -546,6 +443,7 @@ namespace RemoteNET.ClassDump.Internal
             string cppMainFullTypeName = remoteType.FullName!;
             Dictionary<string, string> memberTypes = new Dictionary<string, string>(); // Tracks member names and their types
             Dictionary<string, LazyRemoteTypeResolver> subClassesDict = new Dictionary<string, LazyRemoteTypeResolver>();
+            
             foreach (MemberInfo member in members)
             {
                 // Collected implied dependency types
@@ -593,49 +491,60 @@ namespace RemoteNET.ClassDump.Internal
                 memberTypes[memberName] = member.MemberType.ToString();
             }
 
-
             var declaredMethods = new Dictionary<string, HashSet<string>>();
             foreach (MemberInfo member in members)
             {
+                StringBuilder memberBuilder = new StringBuilder();
+                WriteMember(memberBuilder, className, member, indentCount: 0); // Remove indentation from WriteMember
 
-                StringBuilder memberDeclaration = new StringBuilder();
-                WriteMember(memberDeclaration, className, member, indentCount: 0);
+                string memberContent = memberBuilder.ToString();
+                var memberModel = new MemberModel { Content = memberContent };
 
+                // Check for various warning conditions
                 string prefix = string.Empty;
+                List<string> warnings = new List<string>();
+
                 if (IsOverlappingMethod(declaredMethods, member))
                 {
-                    AppendLine(writer, "// WARNING: This method's reduced signature overlaps with another one.", indentCount);
-                    prefix = "// ";
+                    warnings.Add("This method's reduced signature overlaps with another one.");
                 }
 
-                bool containsReference = memberDeclaration.ToString().Contains("& ");
+                bool containsReference = memberContent.Contains("& ");
                 if (containsReference)
                 {
-                    AppendLine(writer, "// WARNING: This method's reduced signature contains a reference type. Not supported yet.", indentCount);
-                    prefix = "// ";
+                    warnings.Add("This method's reduced signature contains a reference type. Not supported yet.");
                 }
 
                 string memberName = member.Name;
                 if (forbiddenMembers.Contains(memberName))
                 {
-                    // Write a comment
-                    AppendLine(writer, $"// WARNING: {memberName} member is conflicting with another member or subclass.", indentCount);
-                    prefix = "// ";
+                    warnings.Add($"{memberName} member is conflicting with another member or subclass.");
                 }
 
                 // Check for C++ operator overloading methods
                 if (IsCppOperatorMethod(memberName))
                 {
-                    AppendLine(writer, $"// WARNING: C++ operator overloading method '{memberName}' is not supported.", indentCount);
-                    prefix = "// ";
+                    warnings.Add($"C++ operator overloading method '{memberName}' is not supported.");
                 }
 
-                // Members text might be multiple lines (mostly lines with comments above the actual decleration)
-                foreach (string memberLine in memberDeclaration.ToString().Split("\n"))
+                if (warnings.Any())
                 {
-                    Append(writer, prefix + memberLine, indentCount);
+                    memberModel.IsCommented = true;
+                    memberModel.Comment = string.Join(" ", warnings.Select(w => $"WARNING: {w}"));
+                    
+                    // Properly comment out the entire content with consistent indentation
+                    var lines = memberContent.Split('\n');
+                    var commentedLines = lines.Select(line => 
+                    {
+                        if (string.IsNullOrWhiteSpace(line))
+                            return "//";
+                        return "// " + line.TrimStart();
+                    });
+                    
+                    memberModel.Content = "// " + memberModel.Comment + "\n" + string.Join("\n", commentedLines);
                 }
-                AppendLine(writer, string.Empty, indentCount);
+
+                model.Members.Add(memberModel);
             }
 
             return true;
@@ -727,22 +636,21 @@ namespace RemoteNET.ClassDump.Internal
         {
             if (member is PropertyInfo property)
             {
-                Append(writer, $"public dynamic {property.Name} {{ get => __dro.{property.Name}; set => __dro.{property.Name} = value; }}", indentCount);
+                writer.Append($"public dynamic {property.Name} {{ get => __dro.{property.Name}; set => __dro.{property.Name} = value; }}");
             }
             else if (member is FieldInfo field)
             {
                 if (field.Name == "vftable")
                 {
-                    Append(writer, $"// Unsupported vftable FIELD: {member.MemberType}. Name: {member.Name}", indentCount);
+                    writer.Append($"// Unsupported vftable FIELD: {member.MemberType}. Name: {member.Name}");
                     return;
                 }
-                Append(writer, $"public dynamic {field.Name} {{ get => __dro.{field.Name}; set => __dro.{field.Name} = value; }}", indentCount);
+                writer.Append($"public dynamic {field.Name} {{ get => __dro.{field.Name}; set => __dro.{field.Name} = value; }}");
             }
             else if (member is IRttiMethodBase rttiMethod)
             {
                 bool isConstructor = rttiMethod.Name == className;
                 bool isStatic = rttiMethod is RemoteRttiMethodInfo mi && mi.IsStatic;
-
 
                 // Arguments list
                 int argsSkip = 1; // Skipping 'this' for instance methods
@@ -768,28 +676,6 @@ namespace RemoteNET.ClassDump.Internal
                         invocationArgs += ".__dro";
                 }
 
-                if (isConstructor)
-                {
-                    // It's a constructor
-                    AppendLine(writer, $"// Constructor (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
-                else if (rttiMethod.Name.StartsWith("~"))
-                {
-                    // It's a destructor
-                    AppendLine(writer, $"// Destructor (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
-                // Catch C++ operator overloading methods.
-                // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
-                else if (rttiMethod.Name.StartsWith("operator") &&
-                         rttiMethod.Name.Length > 8 &&
-                         !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
-                {
-                    AppendLine(writer, $"// Operator (Not supported)", indentCount);
-                    Append(writer, $"// ", indentCount);
-                }
-
                 // Return Type
                 (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRet);
                 string formattedRetType = FormatTypeIdentifier(declaredRetType, csharpExpressionRetType) + " ";
@@ -811,9 +697,7 @@ namespace RemoteNET.ClassDump.Internal
                         return csharpExpression;
                     }));
 
-                    body = $"__invokeStatic(RemoteType, \"{rttiMethod.Name}\"," +
-                        $"\r\n\t\t\t\t\t new Type[] {{{argTypes}}}," +
-                        $"\r\n\t\t\t\t\t new object[] {{{invocationArgs}}})";
+                    body = $"__invokeStatic(RemoteType, \"{rttiMethod.Name}\", new Type[] {{{argTypes}}}, new object[] {{{invocationArgs}}})";
                 }
                 else
                 {
@@ -851,17 +735,43 @@ namespace RemoteNET.ClassDump.Internal
                 }
 
                 string staticModifier = isStatic ? "static " : string.Empty;
-                Append(writer, $"public {staticModifier}{formattedRetType}{rttiMethod.Name}({parameters}) => {body};", indentCount);
+                string methodSignature = $"public {staticModifier}{formattedRetType}{rttiMethod.Name}({parameters}) => {body};";
+
+                if (isConstructor)
+                {
+                    // It's a constructor
+                    writer.AppendLine("// Constructor (Not supported)");
+                    writer.Append($"// {methodSignature}");
+                }
+                else if (rttiMethod.Name.StartsWith("~"))
+                {
+                    // It's a destructor
+                    writer.AppendLine("// Destructor (Not supported)");
+                    writer.Append($"// {methodSignature}");
+                }
+                // Catch C++ operator overloading methods.
+                // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
+                else if (rttiMethod.Name.StartsWith("operator") &&
+                         rttiMethod.Name.Length > 8 &&
+                         !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
+                {
+                    writer.AppendLine("// Operator (Not supported)");
+                    writer.Append($"// {methodSignature}");
+                }
+                else
+                {
+                    writer.Append(methodSignature);
+                }
             }
             else if (member is MethodInfo method)
             {
                 // Assuming no parameters for simplicity
                 string parameters = string.Join(", ", method.GetParameters().Select(p => $"dynamic /*{p.ParameterType.Name}*/ {p.Name}"));
-                Append(writer, $"public dynamic /*{method.ReturnType.Name}*/ {method.Name}({parameters}) => __dro.{method.Name}({string.Join(", ", method.GetParameters().Select(p => GetTypeIdentifier(p, out _)))});", indentCount);
+                writer.Append($"public dynamic /*{method.ReturnType.Name}*/ {method.Name}({parameters}) => __dro.{method.Name}({string.Join(", ", method.GetParameters().Select(p => GetTypeIdentifier(p, out _)))});");
             }
             else
             {
-                Append(writer, $"// Unsupported member type: {member.MemberType}. Name: {member.Name}", indentCount);
+                writer.Append($"// Unsupported member type: {member.MemberType}. Name: {member.Name}");
             }
         }
 
@@ -1027,6 +937,29 @@ namespace RemoteNET.ClassDump.Internal
                 str == "uint32_t" ||
                 str == "int64_t" ||
                 str == "uint64_t";
+        }
+
+        /// <summary>
+        /// Converts CamelCase strings to snake_case for Scriban template variables
+        /// </summary>
+        /// <param name="input">CamelCase string</param>
+        /// <returns>snake_case string</returns>
+        private static string ConvertToSnakeCase(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            var result = new StringBuilder();
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (char.IsUpper(c) && i > 0)
+                {
+                    result.Append('_');
+                }
+                result.Append(char.ToLowerInvariant(c));
+            }
+            return result.ToString();
         }
 
         string FormatTypeIdentifier(string declaredType, string csharpExpression)

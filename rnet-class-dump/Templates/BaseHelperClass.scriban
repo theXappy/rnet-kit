@@ -1,0 +1,69 @@
+using System;
+using System.Linq;
+using RemoteNET;
+using RemoteNET.Common;
+using RemoteNET.RttiReflection;
+using ScubaDiver.API.Extensions;
+
+namespace RemoteNET.ClassDump.Internal
+{
+	public abstract class __RemoteNET_Obj_Base
+	{
+		public dynamic __dro;
+		protected abstract RemoteTypeBase InstanceRemoteType { get; }
+
+		public __RemoteNET_Obj_Base(DynamicRemoteObject dro)
+		{
+			__dro = dro;
+		}
+
+		public __RemoteNET_Obj_Base()
+		{
+            var app = __RemoteNET_Global_App.App;
+			RemoteObject ro = app.Activator.CreateInstance(InstanceRemoteType);
+			__dro = ro.Dynamify();
+		}
+
+        protected static object __invokeStatic(RemoteTypeBase remoteType, string methodName, Type[] argTypes, object[] args)
+        {
+            for(int i = 0; i < args.Length; i++)
+            {
+                var curr = args[i];
+                if (curr is __RemoteNET_Obj_Base objBase)
+                    args[i] = (objBase).__dro;
+            }
+
+            var matches = remoteType.GetMethods().Where(mi => mi.Name == methodName);
+            matches = matches.Where(mi => mi.GetParameters().Length == args.Length);
+            matches = matches.Where(mi => {
+                IEnumerable<Type> expected = argTypes;
+                IEnumerable<Type> actual = mi.GetParameters().Select(pi => pi.ParameterType);
+                return expected.Zip(actual, (e, a) => 
+                                                a.FullName == e.FullName || 
+                                                (a is PointerType ptr && ptr.Inner.FullName == e.FullName) || 
+                                                e == typeof(WildCardType))
+                               .All(x => x);
+            });
+            if (!matches.Any())
+                throw new Exception("No matching static method found");
+            List<string> errors = new List<string>();
+            foreach (var mi in matches)
+            {
+                try
+                {
+                    return mi.Invoke(null, args); 
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(ex.Message);
+                }
+            }
+            throw new Exception("All candidate methods failed. Errors:\n" + string.Join("\n", errors));
+        }
+	}
+
+	public interface __RemoteNET_IObj_Base
+	{
+		abstract static RemoteTypeBase RemoteType { get; }
+	}
+}

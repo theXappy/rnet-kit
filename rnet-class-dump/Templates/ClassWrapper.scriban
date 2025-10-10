@@ -1,0 +1,113 @@
+{{- # Template for generating C# wrapper classes -}}
+{{- # Model properties expected:
+    # - overlapping_type_full_names: List of overlapping type full names for current type
+    # - class_name: The class name
+    # - namespace_name: The namespace (optional)
+    # - has_namespace: Boolean indicating if namespace exists
+    # - namespace_parts: Array of namespace parts for nested classes
+    # - parent_class_flags: Array of booleans indicating which parts are classes vs namespaces
+    # - indent_strings: Array of pre-calculated indentation strings
+    # - full_name: Full type name for remote type resolution
+    # - dll_name: Assembly name
+    # - members: Array of member objects
+-}}
+using System;
+using System.Linq;
+using RemoteNET;
+using RemoteNET.Common;
+using RemoteNET.ClassDump.Internal;
+using ScubaDiver.API.Extensions;
+
+// All overlapping type full names for this class:
+{{- for type_name in overlapping_type_full_names }}
+//   {{ type_name }}
+{{- end }}
+
+{{- if has_namespace }}
+{{- if namespace_parts.size == 1 }}
+{{- if parent_class_flags[0] }}
+public partial class {{ namespace_parts[0] }}
+{
+{{- else }}
+namespace {{ namespace_parts[0] }}
+{
+{{- end }}
+{{- else }}
+{{- # Handle multi-part namespaces/classes -}}
+{{- $namespace_started = false -}}
+{{- for i in 0..(namespace_parts.size - 1) }}
+{{- if parent_class_flags[i] }}
+{{- # This part is a class -}}
+{{ indent_strings[i] }}public partial class {{ namespace_parts[i] }}
+{{ indent_strings[i] }}{
+{{- else }}
+{{- # This part is a namespace -}}
+{{- if !$namespace_started }}
+namespace {{ namespace_parts[i] }}
+{
+{{- $namespace_started = true -}}
+{{- else }}
+{{ indent_strings[i] }}namespace {{ namespace_parts[i] }}
+{{ indent_strings[i] }}{
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- else }}
+// No namespace
+{{- end }}
+
+{{ indent }}public partial class {{ class_name }} : __RemoteNET_Obj_Base, __RemoteNET_IObj_Base
+{{ indent }}{
+{{ indent }}    public ulong __address => (__dro as DynamicRemoteObject).__ro.RemoteToken;
+
+{{ indent }}    private static RemoteTypeBase __remoteType;
+{{ indent }}    public static RemoteTypeBase RemoteType
+{{ indent }}    {
+{{ indent }}        get
+{{ indent }}        {
+{{ indent }}            if (__remoteType == null)
+{{ indent }}            {
+{{ indent }}                var app = __RemoteNET_Global_App.App;
+{{ indent }}                __remoteType = (RemoteTypeBase)app.GetRemoteType(app.QueryTypes("{{ full_name }}").Single());
+{{ indent }}                app.Communicator.StartOffensiveGC("{{ dll_name }}");
+{{ indent }}            }
+{{ indent }}            return __remoteType;
+{{ indent }}        }
+{{ indent }}    }
+
+{{ indent }}    protected override RemoteTypeBase InstanceRemoteType => RemoteType;
+
+{{ indent }}    public {{ class_name }}(DynamicRemoteObject dro) : base(dro)
+{{ indent }}    {
+{{ indent }}    }
+
+{{ indent }}    public {{ class_name }}() : base()
+{{ indent }}    {
+{{ indent }}    }
+
+{{ indent }}    public {{ class_name }}(__RemoteNET_Obj_Base obj) : this(obj.__dro as DynamicRemoteObject)
+{{ indent }}    {
+{{ indent }}        DynamicRemoteObject objDro = obj.__dro as DynamicRemoteObject;
+{{ indent }}        RemoteApp app = objDro.__ra;
+{{ indent }}        var objRo = objDro.__ro;
+{{ indent }}        var castedRo = objRo.Cast(RemoteType);
+{{ indent }}        __dro = castedRo.Dynamify();
+{{ indent }}    }
+
+{{- for member in members }}
+{{- $lines = member.content | string.split "\n" -}}
+{{- for line in $lines }}
+{{ indent }}    {{ line }}
+{{- end }}
+{{- end }}
+
+{{ indent }}}
+
+{{- if has_namespace }}
+{{- # Close all the opened braces in reverse order -}}
+{{- for i in 0..(namespace_parts.size - 1) }}
+{{- $reverse_i = namespace_parts.size - 1 - i -}}
+{{ indent_strings[$reverse_i] }}}
+{{- end }}
+{{- end }}

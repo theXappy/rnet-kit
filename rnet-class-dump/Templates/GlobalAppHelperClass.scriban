@@ -1,0 +1,27 @@
+using System.Runtime.CompilerServices;
+using RemoteNET.Access;
+
+namespace RemoteNET.ClassDump.Internal
+{
+    internal static class __RemoteNET_Global_App
+    {
+        private static RemoteApp _app;
+        
+        public static RemoteApp App 
+        { 
+            get 
+            { 
+                if (_app == null)
+                    throw new System.InvalidOperationException("Use RemoteAppFactory.Connect before using the generated RemoteNET API");
+                return _app;
+            } 
+            set => _app = value; 
+        }
+
+        [ModuleInitializer]
+        internal static void Initialize()
+        {
+            RemoteAppFactory.NewAppCreated += (app) => { App = app; };
+        }
+    }
+}

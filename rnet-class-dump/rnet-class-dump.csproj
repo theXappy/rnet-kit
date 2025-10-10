@@ -15,12 +15,7 @@
 			<VersionFile>$(IntermediateOutputPath)VersionInfo.cs</VersionFile>
 		</PropertyGroup>
 
-		<WriteLinesToFile
-		  File="$(VersionFile)"
-		  Lines='[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.$(BuildTime)")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.$(BuildTime)")]'
-		  Overwrite="true" />
+		<WriteLinesToFile File="$(VersionFile)" Lines="[assembly: System.Reflection.AssemblyVersion(&quot;1.0.0.0&quot;)]&#xD;&#xA;[assembly: System.Reflection.AssemblyFileVersion(&quot;1.$(BuildTime)&quot;)]&#xD;&#xA;[assembly: System.Reflection.AssemblyInformationalVersion(&quot;1.$(BuildTime)&quot;)]" Overwrite="true" />
 
 		<ItemGroup>
 			<Compile Include="$(VersionFile)" />
@@ -29,10 +24,15 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommandLineParser" Version="2.9.1" />
+		<PackageReference Include="Scriban" Version="6.4.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\RemoteNET\src\RemoteNET\RemoteNET.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Templates\*.scriban" CopyToOutputDirectory="Always" />
 	</ItemGroup>
 
 </Project>
