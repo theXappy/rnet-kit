@@ -23,38 +23,14 @@ using ScubaDiver.API.Extensions;
 //   {{ type_name }}
 {{- end }}
 
-{{- if has_namespace }}
-{{- if namespace_parts.size == 1 }}
-{{- if parent_class_flags[0] }}
-public partial class {{ namespace_parts[0] }}
-{
-{{- else }}
-namespace {{ namespace_parts[0] }}
-{
-{{- end }}
-{{- else }}
-{{- # Handle multi-part namespaces/classes -}}
-{{- $namespace_started = false -}}
 {{- for i in 0..(namespace_parts.size - 1) }}
 {{- if parent_class_flags[i] }}
-{{- # This part is a class -}}
-{{ indent_strings[i] }}public partial class {{ namespace_parts[i] }}
-{{ indent_strings[i] }}{
+public partial class {{ namespace_parts[i] }}
+{
 {{- else }}
-{{- # This part is a namespace -}}
-{{- if !$namespace_started }}
 namespace {{ namespace_parts[i] }}
 {
-{{- $namespace_started = true -}}
-{{- else }}
-{{ indent_strings[i] }}namespace {{ namespace_parts[i] }}
-{{ indent_strings[i] }}{
 {{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- else }}
-// No namespace
 {{- end }}
 
 {{ indent }}public partial class {{ class_name }} : __RemoteNET_Obj_Base, __RemoteNET_IObj_Base
@@ -96,18 +72,14 @@ namespace {{ namespace_parts[i] }}
 {{ indent }}    }
 
 {{- for member in members }}
-{{- $lines = member.content | string.split "\n" -}}
-{{- for line in $lines }}
+{{- for line in member.content }}
 {{ indent }}    {{ line }}
 {{- end }}
 {{- end }}
 
 {{ indent }}}
 
-{{- if has_namespace }}
-{{- # Close all the opened braces in reverse order -}}
 {{- for i in 0..(namespace_parts.size - 1) }}
 {{- $reverse_i = namespace_parts.size - 1 - i -}}
-{{ indent_strings[$reverse_i] }}}
-{{- end }}
+}
 {{- end }}

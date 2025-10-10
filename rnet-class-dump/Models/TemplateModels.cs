@@ -19,8 +19,7 @@ namespace rnet_class_dump.Models
 
     public class MemberModel
     {
-        public string Content { get; set; } = string.Empty;
-        public bool IsCommented { get; set; }
         public string? Comment { get; set; }
+        public string[] Content { get; set; }
     }
 }

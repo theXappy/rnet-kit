@@ -494,11 +494,8 @@ namespace rnet_class_dump
             var declaredMethods = new Dictionary<string, HashSet<string>>();
             foreach (MemberInfo member in members)
             {
-                StringBuilder memberBuilder = new StringBuilder();
-                WriteMember(memberBuilder, className, member, indentCount: 0); // Remove indentation from WriteMember
-
-                string memberContent = memberBuilder.ToString();
-                var memberModel = new MemberModel { Content = memberContent };
+                List<string> memberLines = WriteMember(className, member);
+                var memberModel = new MemberModel { Content = memberLines.ToArray() };
 
                 // Check for various warning conditions
                 string prefix = string.Empty;
@@ -507,12 +504,6 @@ namespace rnet_class_dump
                 if (IsOverlappingMethod(declaredMethods, member))
                 {
                     warnings.Add("This method's reduced signature overlaps with another one.");
-                }
-
-                bool containsReference = memberContent.Contains("& ");
-                if (containsReference)
-                {
-                    warnings.Add("This method's reduced signature contains a reference type. Not supported yet.");
                 }
 
                 string memberName = member.Name;
@@ -529,19 +520,13 @@ namespace rnet_class_dump
 
                 if (warnings.Any())
                 {
-                    memberModel.IsCommented = true;
-                    memberModel.Comment = string.Join(" ", warnings.Select(w => $"WARNING: {w}"));
-                    
+                    List<string> newContent = new List<string>(memberLines.Count + 1);
+                    string warning = string.Join(" ", warnings.Select(w => $"// WARNING: {w}"));
+                    newContent.Add(warning);
+                    newContent.AddRange(memberLines.Select(line => "// " + line.TrimStart()));
+
                     // Properly comment out the entire content with consistent indentation
-                    var lines = memberContent.Split('\n');
-                    var commentedLines = lines.Select(line => 
-                    {
-                        if (string.IsNullOrWhiteSpace(line))
-                            return "//";
-                        return "// " + line.TrimStart();
-                    });
-                    
-                    memberModel.Content = "// " + memberModel.Comment + "\n" + string.Join("\n", commentedLines);
+                    memberModel.Content = newContent.ToArray();
                 }
 
                 model.Members.Add(memberModel);
@@ -632,20 +617,22 @@ namespace rnet_class_dump
             }
         }
 
-        private void WriteMember(StringBuilder writer, string className, MemberInfo member, int indentCount)
+        private List<string> WriteMember(string className, MemberInfo member)
         {
+            var lines = new List<string>();
+            
             if (member is PropertyInfo property)
             {
-                writer.Append($"public dynamic {property.Name} {{ get => __dro.{property.Name}; set => __dro.{property.Name} = value; }}");
+                lines.Add($"public dynamic {property.Name} {{ get => __dro.{property.Name}; set => __dro.{property.Name} = value; }}");
             }
             else if (member is FieldInfo field)
             {
                 if (field.Name == "vftable")
                 {
-                    writer.Append($"// Unsupported vftable FIELD: {member.MemberType}. Name: {member.Name}");
-                    return;
+                    lines.Add($"// Unsupported vftable FIELD: {member.MemberType}. Name: {member.Name}");
+                    return lines;
                 }
-                writer.Append($"public dynamic {field.Name} {{ get => __dro.{field.Name}; set => __dro.{field.Name} = value; }}");
+                lines.Add($"public dynamic {field.Name} {{ get => __dro.{field.Name}; set => __dro.{field.Name} = value; }}");
             }
             else if (member is IRttiMethodBase rttiMethod)
             {
@@ -740,14 +727,14 @@ namespace rnet_class_dump
                 if (isConstructor)
                 {
                     // It's a constructor
-                    writer.AppendLine("// Constructor (Not supported)");
-                    writer.Append($"// {methodSignature}");
+                    lines.Add("// Constructor (Not supported)");
+                    lines.Add($"// {methodSignature}");
                 }
                 else if (rttiMethod.Name.StartsWith("~"))
                 {
                     // It's a destructor
-                    writer.AppendLine("// Destructor (Not supported)");
-                    writer.Append($"// {methodSignature}");
+                    lines.Add("// Destructor (Not supported)");
+                    lines.Add($"// {methodSignature}");
                 }
                 // Catch C++ operator overloading methods.
                 // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
@@ -755,24 +742,26 @@ namespace rnet_class_dump
                          rttiMethod.Name.Length > 8 &&
                          !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
                 {
-                    writer.AppendLine("// Operator (Not supported)");
-                    writer.Append($"// {methodSignature}");
+                    lines.Add("// Operator (Not supported)");
+                    lines.Add($"// {methodSignature}");
                 }
                 else
                 {
-                    writer.Append(methodSignature);
+                    lines.Add(methodSignature);
                 }
             }
             else if (member is MethodInfo method)
             {
                 // Assuming no parameters for simplicity
                 string parameters = string.Join(", ", method.GetParameters().Select(p => $"dynamic /*{p.ParameterType.Name}*/ {p.Name}"));
-                writer.Append($"public dynamic /*{method.ReturnType.Name}*/ {method.Name}({parameters}) => __dro.{method.Name}({string.Join(", ", method.GetParameters().Select(p => GetTypeIdentifier(p, out _)))});");
+                lines.Add($"public dynamic /*{method.ReturnType.Name}*/ {method.Name}({parameters}) => __dro.{method.Name}({string.Join(", ", method.GetParameters().Select(p => GetTypeIdentifier(p, out _)))});");
             }
             else
             {
-                writer.Append($"// Unsupported member type: {member.MemberType}. Name: {member.Name}");
+                lines.Add($"// Unsupported member type: {member.MemberType}. Name: {member.Name}");
             }
+            
+            return lines;
         }
 
         private void AppendLine(StringBuilder sb, string text, int indent = 0)
