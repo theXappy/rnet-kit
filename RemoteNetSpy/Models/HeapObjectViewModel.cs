@@ -31,7 +31,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
                 throw new Exception("Can't set address for frozen heap object");
             _address = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(Description));
+            OnPropertyChanged(nameof(HexAddress));
         }
     }
 
@@ -44,7 +44,6 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
             _fullTypeName = value;
             _typeMethodsCache = null; // Invalidate cache on type change
             OnPropertyChanged();
-            OnPropertyChanged(nameof(Description));
             OnPropertyChanged(nameof(TypeMethods));
         }
     }
@@ -80,7 +79,8 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
             _typeMethodsCache = null; // Invalidate cache on type change
             OnPropertyChanged();
             OnPropertyChanged(nameof(Frozen));
-            OnPropertyChanged(nameof(Description));
+            OnPropertyChanged(nameof(HexAddress));
+            OnPropertyChanged(nameof(FullTypeName));
             OnPropertyChanged(nameof(TypeMethods));
         }
     }
@@ -102,7 +102,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
 
     public bool Frozen => RemoteObject != null;
 
-    public string Description => $"0x{Address:X16} {FullTypeName}";
+    public string HexAddress => $"0x{Address:X16}";
 
     public static HeapObjectViewModel Parse(string text)
     {

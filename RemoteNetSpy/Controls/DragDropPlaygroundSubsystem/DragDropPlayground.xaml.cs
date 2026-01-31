@@ -209,7 +209,7 @@ namespace DragDropExpressionBuilder
                     {
                         Obj = heapObj.RemoteObject,
                         Type = heapObj.RemoteObject.GetRemoteType(),
-                        Tag = heapObj.Description
+                        Tag = heapObj.HexAddress + " " + heapObj.FullTypeName
                     };
                     e.Handled = true;
                 }

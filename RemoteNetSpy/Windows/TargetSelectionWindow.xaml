@@ -8,6 +8,10 @@
         WindowStartupLocation="CenterScreen"
         SizeToContent="Height"
         Width="450"
+        MinWidth="300"
+        Height="888"
+        MaxHeight="888"
+        MinHeight="150"
         >
     <Window.Resources>
         <converters:BoolToCollapsabilityConverter x:Key="boolToCollapsabilityConverter"/>
@@ -39,12 +43,13 @@
             <Label x:Name="ambushStatusLabel" Grid.Row="1" Grid.Column="0">Status:</Label>
             <TextBlock x:Name="ambushStatus" Grid.Row="1" Grid.Column="1" Text="Not searching target." VerticalAlignment="Center"/>
         </Grid>
-        <DockPanel x:Name="attachDockPanel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Visibility="Visible">
+        <DockPanel x:Name="attachDockPanel" Grid.Row="0" Grid.Column="0" Visibility="Visible">
             <ListBox x:Name="procsBox" Grid.Row="0" Grid.Column="0" Margin="3"
-                 Height="500"
                  HorizontalContentAlignment="Stretch"
                  KeyDown="procsBox_KeyDown"
-                 IsTextSearchEnabled="True" TextSearch.TextPath="Name">
+                 IsTextSearchEnabled="True" TextSearch.TextPath="Name"
+                 Height="800"
+                 >
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:InjectableProcess}">
                         <Grid>

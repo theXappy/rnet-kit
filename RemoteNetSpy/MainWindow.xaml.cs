@@ -24,6 +24,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using HeapObjectViewModel = RemoteNetSpy.Models.HeapObjectViewModel;
 
@@ -776,7 +777,13 @@ namespace RemoteNetSpy
             headerPanel.Children.Add(typeNameTextBlock);
 
             // Add address text block
-            var addressTextBlock = new TextBlock { Margin = new Thickness(8, 6, 8, 8), VerticalAlignment = VerticalAlignment.Center };
+            var addressTextBlock = new TextBlock
+            {
+                Margin = new Thickness(8, 6, 8, 8),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono"),
+                Foreground = new System.Windows.Media.SolidColorBrush(Color.FromRgb(0xC0, 0xC0, 0xC0))
+            };
             addressTextBlock.Text = $"(0x{heapObject.Address:X16})";
             headerPanel.Children.Add(addressTextBlock);
 
