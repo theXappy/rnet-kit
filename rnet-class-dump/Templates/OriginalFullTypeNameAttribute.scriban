@@ -1,0 +1,15 @@
+using System;
+
+namespace RemoteNET.ClassDump.Internal
+{
+    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+    public sealed class OriginalFullTypeNameAttribute : Attribute
+    {
+        public string FullTypeName { get; }
+
+        public OriginalFullTypeNameAttribute(string fullTypeName)
+        {
+            FullTypeName = fullTypeName;
+        }
+    }
+}

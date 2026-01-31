@@ -2,12 +2,14 @@ using RemoteNET;
 using RemoteNET.Common;
 using RemoteNET.Internal.Reflection;
 using RemoteNET.RttiReflection;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text;
+using rnet_class_dump.Models;
 using Scriban;
 using Scriban.Runtime;
-using rnet_class_dump.Models;
+using ScubaDiver.API.Utils;
+using System.Diagnostics;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Text;
 
 namespace rnet_class_dump
 {
@@ -20,6 +22,10 @@ namespace rnet_class_dump
             Template.Parse(GetEmbeddedTemplate("BaseHelperClass.scriban")));
         private static readonly Lazy<Template> _globalAppHelperTemplate = new(() =>
             Template.Parse(GetEmbeddedTemplate("GlobalAppHelperClass.scriban")));
+        private static readonly Lazy<Template> _mangledNameAttributeTemplate = new(() =>
+            Template.Parse(GetEmbeddedTemplate("MangledNameAttribute.scriban")));
+        private static readonly Lazy<Template> _originalFullTypeNameAttributeTemplate = new(() =>
+            Template.Parse(GetEmbeddedTemplate("OriginalFullTypeNameAttribute.scriban")));
         private static readonly Lazy<Template> _classWrapperTemplate = new(() =>
             Template.Parse(GetEmbeddedTemplate("ClassWrapper.scriban")));
 
@@ -101,11 +107,36 @@ namespace rnet_class_dump
             }
             Console.WriteLine($"__RemoteNET_Global_App|{globalAppHelperFileName}");
 
+            // Write the mangled name attribute class
+            string mangledNameAttributeFileName = Path.Combine(tempDir, "__RemoteNET_MangledNameAttribute.cs");
+            if (!File.Exists(mangledNameAttributeFileName) || new FileInfo(mangledNameAttributeFileName).Length == 0)
+            {
+                StringBuilder mangledNameAttributeBuilder = new StringBuilder();
+                WriteMangledNameAttribute(mangledNameAttributeBuilder);
+                File.WriteAllText(mangledNameAttributeFileName, mangledNameAttributeBuilder.ToString());
+            }
+            Console.WriteLine($"__RemoteNET_MangledNameAttribute|{mangledNameAttributeFileName}");
+
+            // Write the original full type name attribute class
+            string originalFullTypeNameAttributeFileName = Path.Combine(tempDir, "__RemoteNET_OriginalFullTypeNameAttribute.cs");
+            if (!File.Exists(originalFullTypeNameAttributeFileName) || new FileInfo(originalFullTypeNameAttributeFileName).Length == 0)
+            {
+                StringBuilder originalFullTypeNameAttributeBuilder = new StringBuilder();
+                WriteOriginalFullTypeNameAttribute(originalFullTypeNameAttributeBuilder);
+                File.WriteAllText(originalFullTypeNameAttributeFileName, originalFullTypeNameAttributeBuilder.ToString());
+            }
+            Console.WriteLine($"__RemoteNET_OriginalFullTypeNameAttribute|{originalFullTypeNameAttributeFileName}");
+
             // Collect all type candidates
             List<RemoteTypeBase> queriedTypes = GetTypesToDump(filters, app);
 
             // Recursively resolve all 
-            var allTypesToDump = RecursiveTypesSearch(queriedTypes);
+
+            string list = string.Join("\n", queriedTypes.Select(t => $" - {t.FullName}"));
+            LogVerbose($"[DumpClassesInternal] Queries Types: \n" + list);
+            Dictionary<string, List<RemoteTypeBase>> allTypesToDump = RecursiveTypesSearch(queriedTypes);
+            string extendedList = string.Join("\n", allTypesToDump.Select(kvp => $" - {kvp.Key}: {string.Join(", ", kvp.Value.Select(t => t.FullName))}"));
+            LogVerbose($"[DumpClassesInternal] Types plus Dependencies: \n" + extendedList);
 
             // Create the HashSet of all dumped type full names ONCE for efficiency
             var allDumpedTypeFullNames = allTypesToDump.Values
@@ -115,13 +146,19 @@ namespace rnet_class_dump
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // Process each candidate group (by key)
-            foreach (var kvp in allTypesToDump)
+            foreach (KeyValuePair<string, List<RemoteTypeBase>> kvp in allTypesToDump)
             {
+                LogVerbose($"[DumpClassesInternal] Dumping for filter {kvp.Key}");
+
                 (string typeFullName, string fileName) = DumpType(app, tempDir, kvp.Value, allDumpedTypeFullNames); // Pass all types for this key and pre-computed HashSet
 
                 if (typeFullName != null && fileName != null)
                 {
                     Console.WriteLine($"{typeFullName}|{fileName}");
+                }
+                else
+                {
+                    LogVerbose($"[DumpClassesInternal] Dumping FAILED for key: {kvp.Key} ({string.Join(", ", kvp.Value.Select(t => t.FullName))})");
                 }
             }
 
@@ -301,6 +338,7 @@ namespace rnet_class_dump
                 LogVerbose($"[RecursiveTypesSearch] Processing class: {currentType.FullName}");
                 foreach (MemberInfo member in members)
                 {
+                    LogVerbose($"[RecursiveTypesSearch] Processing member: {member.Name} of class: {currentType.FullName}");
                     string debug___member_ToString = member.ToString();
                     // If this is a method, check its return type and parameters
                     if (member is MethodInfo method)
@@ -319,6 +357,32 @@ namespace rnet_class_dump
 
                         if (member is IRttiMethodBase rttiMethod)
                         {
+                            LogVerbose($"[RecursiveTypesSearch] Processing IRttiMethodBase: {rttiMethod.Name} of class: {currentType.FullName}");
+                            // Print UndecoratedSignature
+                            string reconstructedSignature = rttiMethod.UndecoratedSignature;
+                            if (reconstructedSignature != null)
+                            {
+                                LogVerbose($"[RecursiveTypesSearch] UndecoratedSignature: {reconstructedSignature}");
+                            }
+                            // Print reconstructed signature by COMBINING the TYPE objects from return type and parameters
+                            var paramTypeNames = rttiMethod.LazyParamInfos
+                                .Select(p =>
+                                {
+                                    Type paramType = p.TypeResolver.Value;
+                                    while (paramType is PointerType pt)
+                                    {
+                                        paramType = pt.Inner;
+                                    }
+                                    return paramType.FullName ?? "unknown";
+                                })
+                                .ToArray();
+                            string reconstructedSignatureFromTypes = $"{rttiMethod.LazyRetType.Value.FullName} {rttiMethod.Name}({string.Join(", ", paramTypeNames)})";
+                            if (reconstructedSignatureFromTypes != null)
+                            {
+                                LogVerbose($"[RecursiveTypesSearch] Reconstructed Signature from Types: {reconstructedSignatureFromTypes}");
+                            }
+
+
                             // Check parameters
                             foreach (LazyRemoteParameterResolver param in rttiMethod.LazyParamInfos)
                             {
@@ -413,6 +477,20 @@ namespace rnet_class_dump
             writer.Append(result);
         }
 
+        private void WriteMangledNameAttribute(StringBuilder writer)
+        {
+            var template = _mangledNameAttributeTemplate.Value;
+            var result = template.Render();
+            writer.Append(result);
+        }
+
+        private void WriteOriginalFullTypeNameAttribute(StringBuilder writer)
+        {
+            var template = _originalFullTypeNameAttributeTemplate.Value;
+            var result = template.Render();
+            writer.Append(result);
+        }
+
         private static string GetEmbeddedTemplate(string templateName)
         {
             var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", templateName);
@@ -495,7 +573,8 @@ namespace rnet_class_dump
             foreach (MemberInfo member in members)
             {
                 List<string> memberLines = WriteMember(className, member);
-                var memberModel = new MemberModel { Content = memberLines.ToArray() };
+                string combined = string.Join("\n\t\t", memberLines);
+                var memberModel = new MemberModel { Content = [combined] };
 
                 // Check for various warning conditions
                 string prefix = string.Empty;
@@ -644,24 +723,8 @@ namespace rnet_class_dump
                 if (isStatic)
                     argsSkip = 0;
                 IEnumerable<LazyRemoteParameterResolver> paramInfos = rttiMethod.LazyParamInfos.Skip(argsSkip);
-                string parameters = string.Join(", ", paramInfos.Select(p =>
-                {
-                    (string declared, string csharpExpression) = GetTypeIdentifier(p, out bool _);
-                    string formatted = FormatTypeIdentifier(declared, csharpExpression);
-                    return formatted + $" {p.Name}";
-                }));
-
-                string invocationArgs = string.Empty;
-                foreach (RemoteNET.Common.LazyRemoteParameterResolver param in paramInfos)
-                {
-                    if (invocationArgs.Length > 0)
-                        invocationArgs += ", ";
-
-                    GetTypeIdentifier(param, out bool isObject);
-                    invocationArgs += param.Name;
-                    if (isObject)
-                        invocationArgs += ".__dro";
-                }
+                List<RenderedParameter> parameters = ConstructParametersList(paramInfos);
+                string invocationArgs = ConstructArgumentsList(paramInfos);
 
                 // Return Type
                 (string declaredRetType, string csharpExpressionRetType) = GetTypeIdentifier(rttiMethod.LazyRetType, out bool isObjectRet);
@@ -677,7 +740,7 @@ namespace rnet_class_dump
                         (string declared, string csharpExpression) = GetTypeIdentifier(p, out bool isObj);
                         if (csharpExpression == "dynamic")
                             csharpExpression = $"typeof(WildCardType) /* {declared} */";
-                        else if(isObj)
+                        else if (isObj)
                             csharpExpression = csharpExpression + ".RemoteType";
                         else
                             csharpExpression = $"typeof({csharpExpression})";
@@ -722,19 +785,25 @@ namespace rnet_class_dump
                 }
 
                 string staticModifier = isStatic ? "static " : string.Empty;
-                string methodSignature = $"public {staticModifier}{formattedRetType}{rttiMethod.Name}({parameters}) => {body};";
+                string virtualModifier = !isStatic ? "virtual " : string.Empty;
+                string managedNameAttribute = string.IsNullOrEmpty(rttiMethod.MangledName) ?
+                    "// WARNING: Mangled name is empty?" :
+                    $"[MangledName(\"{rttiMethod.MangledName}\")] ";
+                string bodyExpression = $"\t\t\t\t\t=> {body};";
+                string methodSignature = $"public {staticModifier}{virtualModifier}{formattedRetType}{rttiMethod.Name}";
 
+                bool commentOutSignature = false;
                 if (isConstructor)
                 {
                     // It's a constructor
                     lines.Add("// Constructor (Not supported)");
-                    lines.Add($"// {methodSignature}");
+                    commentOutSignature = true;
                 }
                 else if (rttiMethod.Name.StartsWith("~"))
                 {
                     // It's a destructor
                     lines.Add("// Destructor (Not supported)");
-                    lines.Add($"// {methodSignature}");
+                    commentOutSignature = true;
                 }
                 // Catch C++ operator overloading methods.
                 // e.g., operator+, operator-, operator==, operator!=, operator[], etc.
@@ -743,12 +812,36 @@ namespace rnet_class_dump
                          !char.IsLetterOrDigit(rttiMethod.Name[8]) && rttiMethod.Name[8] != '_')
                 {
                     lines.Add("// Operator (Not supported)");
-                    lines.Add($"// {methodSignature}");
+                    commentOutSignature = true;
+                }
+
+                string commentPrefix = commentOutSignature ? "// " : "";
+                lines.Add(commentPrefix + managedNameAttribute);
+                if (parameters.Count == 0)
+                {
+                    // Signature without args
+                    lines.Add(commentPrefix + methodSignature + "()");
                 }
                 else
                 {
-                    lines.Add(methodSignature);
+                    // Signature with args
+                    lines.Add(commentPrefix + methodSignature + "(");
+                    for (int i = 0; i < parameters.Count; i++)
+                    {
+                        RenderedParameter param = parameters[i];
+                        // Mangled Name attribute
+                        lines.Add(commentPrefix + "\t\t\t" + param.Attribute);
+                        // Parameter declaration
+                        // e.g., ulong a3
+                        string declarationLine = "\t\t\t" + param.Declaration;
+                        if (i < parameters.Count - 1)
+                            declarationLine += ",";
+                        else
+                            declarationLine += ")";
+                        lines.Add(commentPrefix + declarationLine);
+                    }
                 }
+                lines.Add(commentPrefix + bodyExpression);
             }
             else if (member is MethodInfo method)
             {
@@ -764,16 +857,43 @@ namespace rnet_class_dump
             return lines;
         }
 
-        private void AppendLine(StringBuilder sb, string text, int indent = 0)
+        class RenderedParameter
         {
-            sb.Append(new string('\t', indent));
-            sb.Append(text);
-            sb.AppendLine();
+            public string Attribute { get; set; }
+            public string Declaration { get; set; }
         }
-        private void Append(StringBuilder sb, string text, int indent = 0)
+
+        private List<RenderedParameter> ConstructParametersList(IEnumerable<LazyRemoteParameterResolver> paramInfos)
         {
-            sb.Append(new string('\t', indent));
-            sb.Append(text);
+            List<RenderedParameter> final = new();
+            foreach (LazyRemoteParameterResolver paramInfo in paramInfos)
+            {
+                (string declaredTypeName, string csharpTypeExpression) = GetTypeIdentifier(paramInfo, out bool _);
+                RenderedParameter renderedParameter = new RenderedParameter
+                {
+                    Attribute = $"[OriginalFullTypeName(\"{declaredTypeName}\")]",
+                    Declaration = $"{csharpTypeExpression} {paramInfo.Name}"
+                };
+                final.Add(renderedParameter);
+            }
+            return final;
+        }
+
+        private string ConstructArgumentsList(IEnumerable<LazyRemoteParameterResolver> paramInfos)
+        {
+            string invocationArgs = string.Empty;
+            foreach (LazyRemoteParameterResolver param in paramInfos)
+            {
+                if (invocationArgs.Length > 0)
+                    invocationArgs += ", ";
+
+                GetTypeIdentifier(param, out bool isObject);
+                invocationArgs += param.Name;
+                if (isObject)
+                    invocationArgs += ".__dro";
+            }
+
+            return invocationArgs;
         }
 
         private (string declared, string csharpExpression) GetTypeIdentifier(LazyRemoteParameterResolver resolver, out bool isObject) => GetTypeIdentifier(resolver.TypeResolver, out isObject);

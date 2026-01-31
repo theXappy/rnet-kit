@@ -32,7 +32,6 @@ namespace {{ namespace_parts[i] }}
 {
 {{- end }}
 {{- end }}
-
 {{ indent }}public partial class {{ class_name }} : __RemoteNET_Obj_Base, __RemoteNET_IObj_Base
 {{ indent }}{
 {{ indent }}    public ulong __address => (__dro as DynamicRemoteObject).__ro.RemoteToken;
@@ -66,6 +65,7 @@ namespace {{ namespace_parts[i] }}
 {{ indent }}    {
 {{ indent }}        DynamicRemoteObject objDro = obj.__dro as DynamicRemoteObject;
 {{ indent }}        RemoteApp app = objDro.__ra;
+{{ indent }}        // Casting must be done because of inheritance
 {{ indent }}        var objRo = objDro.__ro;
 {{ indent }}        var castedRo = objRo.Cast(RemoteType);
 {{ indent }}        __dro = castedRo.Dynamify();
@@ -78,8 +78,10 @@ namespace {{ namespace_parts[i] }}
 {{- end }}
 
 {{ indent }}}
+{{ "\n" }}
 
 {{- for i in 0..(namespace_parts.size - 1) }}
 {{- $reverse_i = namespace_parts.size - 1 - i -}}
 }
+{{ "\n" }}
 {{- end }}

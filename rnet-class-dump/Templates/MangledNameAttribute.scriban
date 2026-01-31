@@ -1,0 +1,15 @@
+using System;
+
+namespace RemoteNET.ClassDump.Internal
+{
+    [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = false)]
+    public sealed class MangledNameAttribute : Attribute
+    {
+        public string MangledName { get; }
+
+        public MangledNameAttribute(string mangledName)
+        {
+            MangledName = mangledName;
+        }
+    }
+}

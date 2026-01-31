@@ -2,7 +2,7 @@
   "profiles": {
     "rnet-class-dump": {
       "commandName": "Project",
-      "commandLineArgs": " -u -t gN -l C:\\git\\rnet-kit\\NotesPayloadsTester\\InspectedTypes.txt"
+      "commandLineArgs": "-u --vessel -d \"D:\\Program Files\\WindowsApps\\Microsoft.VCLibs.140.00_14.0.33519.0_x64__8wekyb3d8bbwe\\msvcp140_app.dll\" -d \"D:\\Users\\Shai\\Desktop\\SAM_NOTES_RES\\inspection\\libSpen_worddoc.dll\" -d \"D:\\Users\\Shai\\Desktop\\SAM_NOTES_RES\\inspection\\libSpen_document.dll\" -l \"C:\\git\\rnet-kit\\WLayerOverrider\\InspectedTypes.txt\" -v"
     }
   }
 }
