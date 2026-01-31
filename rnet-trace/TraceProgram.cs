@@ -17,7 +17,7 @@ using RemoteNET.Access;
 
 namespace QuickStart
 {
-    class Program
+    class TraceProgram
     {
         public class TraceOptions
         {
@@ -479,16 +479,16 @@ namespace QuickStart
         }
 
 
-        private static List<MethodBase> FindMethods(IEnumerable<MethodBase> allMethods, string fullTypeNameQuery, string nameQuery, string encodedParametersQuery)
+        private static List<MethodBase> FindMethods(IEnumerable<MethodBase> allMethodBases, string fullTypeNameQuery, string nameQuery, string encodedParametersQuery)
         {
             // First we'll find all overloads based on the requested method name
             Regex typeRegex = SimpleFilterToRegex(fullTypeNameQuery);
             Regex methodNameRegex = SimpleFilterToRegex(nameQuery);
 
             MethodBase[] matchingMethods;
-            if (allMethods.Any(mi => mi is RemoteRttiMethodInfo))
+            if (allMethodBases.Any(mi => mi is RemoteRttiMethodInfo))
             {
-                var allRttiMethods = allMethods.Cast<RemoteRttiMethodInfo>();
+                var allRttiMethods = allMethodBases.Where(mi => mi is RemoteRttiMethodInfo).Cast<RemoteRttiMethodInfo>();
                 matchingMethods = allRttiMethods
                     .Where(rttiMethod =>
                     {
@@ -503,7 +503,7 @@ namespace QuickStart
             }
             else 
             {
-                matchingMethods = allMethods
+                matchingMethods = allMethodBases
                     .Where(mi => methodNameRegex.IsMatch(mi.Name))
                     .Where(mi =>
                     {
