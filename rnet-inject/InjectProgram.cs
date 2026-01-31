@@ -7,7 +7,7 @@ namespace rnet_inject
 {
     public class Options
     {
-        [Option('t', "target", Required = true, HelpText = "Target process name. Partial names are allowed but a single match is expected. e.g. \"notep\" for notepad")]
+        [Option('t', "target", Required = true, HelpText = "Target process name or PID. Partial names are allowed but a single match is expected. e.g. \"notep\" for notepad")]
         public string? TargetProcess { get; set; }
 
         [Option('u', "unmanaged", Required = false, HelpText = "Whether the target is an native app")]
@@ -15,12 +15,19 @@ namespace rnet_inject
 
         [Option('d', "dll_path", Required = true, HelpText = "Path to the DLL to inject.")]
         public string? DllPath { get; set; }
+        [Option("launchdebugger", Required = false, HelpText = "Launch debugger and wait for it to attach.")]
+        public bool LaunchDebugger { get; set; }
     }
 
-    internal class Program
+    internal class InjectProgram
     {
         static int Main(string[] args)
         {
+            if (args?.Any(a => a == "--launchdebugger") ?? false)
+            {
+                Debugger.Launch();
+            }
+            
             return Parser.Default.ParseArguments<Options>(args)
                 .MapResult(
                     (Options opts) => RunInject(opts),
