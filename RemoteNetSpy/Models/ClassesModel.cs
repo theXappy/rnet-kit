@@ -1,4 +1,4 @@
-﻿using CliWrap;
+using CliWrap;
 using CliWrap.Buffered;
 using Microsoft.VisualStudio.Threading;
 using RemoteNET;
@@ -6,6 +6,7 @@ using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -132,6 +133,10 @@ public class ClassesModel : INotifyPropertyChanged
         }, TaskScheduler.Default);
 
         await addAlTypes;
+        d.Invoke(() =>
+        {
+            FilteredAssemblies = new ObservableCollection<AssemblyModel>(Assemblies);
+        });
         return assemblyModels;
 
         AssemblyModel GetOrCreateAssembly(string assemblyName)
