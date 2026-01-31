@@ -41,8 +41,6 @@ namespace RemoteNetSpy.Controls
         public TypeSystemTreeView()
         {
             InitializeComponent();
-            Loaded += TypeSystemTreeView_Loaded;
-            DataContextChanged += TypeSystemTreeView_DataContextChanged;
         }
 
         private void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => throw new NotImplementedException();
