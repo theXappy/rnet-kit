@@ -95,7 +95,7 @@ namespace RemoteNetSpy.Controls
                     if (node == null)
                         return false;
                     if (node is ErrorNodeModel)
-                        return true;
+                        return false;
                     if (node is DumpedTypeModel typeModel && typeModel.FullTypeName?.Contains(filter, comp) == true)
                         return true;
                     if (methodTableFilter != null && node is DumpedTypeModel typeModelWithTable && typeModelWithTable.MethodTable == methodTableFilter)
