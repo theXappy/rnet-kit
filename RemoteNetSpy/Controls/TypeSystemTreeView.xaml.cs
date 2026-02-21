@@ -43,7 +43,29 @@ namespace RemoteNetSpy.Controls
             InitializeComponent();
         }
 
-        private void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e) => throw new NotImplementedException();
+        private async void AssembliesRefreshButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (Model == null)
+                return;
+
+            assembliesRefreshButton.IsEnabled = false;
+            DisableSearch();
+
+            try
+            {
+                await Model.LoadAssembliesAsync(Dispatcher);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to refresh assemblies list: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                assembliesRefreshButton.IsEnabled = true;
+                EnableSearch();
+                filterBox_TextChanged(assembliesFilterBox, null);
+            }
+        }
 
         public void DisableSearch() => assembliesFilterBox.IsEnabled = false;
         public void EnableSearch() => assembliesFilterBox.IsEnabled = true;
