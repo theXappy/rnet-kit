@@ -1,4 +1,6 @@
 ﻿using RemoteNET;
+using RemoteNET.Utils;
+using ScubaDiver.API.Interactions.Dumps;
 using System.Text;
 
 namespace remotenet_dump;
@@ -22,15 +24,25 @@ public static class TypesDumper
 
         Console.WriteLine("Loading...");
         List<CandidateType> candidates = null;
+        List<TypesDump.AssemblyLoadError> loadErrors = null;
         try
         {
             using RemoteApp app = Common.Connect(opts.TargetProcess, opts.Unmanaged);
-            candidates = app.QueryTypes(opts.Query).ToList();
+            candidates = TypesDumpHelpers.QueryTypes(app, opts.Query, out loadErrors);
         }
         catch (Exception e)
         {
             Console.WriteLine("ERROR: " + e);
             return 1;
+        }
+
+        if (loadErrors != null)
+        {
+            foreach (TypesDump.AssemblyLoadError loadError in loadErrors)
+            {
+                string errorMessage = loadError?.Error?.Error ?? "Unknown error";
+                Console.Error.WriteLine($"[{RuntimeType.Managed}][{loadError?.Assembly}] {errorMessage}");
+            }
         }
 
         if (candidates == null || !candidates.Any())

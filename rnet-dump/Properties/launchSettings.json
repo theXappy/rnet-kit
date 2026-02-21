@@ -2,7 +2,7 @@
   "profiles": {
     "remotenet-dump": {
       "commandName": "Project",
-      "commandLineArgs": "types -t YourP -q System.String"
+      "commandLineArgs": "types -t 14472 -q *"
     }
   }
 }
