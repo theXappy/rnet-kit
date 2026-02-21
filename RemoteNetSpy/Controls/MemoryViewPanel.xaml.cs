@@ -390,7 +390,7 @@ namespace RemoteNetSpy.Controls
                     Dispatcher.Invoke(() =>
                     {
                         // Get all types from the ClassesModel
-                        var allTypes = mvpModel.RemoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                        var allTypes = mvpModel.RemoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types).OfType<RemoteNetSpy.Models.DumpedTypeModel>();
                         var deduplicatedList = allTypes.GroupBy(x => x.FullTypeName)
                                                       .Select(group => group.First())
                                                       .ToList();

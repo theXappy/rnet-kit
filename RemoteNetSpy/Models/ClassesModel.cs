@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Threading;
 
@@ -54,7 +55,7 @@ public class ClassesModel : INotifyPropertyChanged
         set => SetField(ref selectedType, value);
     }
 
-    private async Task<IEnumerable<string>> RnetDumpAsync(string command)
+    private async Task<(IEnumerable<string> StdOutLines, IEnumerable<string> StdErrLines)> RnetDumpAsync(string command)
     {
         var commandTask = CliWrap.Cli.Wrap("rnet-dump.exe")
             .WithArguments(command)
@@ -64,7 +65,10 @@ public class ClassesModel : INotifyPropertyChanged
         var domainDumpsLines = domainsResults.StandardOutput.Split('\n')
             .Skip(2)
             .Select(str => str.Trim());
-        return domainDumpsLines;
+        var stderrLines = domainsResults.StandardError.Split('\n')
+            .Select(str => str.Trim())
+            .Where(str => !string.IsNullOrWhiteSpace(str));
+        return (domainDumpsLines, stderrLines);
     }
 
     private string UnmanagedFlagIfNeeded()
@@ -80,59 +84,92 @@ public class ClassesModel : INotifyPropertyChanged
     }
 
     private Regex r = new Regex(@"\[(?<runtime>.*?)\]\[(?<assembly>.*?)\]\[(?<methodTable>.*?)\](?<type>.*)");
+    private Regex _typesDumpErrorRegex = new Regex(@"^\[(?<runtime>[^\]]+)\]\[(?<assembly>[^\]]+)\]\s*(?<error>.*)$");
 
     private async Task<Dictionary<string, AssemblyModel>> UpdateAssemblies(Dispatcher d)
     {
         var assemblyModels = new Dictionary<string, AssemblyModel>();
 
-        Task<IEnumerable<string>> typesTask = RnetDumpAsync($"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}");
+        string typesDumpArgs = $"types -t {_parent.TargetPid} -q * {UnmanagedFlagIfNeeded()}";
+        Task<(IEnumerable<string> StdOutLines, IEnumerable<string> StdErrLines)> typesTask = RnetDumpAsync(typesDumpArgs);
 
         // Also look for types-less assemblies
-        Task<IEnumerable<string>> domainDumpsLinesTask = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}");
+        Task<(IEnumerable<string> StdOutLines, IEnumerable<string> StdErrLines)> domainDumpsLinesTask = RnetDumpAsync($"domains -t {_parent.TargetPid} {UnmanagedFlagIfNeeded()}");
 
-        Task handleDomainsTask = domainDumpsLinesTask.ContinueWith(t =>
+        // Dump domains and consume results
+        (IEnumerable<string> domainDumpsLines, _) = await domainDumpsLinesTask;
+        List<string> orderedAssembliesLines = domainDumpsLines.ToList();
+        orderedAssembliesLines.Sort((asm1, asm2) => asm1.CompareTo(asm2));
+
+        Assemblies.Clear();
+        foreach (string domainDumpsLine in domainDumpsLines)
         {
-            IEnumerable<string> domainDumpsLines = t.Result;
-            List<string> orderedAssembliesLines = domainDumpsLines.ToList();
-            orderedAssembliesLines.Sort((asm1, asm2) => asm1.CompareTo(asm2));
+            if (!domainDumpsLine.StartsWith("[module] "))
+                continue;
 
-            Assemblies.Clear();
-            foreach (string domainDumpsLine in domainDumpsLines)
-            {
-                if (!domainDumpsLine.StartsWith("[module] "))
-                    continue;
+            string assemblyName = domainDumpsLine.Substring("[module] ".Length);
+            GetOrCreateAssembly(assemblyName);
+        }
 
-                string assemblyName = domainDumpsLine.Substring("[module] ".Length);
-                GetOrCreateAssembly(assemblyName);
-            }
-        }, TaskScheduler.Default);
-
-        Task addAlTypes = Task.WhenAll(handleDomainsTask, typesTask).ContinueWith(x =>
+        (IEnumerable<string> typesDumpLines, IEnumerable<string> typesDumpErrors) = await typesTask;
+        if (typesDumpLines.All(string.IsNullOrWhiteSpace))
         {
-#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
-            var typesDumpLines = typesTask.Result;
-#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
-            foreach (string dumpedTypeLine in typesDumpLines)
+            d.Invoke(() => MessageBox.Show(
+                "rnet-dump returned only empty type entries.\n" +
+                "Check target/runtime and try again. Types listing failed.\n" +
+                "We use these arguments:\n" +
+                typesDumpArgs,
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning));
+        }
+        foreach (string dumpedTypeLine in typesDumpLines)
+        {
+            var match = r.Match(dumpedTypeLine);
+            if (!match.Success)
+                continue;
+            string runtime = match.Groups["runtime"].Value.Trim();
+            string assemblyName = match.Groups["assembly"].Value.Trim();
+
+            AssemblyModel assembly = GetOrCreateAssembly(assemblyName);
+
+            string methodTableStr = match.Groups["methodTable"].Value.Trim();
+            ulong? methodTable = null;
+            if (methodTableStr != "null")
+                methodTable = Convert.ToUInt64(methodTableStr, 16);
+            string typeName = match.Groups["type"].Value.Trim();
+            DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, methodTable, numInstances: null);
+            assembly.AddType(type);
+        }
+
+        Dictionary<string, List<string>> loadErrorsByAssembly = new();
+        foreach (string errorLine in typesDumpErrors)
+        {
+            var match = _typesDumpErrorRegex.Match(errorLine);
+            if (!match.Success)
+                continue;
+
+            string assemblyName = match.Groups["assembly"].Value.Trim();
+            string errorMessage = match.Groups["error"].Value.Trim();
+            if (string.IsNullOrWhiteSpace(errorMessage))
+                errorMessage = errorLine;
+
+            if (!loadErrorsByAssembly.TryGetValue(assemblyName, out List<string> errors))
             {
-                var match = r.Match(dumpedTypeLine);
-                if (!match.Success)
-                    continue;
-                string runtime = match.Groups["runtime"].Value.Trim();
-                string assemblyName = match.Groups["assembly"].Value.Trim();
-
-                AssemblyModel assembly = GetOrCreateAssembly(assemblyName);
-
-                string methodTableStr = match.Groups["methodTable"].Value.Trim();
-                ulong? methodTable = null;
-                if (methodTableStr != "null")
-                    methodTable = Convert.ToUInt64(methodTableStr, 16);
-                string typeName = match.Groups["type"].Value.Trim();
-                DumpedTypeModel type = new DumpedTypeModel(assemblyName, typeName, methodTable, numInstances: null);
-                assembly.AddType(type);
+                errors = new List<string>();
+                loadErrorsByAssembly[assemblyName] = errors;
             }
-        }, TaskScheduler.Default);
+            errors.Add(errorMessage);
+        }
 
-        await addAlTypes;
+        foreach (var loadErrorEntry in loadErrorsByAssembly)
+        {
+            AssemblyModel assembly = GetOrCreateAssembly(loadErrorEntry.Key);
+            assembly.HasLoadErrors = true;
+            string combinedErrorMessage = string.Join(" | ", loadErrorEntry.Value.Distinct());
+            assembly.AddType(new ErrorNodeModel(loadErrorEntry.Key, combinedErrorMessage));
+        }
+
         d.Invoke(() =>
         {
             FilteredAssemblies = new ObservableCollection<AssemblyModel>(Assemblies);
@@ -143,7 +180,7 @@ public class ClassesModel : INotifyPropertyChanged
         {
             if (!assemblyModels.TryGetValue(assemblyName, out AssemblyModel assembly))
             {
-                assembly = new AssemblyModel(assemblyName, _parent.TargetRuntime, anyTypes: false);
+                    assembly = new AssemblyModel(assemblyName, _parent.TargetRuntime, anyTypes: true);
                 assemblyModels[assemblyName] = assembly;
                 Assemblies.Add(assembly);
                 // We need to call EnableCollectionSynchronization on the UI thread so that the collection can be updated from other threads.
@@ -164,23 +201,29 @@ public class ClassesModel : INotifyPropertyChanged
         else if (app is ManagedRemoteApp)
             assemblyFilter += ".*"; // Indicate we want any type within the assembly
 
-        Task<IEnumerable<string>> task = RnetDumpAsync($"heap -t {_parent.TargetPid} -q {assemblyFilter} {UnmanagedFlagIfNeeded()}");
-        IEnumerable<string> rnetDumpStdOutLines = await task;
+        Task<(IEnumerable<string> StdOutLines, IEnumerable<string> StdErrLines)> task = RnetDumpAsync($"heap -t {_parent.TargetPid} -q {assemblyFilter} {UnmanagedFlagIfNeeded()}");
+        (IEnumerable<string> rnetDumpStdOutLines, _) = await task;
 
         foreach (AssemblyModel assembly in Assemblies)
         {
-            foreach (DumpedTypeModel type in assembly.Types)
+            foreach (ITypeSystemNode node in assembly.Types)
             {
-                type.PreviousNumInstances = type.NumInstances;
-                type.NumInstances = 0;
+                if (node is DumpedTypeModel type)
+                {
+                    type.PreviousNumInstances = type.NumInstances;
+                    type.NumInstances = 0;
+                }
             }
         }
 
         // Temporary working dict & reset instance counts
         Dictionary<string, DumpedTypeModel> fullTypeNamesToTypes = new Dictionary<string, DumpedTypeModel>();
-        foreach (DumpedTypeModel typeModel in Assemblies.SelectMany(assm => assm.Types))
+        foreach (ITypeSystemNode node in Assemblies.SelectMany(assm => assm.Types))
         {
-            fullTypeNamesToTypes[typeModel.FullTypeName] = typeModel;
+            if (node is DumpedTypeModel typeModel)
+            {
+                fullTypeNamesToTypes[typeModel.FullTypeName] = typeModel;
+            }
         }
 
         foreach (string addrAndType in rnetDumpStdOutLines)

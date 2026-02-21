@@ -187,7 +187,7 @@ namespace RemoteNetSpy.Controls
                 }
 
                 // Find sister types with the same class name
-                var allTypes = _appModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                var allTypes = _appModel.ClassesModel.Assemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>();
                 var sisterTypes = allTypes.Where(t => 
                 {
                     string otherClassName = t.FullTypeName;
@@ -615,7 +615,7 @@ namespace RemoteNetSpy.Controls
             {
                 await Task.Run(() =>
                 {
-                    types = _appModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                    types = _appModel.ClassesModel.Assemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>();
                 });
             }
             else

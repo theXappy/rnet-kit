@@ -171,7 +171,7 @@ namespace RemoteNetSpy.Controls
             {
                 await Task.Run(() =>
                 {
-                    types = _remoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                    types = _remoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>();
                 });
             }
             else

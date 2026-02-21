@@ -90,11 +90,15 @@ namespace RemoteNetSpy.Controls
                     }
                 }
 
-                Func<DumpedTypeModel, bool> typesFilterFunc = (typeModel) =>
+                Func<ITypeSystemNode, bool> typesFilterFunc = (node) =>
                 {
-                    if (typeModel?.FullTypeName?.Contains(filter, comp) == true)
+                    if (node == null)
+                        return false;
+                    if (node is ErrorNodeModel)
                         return true;
-                    if (methodTableFilter != null && typeModel?.MethodTable == methodTableFilter)
+                    if (node is DumpedTypeModel typeModel && typeModel.FullTypeName?.Contains(filter, comp) == true)
+                        return true;
+                    if (methodTableFilter != null && node is DumpedTypeModel typeModelWithTable && typeModelWithTable.MethodTable == methodTableFilter)
                         return true;
                     return false;
                 };
@@ -108,15 +112,17 @@ namespace RemoteNetSpy.Controls
 
                         if (assembly?.Name?.Contains(filter, comp) == true)
                             return true;
+                        if (assembly.HasLoadErrors)
+                            return true;
                         lock (assembly.TypesLock)
                         {
-                            if (assembly.Types.Any(t => t.FullTypeName.Contains(filter, comp)))
+                            if (assembly.Types.OfType<DumpedTypeModel>().Any(t => t.FullTypeName.Contains(filter, comp)))
                                 return true;
                         }
 
                         if (methodTableFilter.HasValue)
                         {
-                            if (assembly.Types.Any(t => t.MethodTable == methodTableFilter))
+                            if (assembly.Types.OfType<DumpedTypeModel>().Any(t => t.MethodTable == methodTableFilter))
                                 return true;
                         }
 
@@ -141,6 +147,8 @@ namespace RemoteNetSpy.Controls
                     break;
                 case DumpedTypeModel type:
                     Model.SelectedType = type;
+                    break;
+                case ErrorNodeModel:
                     break;
             }
         }

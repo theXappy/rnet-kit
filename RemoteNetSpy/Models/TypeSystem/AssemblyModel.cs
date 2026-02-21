@@ -16,9 +16,10 @@ namespace RemoteNetSpy.Models
     public class AssemblyModel : INotifyPropertyChanged
     {
         private bool _isMonitoringAllocation;
+        private bool _hasLoadErrors;
         public object TypesLock = new object();
-        private readonly SortedObservableCollection<DumpedTypeModel> _types;
-        private ObservableCollection<DumpedTypeModel> _filteredTypes;
+        private readonly SortedObservableCollection<ITypeSystemNode> _types;
+        private ObservableCollection<ITypeSystemNode> _filteredTypes;
 
         public string Name { get; private set; }
         public RuntimeType Runtime { get; private set; }
@@ -29,13 +30,19 @@ namespace RemoteNetSpy.Models
             set => SetField(ref _isMonitoringAllocation, value);
         }
 
-        public IReadOnlyList<DumpedTypeModel> Types
+        public bool HasLoadErrors
+        {
+            get => _hasLoadErrors;
+            set => SetField(ref _hasLoadErrors, value);
+        }
+
+        public IReadOnlyList<ITypeSystemNode> Types
         {
             get => _types;
         }
 
-        private Func<DumpedTypeModel, bool> _filter;
-        public Func<DumpedTypeModel, bool> Filter
+        private Func<ITypeSystemNode, bool> _filter;
+        public Func<ITypeSystemNode, bool> Filter
         {
             set
             {
@@ -48,7 +55,7 @@ namespace RemoteNetSpy.Models
             }
         }
 
-        public ObservableCollection<DumpedTypeModel> FilteredTypes
+        public ObservableCollection<ITypeSystemNode> FilteredTypes
         {
             get => _filter != null ? _filteredTypes : _types;
         }
@@ -58,15 +65,16 @@ namespace RemoteNetSpy.Models
             Name = name;
             Runtime = runtime;
             IsMonitoringAllocation = false;
-            _types = new SortedObservableCollection<DumpedTypeModel>((x, y) => x.FullTypeName.CompareTo(y.FullTypeName));
-            _filteredTypes = new ObservableCollection<DumpedTypeModel>();
+            HasLoadErrors = false;
+            _types = new SortedObservableCollection<ITypeSystemNode>((x, y) => x.DisplayName.CompareTo(y.DisplayName));
+            _filteredTypes = new ObservableCollection<ITypeSystemNode>();
         }
 
         public AssemblyModel(string name, string runtime, bool anyTypes) : this(name, Enum.Parse<RuntimeType>(runtime), anyTypes)
         {
         }
 
-        public void AddType(DumpedTypeModel type)
+        public void AddType(ITypeSystemNode type)
         {
             lock (TypesLock)
             {

@@ -7,12 +7,13 @@ using System.Runtime.CompilerServices;
 namespace RemoteNetSpy.Models;
 
 [DebuggerDisplay("{FullTypeName} (NumInstances={NumInstances}, PreviousNumInstances={PreviousNumInstances})")]
-public class DumpedTypeModel : INotifyPropertyChanged
+public class DumpedTypeModel : INotifyPropertyChanged, ITypeSystemNode
 {
     public string Assembly { get; private set; }
     public string FullTypeName { get; private set; }
     public ulong? MethodTable { get; private set; }
     private int? _numInstances;
+    public string DisplayName => FullTypeName;
     public bool HaveInstances => _numInstances != null && _numInstances > 0;
     public int? NumInstances
     {

@@ -1,4 +1,6 @@
+using CommandLine;
 using Microsoft.Win32;
+using RemoteNET;
 using RnetKit.Common;
 using System;
 using System.Collections.Generic;
@@ -8,7 +10,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using System.Windows;
 using System.Windows.Input;
 
@@ -81,49 +85,38 @@ public class FunctionsTracer : INotifyPropertyChanged
     public void AddFunc(DumpedMember sender)
     {
         string fullDemangledName;
-        string member = sender?.RawName;
-        if (member == null)
-            return;
 
         if (sender.MemberType != "Method" && sender.MemberType != "Constructor")
             return;
 
-        string targetClass = Parent.ClassesModel.SelectedType.FullTypeName;
-        string module = Parent.ClassesModel.SelectedType.Assembly;
+        string targetClass = sender.MemberInfo.DeclaringType.FullName;
+        string module = sender.MemberInfo.DeclaringType.Assembly.GetName().Name;
 
-        // Removing "[Method]" prefix
-        string justSignature = member[(member.IndexOf(']') + 1)..].TrimStart();
-        if (justSignature.Contains('('))
+        if (Parent.App is ManagedRemoteApp)
         {
             // Managed
 
-            // Splitting return type + name / parameters
-            string parametrs = justSignature[(justSignature.IndexOf('('))..];
-            string retTypeAndName = justSignature[..(justSignature.IndexOf('('))];
+            string methodName = sender.MemberInfo.Name;
+            MemberInfo mi = sender.MemberInfo;
+            string[] parameters = mi is MethodInfo methodInfo
+                ? methodInfo.GetParameters().Select(p => p.ParameterType.FullName).ToArray()
+                : Array.Empty<string>();
 
-            // Splitting return type and name
-            string methodName = retTypeAndName[(retTypeAndName.LastIndexOf(' ') + 1)..];
-            string retType = retTypeAndName[..(retTypeAndName.LastIndexOf(' '))];
-
-            // Escaping asteriks in parameters because of pointers ("SomeClass*" - the asterik does not mean a wild card)
-            parametrs = parametrs.Replace(" *", "*"); // HACK: "SomeClass *" -> "SomeClass*"
-            parametrs = parametrs.Replace("*", "\\*");
-
-            string sigWithoutReturnType = methodName + parametrs;
-
-            fullDemangledName = $"{targetClass}.{sigWithoutReturnType}";
+            fullDemangledName = $"{targetClass}.{methodName}({string.Join(", ", parameters)})";
         }
         else
         {
             // Unmanaged
-            fullDemangledName = $"{targetClass}.{justSignature}";
+            string methodName = sender.MemberInfo.Name;
+            fullDemangledName = $"{targetClass}.{methodName}";
         }
 
         if (!TraceList.Any(tf => tf.DemangledName == fullDemangledName))
         {
             if (!module.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                 module += ".dll";
-            string fullMangledName = $"{module}!{justSignature}";
+            string methodName = sender.MemberInfo.Name;
+            string fullMangledName = $"{module}!{methodName}";
             TraceList.Add(new TraceFunction(fullDemangledName, fullMangledName));
         }
     }

@@ -22,6 +22,15 @@
         <converters:BoolToForegroundColor x:Key="boolToForegroundColor"/>
         <converters:DumpedTypeToDescription x:Key="dumpedTypeToDescription"/>
         <converters:DifferenceToForegroundColor x:Key="differenceToForegroundColor"/>
+        <DrawingImage x:Key="errorNodeIcon">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#DC3C3C" Geometry="M8,0 A8,8 0 1 1 7.999,0.0001 Z" />
+                    <GeometryDrawing Brush="White" Geometry="M7,3.5 L9,3.5 9,10 7,10 Z" />
+                    <GeometryDrawing Brush="White" Geometry="M7,11.5 L9,11.5 9,13.5 7,13.5 Z" />
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
         <Style TargetType="{x:Type ToolBar}">
             <!-- Not Dropdown Button -->
             <Setter Property="ToolBarTray.IsLocked" Value="True"/>
@@ -48,6 +57,38 @@
         <Style TargetType="{x:Type TreeView}" BasedOn="{StaticResource darkThemeTreeViewStyleKey}">
             <Setter Property="Background" Value="{x:Null}"/>
         </Style>
+        <DataTemplate x:Key="typeNodeTemplate" DataType="{x:Type models:DumpedTypeModel}">
+            <Grid>
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Copy Type Name" Click="CopyTypeName_Click"/>
+                    </ContextMenu>
+                </Grid.ContextMenu>
+                <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
+                <TextBlock Margin="0" />
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="../icons/Class.png" Margin="0,0,3,0"/>
+                    <TextBlock Text="{Binding FullTypeName}"  Margin="2,0,5,0" />
+                    <DockPanel Visibility="{Binding HaveInstances, Converter={StaticResource boolToCollapsabilityConverter}}">
+                        <TextBlock Text="("/>
+                        <TextBlock Text="{Binding NumInstances}"/>
+                        <TextBlock Text=")"/>
+                    </DockPanel>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="errorNodeTemplate" DataType="{x:Type models:ErrorNodeModel}">
+            <Grid>
+                <TextBlock Margin="0" />
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="{StaticResource errorNodeIcon}" Margin="0,0,3,0"/>
+                    <TextBlock Text="{Binding DisplayName}" Margin="2,0,5,0"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+        <converters:TypeSystemNodeTemplateSelector x:Key="typeSystemNodeTemplateSelector"
+                                                   TypeTemplate="{StaticResource typeNodeTemplate}"
+                                                   ErrorTemplate="{StaticResource errorNodeTemplate}" />
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -112,7 +153,8 @@
                 </Style>
             </stretchingtree:StretchingTreeView.ItemContainerStyle>
             <stretchingtree:StretchingTreeView.ItemTemplate>
-                <HierarchicalDataTemplate ItemsSource="{Binding FilteredTypes}">
+                <HierarchicalDataTemplate ItemsSource="{Binding FilteredTypes}"
+                                          ItemTemplateSelector="{StaticResource typeSystemNodeTemplateSelector}">
                     <Grid Margin="0" MinWidth="444">
                         <Grid.ContextMenu>
                             <ContextMenu>
@@ -127,36 +169,13 @@
                                     <MultiBinding Converter="{StaticResource moduleToIconMultiConverter}">
                                         <Binding Path="Runtime"/>
                                         <Binding Path="Types.Count"/>
+                                        <Binding Path="HasLoadErrors"/>
                                     </MultiBinding>
                                 </Image.Source>
                             </Image>
                             <TextBlock Text="{Binding Name}" Margin="2,0,5,0" />
                         </StackPanel>
                     </Grid>
-                    <HierarchicalDataTemplate.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:DumpedTypeModel}">
-                            <Grid>
-                                <Grid.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Copy Type Name" Click="CopyTypeName_Click"/>
-                                    </ContextMenu>
-                                </Grid.ContextMenu>
-                                <!-- This TextBlock combined with the wrapper 'Grid' is a hack to allow the right-click Context menu in the entire line-->
-                                <TextBlock Margin="0"
-                                            />
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Source="../icons/Class.png" Margin="0,0,3,0"/>
-                                    <TextBlock Text="{Binding FullTypeName}"  Margin="2,0,5,0"
-                                                />
-                                    <DockPanel Visibility="{Binding HaveInstances, Converter={StaticResource boolToCollapsabilityConverter}}">
-                                        <TextBlock Text="("/>
-                                        <TextBlock Text="{Binding NumInstances}"/>
-                                        <TextBlock Text=")"/>
-                                    </DockPanel>
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </HierarchicalDataTemplate.ItemTemplate>
                 </HierarchicalDataTemplate>
             </stretchingtree:StretchingTreeView.ItemTemplate>
         </stretchingtree:StretchingTreeView>

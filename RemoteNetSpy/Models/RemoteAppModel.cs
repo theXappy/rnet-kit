@@ -134,7 +134,7 @@ public class RemoteAppModel : INotifyPropertyChanged
     public async Task<bool> PromptForVariableCastAsync(HeapObjectViewModel heapObject, System.Windows.Threading.Dispatcher dispatcher)
     {
         // Preparting a "Types Model" for the TypeSelectionWindow
-        IEnumerable<DumpedTypeModel> types = ClassesModel.FilteredAssemblies.SelectMany(a => a.Types);
+        IEnumerable<DumpedTypeModel> types = ClassesModel.FilteredAssemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>();
         List<DumpedTypeModel> deduplicatedList = types.GroupBy(x => x.FullTypeName)
                                                       .Select(group => group.First())
                                                       .ToList();

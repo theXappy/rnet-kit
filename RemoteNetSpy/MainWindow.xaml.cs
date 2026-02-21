@@ -347,7 +347,7 @@ namespace RemoteNetSpy
             {
                 await Task.Run(() =>
                 {
-                    types = _remoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types);
+                    types = _remoteAppModel.ClassesModel.Assemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>();
                 });
             }
             else
@@ -837,7 +837,7 @@ namespace RemoteNetSpy
 
             // Helper dict of dumped types from the LAST heap "objects count" so we can propogate
             // the num of instances into the types list in the sub-window
-            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_remoteAppModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types));
+            ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_remoteAppModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>());
             Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
             var typesModel = new TypesModel();
             List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
