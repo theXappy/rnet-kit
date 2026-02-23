@@ -21,6 +21,7 @@ namespace DragDropExpressionBuilder
         private DroppedMethodItem _draggedItem;
         private Point _dragStartPoint;
         private bool _isDragging;
+        private int _defaultDropOffsetIndex;
 
         private int _canvasNextZIndex = 0;
 
@@ -304,9 +305,37 @@ namespace DragDropExpressionBuilder
                             Tag = $"{instanceTypeName} {heapObj.HexAddress}"
                         };
                     }
-                    _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, 40, 40));
+                    var position = GetDefaultDropPosition();
+                    _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, position.X, position.Y));
                 }
             }
+        }
+
+        private Point GetDefaultDropPosition()
+        {
+            var margin = ReservoirBorder?.Margin ?? new Thickness(0);
+            var padding = MainAreaBorder?.Padding ?? new Thickness(0);
+            var x = padding.Left + 2;
+            var y = (ReservoirBorder?.ActualHeight ?? 0) + margin.Top + margin.Bottom + 8;
+
+            var offsetIndex = _defaultDropOffsetIndex++;
+            x += offsetIndex * 20;
+            y += offsetIndex * 50;
+
+            var canvasWidth = MainAreaCanvas?.ActualWidth ?? 0;
+            var canvasHeight = MainAreaCanvas?.ActualHeight ?? 0;
+
+            if (canvasWidth > 0)
+            {
+                x = Math.Min(x, canvasWidth - 1);
+            }
+
+            if (canvasHeight > 0)
+            {
+                y = Math.Min(y, canvasHeight - 1);
+            }
+
+            return new Point(Math.Max(0, x), Math.Max(0, y));
         }
     }
 }

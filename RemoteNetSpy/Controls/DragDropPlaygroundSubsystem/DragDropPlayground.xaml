@@ -16,41 +16,9 @@
         <convert:IsLastItemToVisibilityConverter x:Key="IsLastItemToVisibilityConverter"/>
     </UserControl.Resources>
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <!-- Reservoir -->
-        <GroupBox Header="Reservoir" Grid.Column="0" Margin="1">
-            <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}" MinWidth="200">
-                <ListBox.Resources>
-                    <DataTemplate DataType="{x:Type models:HeapObjectViewModel}">
-                        <StackPanel Orientation="Horizontal" MouseEnter="HeapObject_MouseEnter" MouseLeave="HeapObject_MouseLeave">
-                            <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0"/>
-                            <TextBlock Text="{Binding Description}" FontWeight="Bold"/>
-                            <Button Content="⋮" Width="22" Height="22" Margin="6,0,0,0" Padding="0" Cursor="Hand"
-                                    Click="HeapObjectMethodsButton_Click">
-                                <Button.ContextMenu>
-                                    <ContextMenu ItemsSource="{Binding TypeMethods}"
-                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                        <ContextMenu.ItemTemplate>
-                                            <DataTemplate>
-                                                <MenuItem Header="{Binding Name}"
-                                                          Tag="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                          Click="MenuItem_Click"/>
-                                            </DataTemplate>
-                                        </ContextMenu.ItemTemplate>
-                                    </ContextMenu>
-                                </Button.ContextMenu>
-                            </Button>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.Resources>
-            </ListBox>
-        </GroupBox>
-        
         <!-- Main Area -->
-        <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8" Background="Transparent" Grid.Column="1">
+        <Border x:Name="MainAreaBorder" AllowDrop="True" Padding="8"
+                Background="{StaticResource ControlDarkerBorderBrush}" Panel.ZIndex="0">
             <Canvas x:Name="MainAreaCanvas">
                 <ItemsControl x:Name="MainAreaItemsControl" ItemsSource="{Binding DroppedMethods}">
                     <ItemsControl.ItemsPanel>
@@ -229,6 +197,40 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Canvas>
+        </Border>
+
+        <!-- Reservoir -->
+        <Border x:Name="ReservoirBorder" Margin="8" MinWidth="220" MinHeight="120" MaxHeight="220" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="1000"
+                Background="{StaticResource ControlDarkerBackground}">
+            <GroupBox Header="Reservoir" Background="{StaticResource ControlDarkerBackground}">
+                <ListBox x:Name="ReservoirListBox" AllowDrop="False" ItemsSource="{Binding ReservoirItems}" MinWidth="200"
+                         Background="{StaticResource ControlDarkerBackground}"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.Resources>
+                        <DataTemplate DataType="{x:Type models:HeapObjectViewModel}">
+                            <StackPanel Orientation="Horizontal" MouseEnter="HeapObject_MouseEnter" MouseLeave="HeapObject_MouseLeave">
+                                <Image Source="pack://application:,,,/Assets/SelectObject.png" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding Description}" FontWeight="Bold"/>
+                                <Button Content="⋮" Width="22" Height="22" Margin="6,0,0,0" Padding="0" Cursor="Hand"
+                                        Click="HeapObjectMethodsButton_Click">
+                                    <Button.ContextMenu>
+                                        <ContextMenu ItemsSource="{Binding TypeMethods}"
+                                                     DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                            <ContextMenu.ItemTemplate>
+                                                <DataTemplate>
+                                                    <MenuItem Header="{Binding Name}"
+                                                              Tag="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                              Click="MenuItem_Click"/>
+                                                </DataTemplate>
+                                            </ContextMenu.ItemTemplate>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.Resources>
+                </ListBox>
+            </GroupBox>
         </Border>
     </Grid>
 </UserControl>
