@@ -2,7 +2,6 @@
 using RemoteNetSpy.Models;
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -288,10 +287,20 @@ namespace DragDropExpressionBuilder
         {
             if (sender is MenuItem menuItem && menuItem.DataContext is MethodInfo mi)
             {
+                var heapObj = menuItem.Tag as HeapObjectViewModel;
                 var methodWrapper = new MethodInfoWrapper(mi);
                 if (methodWrapper != null)
                 {
                     var invocation = new MethodInvocation(methodWrapper);
+                    if (!methodWrapper.Method.IsStatic && heapObj?.RemoteObject != null)
+                    {
+                        invocation.ThisInstance.AssignedInstance = new Instance
+                        {
+                            Obj = heapObj.RemoteObject,
+                            Type = heapObj.RemoteObject.GetRemoteType(),
+                            Tag = heapObj.Description
+                        };
+                    }
                     _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, 40, 40));
                 }
             }
