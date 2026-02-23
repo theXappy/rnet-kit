@@ -222,10 +222,21 @@ namespace DragDropExpressionBuilder
         {
             e.Handled = true;
 
-            object? context = (sender as FrameworkElement)?.DataContext;
-            if (context is MethodInvocationParameter mip && mip.AssignedInstance is Instance instance)
+            var element = sender as FrameworkElement;
+            object? context = element?.DataContext;
+            Instance instance = null;
+            if (context is MethodInvocationParameter mip)
             {
-                DragDrop.DoDragDrop(sender as DependencyObject, instance, DragDropEffects.Copy);
+                instance = mip.AssignedInstance;
+            }
+            else if (context is DroppedMethodItem droppedMethod)
+            {
+                instance = droppedMethod.Invocation?.ReturnValue?.AssignedInstance;
+            }
+
+            if (instance != null)
+            {
+                DragDrop.DoDragDrop(element, instance, DragDropEffects.Copy);
             }
         }
 
