@@ -32,6 +32,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
             _address = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HexAddress));
+            OnPropertyChanged(nameof(Description));
         }
     }
 
@@ -45,6 +46,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
             _typeMethodsCache = null; // Invalidate cache on type change
             OnPropertyChanged();
             OnPropertyChanged(nameof(TypeMethods));
+            OnPropertyChanged(nameof(Description));
         }
     }
     public string InteractiveRoVarName
@@ -67,6 +69,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
             _interactiveDroVarName = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(InteractiveDroVarName));
+            OnPropertyChanged(nameof(Description));
         }
     }
 
@@ -82,6 +85,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
             OnPropertyChanged(nameof(HexAddress));
             OnPropertyChanged(nameof(FullTypeName));
             OnPropertyChanged(nameof(TypeMethods));
+            OnPropertyChanged(nameof(Description));
         }
     }
 
@@ -103,6 +107,18 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
     public bool Frozen => RemoteObject != null;
 
     public string HexAddress => $"0x{Address:X16}";
+
+    public string Description
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(InteractiveDroVarName))
+                return InteractiveDroVarName;
+            if (!string.IsNullOrWhiteSpace(FullTypeName))
+                return FullTypeName;
+            return HexAddress;
+        }
+    }
 
     public static HeapObjectViewModel Parse(string text)
     {
