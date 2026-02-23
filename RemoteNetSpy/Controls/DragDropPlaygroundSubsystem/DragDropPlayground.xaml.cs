@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using RnetKit.Common;
 
 namespace DragDropExpressionBuilder
 {
@@ -204,11 +205,12 @@ namespace DragDropExpressionBuilder
                 if (heapObj != null && heapObj.Frozen && element != null)
                 {
                     var parameter = element.DataContext as MethodInvocationParameter;
+                    var typeName = TypeNameUtils.NormalizeShort(heapObj.RemoteObject.GetRemoteType().Name);
                     parameter.AssignedInstance = new Instance
                     {
                         Obj = heapObj.RemoteObject,
                         Type = heapObj.RemoteObject.GetRemoteType(),
-                        Tag = heapObj.HexAddress + " " + heapObj.FullTypeName
+                        Tag = $"{typeName} {heapObj.HexAddress}"
                     };
                     e.Handled = true;
                 }
@@ -294,11 +296,12 @@ namespace DragDropExpressionBuilder
                     var invocation = new MethodInvocation(methodWrapper);
                     if (!methodWrapper.Method.IsStatic && heapObj?.RemoteObject != null)
                     {
+                        var instanceTypeName = TypeNameUtils.NormalizeShort(heapObj.RemoteObject.GetRemoteType().Name);
                         invocation.ThisInstance.AssignedInstance = new Instance
                         {
                             Obj = heapObj.RemoteObject,
                             Type = heapObj.RemoteObject.GetRemoteType(),
-                            Tag = heapObj.Description
+                            Tag = $"{instanceTypeName} {heapObj.HexAddress}"
                         };
                     }
                     _viewModel.DroppedMethods.Add(new DroppedMethodItem(invocation, 40, 40));
