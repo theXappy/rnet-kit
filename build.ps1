@@ -5,9 +5,8 @@
     1. Locates VS toolchain via vswhere.
     2. Builds the detours.net native library (cmake + msbuild via vcvarsall).
     3. Builds RemoteNET.sln (Release|Mixed config).
-    4. Creates the dist/ directory junctions required for the rnet-kit build.
-    5. Restores NuGet packages for rnet-kit.sln.
-    6. Builds rnet-kit.sln (Release).
+    4. Creates the dist/ directory junctions required for the Merged build.
+    5. Builds Merged.sln (Release|Mixed) via msbuild.
 .NOTES
     Build logs are written to build_*.log files in the repo root.
     The script is idempotent: cmake and junction creation are skipped when already done.
@@ -134,7 +133,7 @@ Invoke-CmdChain (
 Write-Host "    RemoteNET.sln OK" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
-# Step 3 — Create dist directory junctions
+# Step 4 — Create dist directory junctions
 # ---------------------------------------------------------------------------
 #
 # RemoteNET.csproj uses $(SolutionDir)\dist\$(Configuration)\... for its Copy/Zip targets.
@@ -168,43 +167,22 @@ else {
 Write-Host "    Junctions OK" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
-# Step 4 — Restore NuGet packages for rnet-kit.sln
+# Step 4 — Build Merged.sln
 # ---------------------------------------------------------------------------
 #
-# The local NuGet source 'NewLocalNuget' may not have all required packages
-# (e.g. Microsoft.SymbolStore). Always restore from nuget.org as well.
+# Merged.sln contains C++ and C# projects, so we use msbuild via vcvarsall
+# with Platform=Mixed, same as the RemoteNET.sln build above.
 
-$rnetKitSln = Join-Path $repoRoot "rnet-kit.sln"
-$restoreLog = Join-Path $repoRoot "build_restore.log"
-
-# Clear PLATFORM so it doesn't interfere with dotnet/MSBuild platform resolution.
-$env:PLATFORM = $null
-
-Write-Step "Restoring NuGet packages for rnet-kit.sln..."
-dotnet restore $rnetKitSln --source https://api.nuget.org/v3/index.json > $restoreLog 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Restore failed. Last 30 lines of ${restoreLog}:" -ForegroundColor Red
-    Get-Content $restoreLog | Select-Object -Last 30
-    Write-Error "NuGet restore failed (exit $LASTEXITCODE)."
-    exit $LASTEXITCODE
-}
-Write-Host "    Restore OK" -ForegroundColor Green
-
-# ---------------------------------------------------------------------------
-# Step 5 — Build rnet-kit.sln
-# ---------------------------------------------------------------------------
-
+$rnetKitSln = Join-Path $repoRoot "Merged.sln"
 $rnetKitLog = Join-Path $repoRoot "build_rnetkit.log"
 
-Write-Step "Building rnet-kit.sln (Release)..."
-dotnet build $rnetKitSln -c Release --nologo > $rnetKitLog 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Build failed. Last 40 lines of ${rnetKitLog}:" -ForegroundColor Red
-    Get-Content $rnetKitLog | Select-Object -Last 40
-    Write-Error "rnet-kit.sln build failed (exit $LASTEXITCODE)."
-    exit $LASTEXITCODE
-}
-Write-Host "    rnet-kit.sln OK" -ForegroundColor Green
+Write-Step "Building Merged.sln (Release|Mixed)..."
+Invoke-CmdChain (
+    "`"$vcvarsall`" x64 && " +
+    "set PLATFORM= && " +
+    "msbuild `"$rnetKitSln`" /t:restore,build /p:Configuration=Release /p:Platform=Mixed /m /nologo /verbosity:minimal"
+) $rnetKitLog
+Write-Host "    Merged.sln OK" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
 
