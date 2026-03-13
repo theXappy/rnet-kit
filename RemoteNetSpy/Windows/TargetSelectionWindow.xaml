@@ -6,7 +6,6 @@
         Style="{DynamicResource CustomWindowStyle}"
         Title="Target Selection"
         WindowStartupLocation="CenterScreen"
-        SizeToContent="Height"
         Width="450"
         MinWidth="300"
         MinHeight="150"

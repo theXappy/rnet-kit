@@ -26,10 +26,14 @@ namespace RemoteNetSpy.Windows
 
         public InjectableProcess SelectedProcess { get; private set; }
 
+        // Window height as a fraction of the primary screen height
+        private const double WindowHeightScreenRatio = 0.7;
+
         public TargetSelectionWindow()
         {
             InitializeComponent();
-            MaxHeight = SystemParameters.PrimaryScreenHeight * 0.7;
+            Height = SystemParameters.PrimaryScreenHeight * WindowHeightScreenRatio;
+            MaxHeight = SystemParameters.PrimaryScreenHeight * WindowHeightScreenRatio;
             var dataContext = new TargetSelectionViewModel();
             dataContext.ItemDoubleClick += HandleProcessDoubleClick;
             DataContext = dataContext;
