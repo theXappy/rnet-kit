@@ -9,8 +9,6 @@
         SizeToContent="Height"
         Width="450"
         MinWidth="300"
-        Height="888"
-        MaxHeight="888"
         MinHeight="150"
         >
     <Window.Resources>
@@ -48,7 +46,7 @@
                  HorizontalContentAlignment="Stretch"
                  KeyDown="procsBox_KeyDown"
                  IsTextSearchEnabled="True" TextSearch.TextPath="Name"
-                 Height="800"
+
                  >
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:InjectableProcess}">

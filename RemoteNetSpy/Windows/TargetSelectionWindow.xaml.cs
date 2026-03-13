@@ -29,6 +29,7 @@ namespace RemoteNetSpy.Windows
         public TargetSelectionWindow()
         {
             InitializeComponent();
+            MaxHeight = SystemParameters.PrimaryScreenHeight * 0.7;
             var dataContext = new TargetSelectionViewModel();
             dataContext.ItemDoubleClick += HandleProcessDoubleClick;
             DataContext = dataContext;
