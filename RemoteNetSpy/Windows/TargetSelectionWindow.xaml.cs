@@ -28,12 +28,15 @@ namespace RemoteNetSpy.Windows
 
         // Window height as a fraction of the primary screen height
         private const double WindowHeightScreenRatio = 0.7;
+        // ListBox height as a fraction of the primary screen height (window ratio minus space for buttons)
+        private const double ListBoxHeightScreenRatio = 0.6;
 
         public TargetSelectionWindow()
         {
             InitializeComponent();
             Height = SystemParameters.PrimaryScreenHeight * WindowHeightScreenRatio;
             MaxHeight = SystemParameters.PrimaryScreenHeight * WindowHeightScreenRatio;
+            procsBox.Height = SystemParameters.PrimaryScreenHeight * ListBoxHeightScreenRatio;
             var dataContext = new TargetSelectionViewModel();
             dataContext.ItemDoubleClick += HandleProcessDoubleClick;
             DataContext = dataContext;
