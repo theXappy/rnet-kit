@@ -90,11 +90,11 @@ jobs:
 
       - name: Publish (rnet-kit, Release)
         if: ${{ matrix.project == 'rnet-kit/rnet-kit.csproj' && matrix.configuration == 'Release' }}
-        run: dotnet publish rnet-kit/rnet-kit.csproj -c Release -r win-x64 --self-contained true
+        run: dotnet publish rnet-kit/rnet-kit.csproj -c Release -r win-x64 --self-contained true /p:ErrorOnDuplicatePublishOutputFiles=false
 
       - name: Publish (RemoteNetSpy, Release)
         if: ${{ matrix.project == 'RemoteNetSpy/RemoteNetSpy.csproj' && matrix.configuration == 'Release' }}
-        run: dotnet publish RemoteNetSpy/RemoteNetSpy.csproj -c Release -r win-x64 --self-contained true
+        run: dotnet publish RemoteNetSpy/RemoteNetSpy.csproj -c Release -r win-x64 --self-contained true /p:ErrorOnDuplicatePublishOutputFiles=false
 
       - name: Test (if present)
         run: |
