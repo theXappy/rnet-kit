@@ -32,12 +32,7 @@ $DetoursCMake = Join-Path $DetoursSrcDir 'detours.net'
 
 $KitProjects = @(
     'RemoteNetSpy\RemoteNetSpy.csproj',
-    'rnet-kit\rnet-kit.csproj',
-    'rnet-class-dump\rnet-class-dump.csproj',
-    'rnet-dump\rnet-dump.csproj',
-    'rnet-inject\rnet-inject.csproj',
-    'rnet-ps\rnet-ps.csproj',
-    'rnet-trace\rnet-trace.csproj'
+    'rnet-kit\rnet-kit.csproj'
 )
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
