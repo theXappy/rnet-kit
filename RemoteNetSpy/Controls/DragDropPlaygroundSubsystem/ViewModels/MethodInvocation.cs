@@ -2,6 +2,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
+using RemoteNET;
+using RnetKit.Common;
 
 namespace DragDropExpressionBuilder
 {
@@ -117,7 +119,7 @@ namespace DragDropExpressionBuilder
 
                 Type expected = paramInfos[i].ParameterType;
                 Type actual = param.AssignedInstance.Type;
-                if (actual != expected)
+                if (actual.Equals(expected))
                 {
                     System.Windows.MessageBox.Show($"Assigned instance type for parameter '{param.ParamName}' ({actual.Name}) does not match method parameter type ({expected.Name}).");
                     return;
@@ -134,13 +136,43 @@ namespace DragDropExpressionBuilder
             try
             {
                 object retVal = method.Invoke(target, args);
-                ReturnValue = new MethodInvocationParameter(retVal.GetType(), retVal.ToString())
+                if (retVal == null)
+                {
+                    ReturnValue = new MethodInvocationParameter(method.ReturnType, "null")
+                    {
+                        AssignedInstance = new Instance()
+                        {
+                            Type = method.ReturnType,
+                            Obj = null,
+                            Tag = "null"
+                        }
+                    };
+                    return;
+                }
+
+                string tag = retVal.ToString();
+                Type instanceType = retVal.GetType();
+                if (retVal is RemoteObject remoteObject)
+                {
+                    instanceType = remoteObject.GetRemoteType();
+                    var typeName = TypeNameUtils.NormalizeShort(instanceType.Name);
+                    tag = $"{typeName} 0x{remoteObject.RemoteToken:X16}";
+                }
+                else if (retVal is DynamicRemoteObject dynamicRemoteObject)
+                {
+                    var dynamicRemote = dynamicRemoteObject.__ro;
+                    instanceType = dynamicRemote.GetRemoteType();
+                    var typeName = TypeNameUtils.NormalizeShort(instanceType.Name);
+                    tag = $"{typeName} 0x{dynamicRemote.RemoteToken:X16}";
+                }
+
+                ReturnValue = new MethodInvocationParameter(instanceType, tag)
                 {
                     AssignedInstance = new Instance()
                     {
-                        Type = retVal.GetType(),
+                        Type = instanceType,
                         Obj = retVal,
-                        Tag = retVal.ToString()
+                        Tag = tag
                     }
                 };
             }
