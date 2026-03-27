@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using RemoteNET;
+using RemoteNET.RttiReflection;
 using RnetKit.Common;
 
 namespace DragDropExpressionBuilder
@@ -119,10 +120,22 @@ namespace DragDropExpressionBuilder
 
                 Type expected = paramInfos[i].ParameterType;
                 Type actual = param.AssignedInstance.Type;
-                if (actual.Equals(expected))
+                if (!actual.FullName.Equals(expected.FullName))
                 {
-                    System.Windows.MessageBox.Show($"Assigned instance type for parameter '{param.ParamName}' ({actual.Name}) does not match method parameter type ({expected.Name}).");
-                    return;
+                    // One special case: pointer types:
+                    // expeted: MyClass*
+                    // actual: MyClass
+                    // SHOULD be considered a match.
+                    if (expected is PointerType expectedPointer)
+                    {
+                        expected = expectedPointer.Inner;
+                    }
+
+                    if (!actual.FullName.Equals(expected.FullName))
+                    {
+                        System.Windows.MessageBox.Show($"Assigned instance type for parameter '{param.ParamName}' ({actual.Name}) does not match method parameter type ({expected.Name}).");
+                        return;
+                    }
                 }
                 args[i] = param.AssignedInstance.Obj;
             }
