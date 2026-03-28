@@ -151,10 +151,11 @@ namespace RemoteNetSpy.Controls
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-                unfrozens.Filter = (item) => (item as HeapObjectViewModel).Frozen == false;
-                heapInstancesListBox.ItemsSource = unfrozens;
-                _viewState.HeapInstancesSource = unfrozens;
+                // Show both frozen and unfrozen
+                ICollectionView view = CollectionViewSource.GetDefaultView(_instancesList);
+                view.Filter = null;
+                heapInstancesListBox.ItemsSource = view;
+                _viewState.HeapInstancesSource = view;
             });
         }
 
@@ -409,10 +410,11 @@ namespace RemoteNetSpy.Controls
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-                unfrozens.Filter = (item) => (item as HeapObjectViewModel).Frozen == false;
-                heapInstancesListBox.ItemsSource = unfrozens;
-                _viewState.HeapInstancesSource = unfrozens;
+                // Show both frozen and unfrozen
+                ICollectionView view = CollectionViewSource.GetDefaultView(_instancesList);
+                view.Filter = null;
+                heapInstancesListBox.ItemsSource = view;
+                _viewState.HeapInstancesSource = view;
             });
         }
 
