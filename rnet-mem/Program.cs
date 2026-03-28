@@ -30,6 +30,9 @@ namespace rnet_mem
             [Option("look-behind", Required = false, HelpText = "Amount of bytes to print BEFORE the address")]
             public int LookBehind { get; set; }
 
+            [Option("resolve-vftables", Required = false, HelpText = "Resolve 8-byte QWORDs as method-table addresses and append resolved type names")]
+            public bool ResolveVfTables { get; set; }
+
             [Option("launchdebugger", Required = false, HelpText = "Launch debugger and wait for it to attach.")]
             public bool LaunchDebugger { get; set; }
         }
@@ -122,15 +125,16 @@ namespace rnet_mem
             return Convert.ToUInt64(s, 16);
         }
 
-        static void PrintHexDump(ulong startAddress, byte[] data)
+        static void PrintHexDump(ulong startAddress, byte[] data, RemoteApp app = null, bool resolveVfTables = false)
         {
-            const int width = 16;
+            int width = resolveVfTables ? 8 : 16;
             for (int i = 0; i < data.Length; i += width)
             {
                 int take = Math.Min(width, data.Length - i);
                 ulong addr = startAddress + (ulong)i;
                 StringBuilder hex = new StringBuilder();
                 StringBuilder chars = new StringBuilder();
+                List<string> resolved = null;
                 for (int j = 0; j < take; j++)
                 {
                     hex.AppendFormat("{0:X2} ", data[i + j]);
@@ -145,7 +149,33 @@ namespace rnet_mem
                     for (int k = 0; k < missing; k++)
                         hex.Append("   ");
                 }
-                Console.WriteLine($"0x{addr:X16}  {hex.ToString()} {chars.ToString()}");
+                if (resolveVfTables && app != null)
+                {
+                    // Attempt to resolve each full 8-byte QWORD in this line as a method-table address
+                    resolved = new List<string>();
+                    for (int off = 0; off + 8 <= take; off += 8)
+                    {
+                        try
+                        {
+                            ulong q = BitConverter.ToUInt64(data, i + off);
+                            Type t = null;
+                            try { t = app.GetRemoteType(unchecked((long)q)); } catch { t = null; }
+                            if (t != null)
+                                resolved.Add(t.FullName ?? "<unnamed>");
+                        }
+                        catch
+                        {
+                            // ignore parsing/resolution errors
+                        }
+                    }
+                }
+                string resolvedSuffix = "";
+                if (resolved != null && resolved.Count > 0)
+                {
+                    resolvedSuffix = "  " + string.Join(" | ", resolved);
+                }
+
+                Console.WriteLine($"0x{addr:X16}  {hex.ToString()} {chars.ToString()}{resolvedSuffix}");
             }
         }
 
@@ -211,7 +241,7 @@ namespace rnet_mem
             try
             {
                 byte[] data = ReadRemoteBytes(app, opts.Unmanaged, startAddress, totalToRead);
-                PrintHexDump(startAddress, data);
+                PrintHexDump(startAddress, data, app, opts.ResolveVfTables);
                 app.Dispose();
                 return 0;
             }
