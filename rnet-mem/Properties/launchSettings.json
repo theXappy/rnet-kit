@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "rnet-mem": {
+      "commandName": "Project",
+      "commandLineArgs": "read -t 2240 -u -a 0x0000029A1BBEF748 -n 32"
+    }
+  }
+}
