@@ -1,5 +1,6 @@
 ﻿using RemoteNetSpy.Controls.DragDropPlaygroundSubsystem;
 using RemoteNetSpy.Models;
+using RemoteNetSpy.Controls;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -9,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using RnetKit.Common;
+using RemoteNET;
 
 namespace DragDropExpressionBuilder
 {
@@ -240,6 +242,107 @@ namespace DragDropExpressionBuilder
             }
         }
 
+        private void ResultPanel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount != 2)
+            {
+                // Single click - do the drag behavior
+                DroppedMethod_MouseLeftButtonDown(sender, e);
+                return;
+            }
+
+            // Double-click detected
+            e.Handled = true;
+
+            var border = sender as Border;
+            if (border?.DataContext is not DroppedMethodItem droppedMethod)
+                return;
+
+            var instance = droppedMethod.Invocation?.ReturnValue?.AssignedInstance;
+            if (instance?.Obj == null)
+                return;
+
+            // Find the MainWindow and RemoteAppModel first
+            var mainWindow = Application.Current.MainWindow as RemoteNetSpy.MainWindow;
+            if (mainWindow == null)
+            {
+                MessageBox.Show("Could not find main window.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Get the RemoteAppModel from MainWindow
+            var remoteAppModel = mainWindow.DataContext as RemoteAppModel;
+            if (remoteAppModel == null)
+            {
+                // Try to get it through reflection if not accessible via DataContext
+                var field = typeof(RemoteNetSpy.MainWindow).GetField("_remoteAppModel", BindingFlags.NonPublic | BindingFlags.Instance);
+                remoteAppModel = field?.GetValue(mainWindow) as RemoteAppModel;
+            }
+
+            if (remoteAppModel == null)
+            {
+                MessageBox.Show("Could not access RemoteAppModel.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            RemoteObject remoteObject = null;
+
+            // Case 1: instance.Obj is already a RemoteObject (for .NET targets)
+            if (instance.Obj is RemoteObject ro)
+            {
+                remoteObject = ro;
+            }
+            // Case 2: instance.Obj is a UIntPtr (for MSVC targets) - need to resolve it
+            else if (instance.Obj is UIntPtr ptr)
+            {
+                try
+                {
+                    // Get the expected return type from the method
+                    var returnType = droppedMethod.Invocation?.Method?.Method?.ReturnType;
+                    if (returnType == null)
+                    {
+                        MessageBox.Show("Could not determine return type of method.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    ulong address = (ulong)ptr;
+                    string typeName = returnType.FullName;
+
+                    // Handle pointer types - get the inner type
+                    if (returnType is RemoteNET.RttiReflection.PointerType pointerType)
+                    {
+                        typeName = pointerType.Inner.FullName;
+                    }
+
+                    // Use RemoteApp to get the RemoteObject from the pointer
+                    remoteObject = remoteAppModel.App.GetRemoteObject(address, typeName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to resolve pointer to RemoteObject: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+            else
+            {
+                MessageBox.Show($"Unsupported return value type: {instance.Obj.GetType().Name}. Expected RemoteObject or UIntPtr.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (remoteObject == null)
+                return;
+
+            // Create a HeapObjectViewModel from the RemoteObject
+            var heapObject = new HeapObjectViewModel
+            {
+                RemoteObject = remoteObject,
+                FullTypeName = remoteObject.GetRemoteType().FullName
+            };
+
+            // Create ObjectViewerControl
+            mainWindow.CreateNewInstanceTab(heapObject);
+        }
+
         private void MethodParameter_MouseButtonDown(object sender, MouseButtonEventArgs e)
         {
             var element = sender as FrameworkElement;
@@ -254,6 +357,9 @@ namespace DragDropExpressionBuilder
                 return;
 
             var inputWindow = new PrimitiveInputWindow($"Enter a {type.Name} value:");
+            var ownerWindow = Window.GetWindow(this) ?? Application.Current?.MainWindow;
+            inputWindow.Owner = ownerWindow;
+
             if (inputWindow.ShowDialog() == true)
             {
                 string userInput = inputWindow.InputValue;

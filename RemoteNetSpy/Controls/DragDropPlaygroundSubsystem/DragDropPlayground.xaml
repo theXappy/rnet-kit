@@ -170,7 +170,7 @@
                                 <Border Background="#1C3413" Padding="6" CornerRadius="4" BorderBrush="#FF66CC99" BorderThickness="1"
                                         Margin="8,0,0,0"
                                             VerticalAlignment="Bottom"
-                                        MouseLeftButtonDown="DroppedMethod_MouseLeftButtonDown"
+                                        MouseLeftButtonDown="ResultPanel_MouseLeftButtonDown"
                                         MouseMove="DroppedMethod_MouseMove"
                                         MouseLeftButtonUp="DroppedMethod_MouseLeftButtonUp"
                                         Visibility="{Binding Invocation.ReturnValue, Converter={StaticResource NullToCollapsedConverter}}"

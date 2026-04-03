@@ -25,6 +25,17 @@ namespace RemoteNetSpy.Controls.DragDropPlaygroundSubsystem
         {
             InitializeComponent();
             Title = prompt;
+            Loaded += PrimitiveInputWindow_Loaded;
+        }
+
+        private void PrimitiveInputWindow_Loaded(object? sender, RoutedEventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                InputTextBox.Focus();
+                System.Windows.Input.Keyboard.Focus(InputTextBox);
+                InputTextBox.SelectAll();
+            }));
         }
 
         private void Ok_Click(object sender, RoutedEventArgs e)
