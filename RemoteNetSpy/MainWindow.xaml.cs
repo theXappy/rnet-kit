@@ -638,7 +638,7 @@ namespace RemoteNetSpy
             typeView.Init(model, _remoteAppModel);
             typeView.MethodSentToPlayground += dragDropPlayground.AddMethod;
             typeView.ObjectSentToPlayground += dragDropPlayground.AddObject;
-            typeView.ObjectFreezeRequested += TypeView_ObjectFreezeRequested;
+            typeView.ObjectFreezeRequested += async ho => await TakeObjectOwnershipAsync(ho);
 
             DockPanel header = new DockPanel() 
             {
@@ -924,6 +924,28 @@ namespace RemoteNetSpy
             dragDropPlayground.AddHeapObject(heapObj);
         }
 
+        public async Task TakeObjectOwnershipAsync(HeapObjectViewModel heapObject)
+        {
+            // Freeze the object if not already frozen
+            if (!heapObject.Frozen)
+            {
+                bool freezeSuccess = await FreezeUnfreezeAsync(heapObject);
+                if (!freezeSuccess)
+                {
+                    return;
+                }
+            }
+
+            // Add to interactive window
+            _remoteAppModel.Interactor.AddVar(heapObject);
+
+            // Add to playground reservoir
+            FrozenObject_AddToPlayground(heapObject);
+
+            // Create instance tab
+            CreateNewInstanceTab(heapObject);
+        }
+
         private void watchedObjectsListBox_PreviewMouseMove(object sender, MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
@@ -946,22 +968,6 @@ namespace RemoteNetSpy
                     Obj = ro
                 };
                 DragDrop.DoDragDrop(listBox, instance, DragDropEffects.Copy);
-            }
-        }
-
-        private async void TypeView_ObjectFreezeRequested(HeapObjectViewModel ho)
-        {
-            await FreezeUnfreezeAsync(ho); // Already have this method in MainWindow
-
-            if (ho.Frozen)
-            {
-                CreateNewInstanceTab(ho);
-                dragDropPlayground.AddHeapObject(ho);
-            }
-            else
-            {
-                // TODO: Remove tab
-                // TODO: Remvoe from playground
             }
         }
 

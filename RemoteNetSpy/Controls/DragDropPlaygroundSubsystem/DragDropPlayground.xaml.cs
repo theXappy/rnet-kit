@@ -242,7 +242,7 @@ namespace DragDropExpressionBuilder
             }
         }
 
-        private void ResultPanel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private async void ResultPanel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount != 2)
             {
@@ -285,14 +285,16 @@ namespace DragDropExpressionBuilder
                 return;
             }
 
-            RemoteObject remoteObject = null;
+            ulong address = 0;
+            string typeName = null;
 
-            // Case 1: instance.Obj is already a RemoteObject (for .NET targets)
+            // Case 1: instance.Obj is already a RemoteObject
             if (instance.Obj is RemoteObject ro)
             {
-                remoteObject = ro;
+                address = ro.RemoteToken;
+                typeName = ro.GetRemoteType().FullName;
             }
-            // Case 2: instance.Obj is a UIntPtr (for MSVC targets) - need to resolve it
+            // Case 2: instance.Obj is a UIntPtr (common for MSVC targets) - need to resolve it
             else if (instance.Obj is UIntPtr ptr)
             {
                 try
@@ -305,21 +307,18 @@ namespace DragDropExpressionBuilder
                         return;
                     }
 
-                    ulong address = (ulong)ptr;
-                    string typeName = returnType.FullName;
+                    address = (ulong)ptr;
+                    typeName = returnType.FullName;
 
                     // Handle pointer types - get the inner type
                     if (returnType is RemoteNET.RttiReflection.PointerType pointerType)
                     {
                         typeName = pointerType.Inner.FullName;
                     }
-
-                    // Use RemoteApp to get the RemoteObject from the pointer
-                    remoteObject = remoteAppModel.App.GetRemoteObject(address, typeName);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Failed to resolve pointer to RemoteObject: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Failed to resolve pointer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
@@ -329,18 +328,18 @@ namespace DragDropExpressionBuilder
                 return;
             }
 
-            if (remoteObject == null)
+            if (address == 0 || string.IsNullOrEmpty(typeName))
                 return;
 
-            // Create a HeapObjectViewModel from the RemoteObject
+            // Create a HeapObjectViewModel with address and type name (not frozen yet)
             var heapObject = new HeapObjectViewModel
             {
-                RemoteObject = remoteObject,
-                FullTypeName = remoteObject.GetRemoteType().FullName
+                Address = address,
+                FullTypeName = typeName,
             };
 
-            // Create ObjectViewerControl
-            mainWindow.CreateNewInstanceTab(heapObject);
+            // Use MainWindow's method to freeze (if needed), add to playground, and create tab
+            await mainWindow.TakeObjectOwnershipAsync(heapObject);
         }
 
         private void MethodParameter_MouseButtonDown(object sender, MouseButtonEventArgs e)
