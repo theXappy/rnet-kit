@@ -1687,7 +1687,7 @@
     <!-- -_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_- -->
 
     <!-- Menu -->
-    <Style TargetType="{x:Type Menu}">
+    <Style x:Key="darkThemeMenuStyleKey" TargetType="{x:Type Menu}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FontFamily" Value="{DynamicResource {x:Static SystemFonts.MenuFontFamilyKey}}" />
         <Setter Property="FontSize" Value="{DynamicResource {x:Static SystemFonts.MenuFontSizeKey}}" />
@@ -1710,7 +1710,7 @@
         </Setter>
     </Style>
 
-    <Style TargetType="{x:Type MenuItem}">
+    <Style x:Key="darkThemeMenuItemStyleKey" TargetType="{x:Type MenuItem}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type MenuItem}">
@@ -4497,7 +4497,7 @@
                     <Border x:Name="border" SnapsToDevicePixels="True" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                         <!-- SS: Silenced this annoying error -->
                         <!--<Border.Background>-->
-                            <!--<SolidColorBrush Color="{DynamicResource ControlLightColor}" />-->
+                        <!--<SolidColorBrush Color="{DynamicResource ControlLightColor}" />-->
                         <!--</Border.Background>-->
                         <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false" Background="Black">
                             <ScrollViewer.Template>
