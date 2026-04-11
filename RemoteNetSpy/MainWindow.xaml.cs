@@ -820,10 +820,22 @@ namespace RemoteNetSpy
             };
             
             // Set up close button click handler
-            closeButton.Click += (sender, e) =>
+            closeButton.Click += async (sender, e) =>
             {
-                MyTabControl.Items.Remove(tab);
                 e.Handled = true; // Prevent tab selection when clicking close button
+
+                // Unfreeze the object if it's currently frozen
+                if (heapObject.Frozen)
+                {
+                    bool unfreezeSuccess = await FreezeUnfreezeAsync(heapObject);
+                    if (unfreezeSuccess)
+                    {
+                        _remoteAppModel.Interactor.DeleteVar(heapObject);
+                        dragDropPlayground.RemoveHeapObject(heapObject);
+                    }
+                }
+
+                MyTabControl.Items.Remove(tab);
             };
             
             // Add hover effects to close button
