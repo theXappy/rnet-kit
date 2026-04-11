@@ -443,7 +443,11 @@ namespace RemoteNetSpy
                 else
                 {
                     _remoteAppModel.Interactor.DeleteVar(ho);
-                    Dispatcher.Invoke(() => CloseInstanceTab(ho));
+                    Dispatcher.Invoke(() =>
+                    {
+                        dragDropPlayground.RemoveHeapObject(ho);
+                        CloseInstanceTab(ho);
+                    });
                 }
             }, TaskScheduler.Default);
         }
@@ -640,7 +644,11 @@ namespace RemoteNetSpy
                 else
                 {
                     _remoteAppModel.Interactor.DeleteVar(ho);
-                    Dispatcher.Invoke(() => CloseInstanceTab(ho));
+                    Dispatcher.Invoke(() =>
+                    {
+                        dragDropPlayground.RemoveHeapObject(ho);
+                        CloseInstanceTab(ho);
+                    });
                 }
 
                 return true;

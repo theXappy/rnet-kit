@@ -25,6 +25,11 @@ namespace DragDropExpressionBuilder
             }
         }
 
+        public void RemoveHeapObject(HeapObjectViewModel heapObj)
+        {
+            ReservoirItems.Remove(heapObj);
+        }
+
         [Obsolete("Use AddHeapObject instead")]
         public void AddObject(object o, string tag) => ReservoirItems.Add(new Instance { Type = o.GetType(), Tag = tag, Obj = o });
 

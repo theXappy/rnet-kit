@@ -179,7 +179,7 @@ public class HeapObjectViewModel : INotifyPropertyChanged, IComparable
 
     public void Cast(Type newType)
     {
-        RemoteObject = RemoteObject.Cast(newType);
+        RemoteObject = RemoteObject?.Cast(newType);
         FullTypeName = newType.FullName;
     }
 }

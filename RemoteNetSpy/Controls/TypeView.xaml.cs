@@ -452,7 +452,27 @@ namespace RemoteNetSpy.Controls
             // Helper dict of dumped types from the LAST heap "objects count" so we can propogate
             // the num of instances into the types list in the sub-window
             ObservableCollection<DumpedTypeModel> mainTypesControlTypes = new ObservableCollection<DumpedTypeModel>(_remoteAppModel.ClassesModel.FilteredAssemblies.SelectMany(a => a.Types).OfType<DumpedTypeModel>());
-            Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes.ToDictionary(x => x.FullTypeName);
+
+            // Check for duplicate FullTypeName keys before building the dictionary
+            var duplicates = mainTypesControlTypes
+                .GroupBy(x => x.FullTypeName)
+                .Where(g => g.Count() > 1)
+                .ToList();
+            if (duplicates.Count > 0)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"Found {duplicates.Count} duplicate FullTypeName key(s):");
+                foreach (var dup in duplicates)
+                {
+                    sb.AppendLine($"  Key: \"{dup.Key}\" — {dup.Count()} occurrences");
+                }
+                System.Diagnostics.Debug.WriteLine(sb.ToString());
+                MessageBox.Show(sb.ToString(), "Duplicate keys in ToDictionary", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            Dictionary<string, DumpedTypeModel> mainControlFullTypeNameToTypes = mainTypesControlTypes
+                .GroupBy(x => x.FullTypeName)
+                .ToDictionary(g => g.Key, g => g.First());
             var typesModel = new TypesModel();
             List<DumpedTypeModel> deepCopiesTypesList = await GetTypesListAsync(true).ContinueWith((task) =>
             {
@@ -511,7 +531,10 @@ namespace RemoteNetSpy.Controls
             {
                 Type newType = _remoteAppModel.App.GetRemoteType(selectedType.FullTypeName);
                 heapObject.Cast(newType);
-                _remoteAppModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
+                if (heapObject.Frozen)
+                {
+                    _remoteAppModel.Interactor.CastVar(heapObject, selectedType.FullTypeName);
+                }
             }
             catch (Exception ex)
             {

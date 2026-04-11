@@ -40,6 +40,7 @@ namespace DragDropExpressionBuilder
         public void AddObject(object obj, string tag, Type forcedType) => _viewModel.AddObject(obj, tag, forcedType);
         public void AddMethod(MethodInfo mi) => _viewModel.AddMethod(mi);
         public void AddHeapObject(HeapObjectViewModel heapObj) => _viewModel.AddHeapObject(heapObj);
+        public void RemoveHeapObject(HeapObjectViewModel heapObj) => _viewModel.RemoveHeapObject(heapObj);
 
         private void ReservoirListBox_PreviewMouseMove(object sender, MouseEventArgs e)
         {
