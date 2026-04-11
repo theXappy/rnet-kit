@@ -361,7 +361,7 @@ namespace RemoteNetSpy.Controls
         public event Action<MethodInfo> MethodSentToPlayground;
         public event Action<RemoteObject, string, Type> ObjectSentToPlayground;
 
-        private void FreezeHeapObjectButtonClicked(object sender, RoutedEventArgs e)
+        private void FreezeUnfreezeHeapObjectButtonClicked(object sender, RoutedEventArgs e)
         {
             Button senderButton = sender as Button;
             var grid = senderButton.FindLogicalChildren<Grid>().Single();
@@ -375,34 +375,26 @@ namespace RemoteNetSpy.Controls
             HeapObjectViewModel ho = senderButton.DataContext as HeapObjectViewModel;
 
             // Heavy operation
-            ObjectFreezeRequested(ho);
+            Task<bool> freezeToggleTask = FreezeToggleRequested?.Invoke(ho) ?? Task.FromResult(false);
 
-            // Undor temp UI changes
-            Dispatcher.Invoke(() =>
+            // Undo temp UI changes after async operation completes
+            _ = freezeToggleTask.ContinueWith(t =>
             {
-                // Revert the loading image
-                dPanel.Visibility = Visibility.Visible;
-                loadingImage.Visibility = Visibility.Collapsed;
-            });
-
-            if (ho.Frozen)
-            {
-                _remoteAppModel.Interactor.AddVar(ho);
-
                 Dispatcher.Invoke(() =>
                 {
-                    FrozenObject_AddToPlayground(ho);
+                    // Revert the loading image
+                    dPanel.Visibility = Visibility.Visible;
+                    loadingImage.Visibility = Visibility.Collapsed;
                 });
-            }
-            else
-            {
-                _remoteAppModel.Interactor.DeleteVar(ho);
 
-            }
+                if (!t.Result)
+                    return;
 
-            RefreshSearchAndWatchedListsAsync();
+                _ = RefreshSearchAndWatchedListsAsync();
+            }, TaskScheduler.Default);
         }
 
+        public Func<HeapObjectViewModel, Task<bool>> FreezeToggleRequested;
         public event Action<HeapObjectViewModel> ObjectFreezeRequested;
 
 

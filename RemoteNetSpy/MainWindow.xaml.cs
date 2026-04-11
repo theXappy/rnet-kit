@@ -366,21 +366,6 @@ namespace RemoteNetSpy
 
 
         private List<HeapObjectViewModel> _watchedInstancesList;
-        private async Task RefreshSearchAndWatchedListsAsync()
-        {
-            await Dispatcher.InvokeAsync(() =>
-            {
-                // TODO: this but in the current TypeView
-                // ICollectionView unfrozens = CollectionViewSource.GetDefaultView(_instancesList);
-                // unfrozens.Filter = (item) => (item as HeapObject).Frozen == false;
-                // heapInstancesListBox.ItemsSource = unfrozens;
-
-                var instancesListCopy = _watchedInstancesList.ToList();
-                ICollectionView frozens = CollectionViewSource.GetDefaultView(instancesListCopy);
-                frozens.Filter = (item) => (item as HeapObjectViewModel).Frozen;
-                watchedObjectsListBox.ItemsSource = frozens;
-            });
-        }
 
         private void filterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -452,15 +437,14 @@ namespace RemoteNetSpy
                     Dispatcher.Invoke(() =>
                     {
                         FrozenObject_AddToPlayground(ho);
+                        CreateNewInstanceTab(ho);
                     });
                 }
                 else
                 {
                     _remoteAppModel.Interactor.DeleteVar(ho);
-
+                    Dispatcher.Invoke(() => CloseInstanceTab(ho));
                 }
-
-                _ = RefreshSearchAndWatchedListsAsync();
             }, TaskScheduler.Default);
         }
 
@@ -638,6 +622,29 @@ namespace RemoteNetSpy
             typeView.Init(model, _remoteAppModel);
             typeView.MethodSentToPlayground += dragDropPlayground.AddMethod;
             typeView.ObjectSentToPlayground += dragDropPlayground.AddObject;
+            typeView.FreezeToggleRequested += async ho =>
+            {
+                bool success = await FreezeUnfreezeAsync(ho);
+                if (!success)
+                    return false;
+
+                if (ho.Frozen)
+                {
+                    _remoteAppModel.Interactor.AddVar(ho);
+                    Dispatcher.Invoke(() =>
+                    {
+                        FrozenObject_AddToPlayground(ho);
+                        CreateNewInstanceTab(ho);
+                    });
+                }
+                else
+                {
+                    _remoteAppModel.Interactor.DeleteVar(ho);
+                    Dispatcher.Invoke(() => CloseInstanceTab(ho));
+                }
+
+                return true;
+            };
             typeView.ObjectFreezeRequested += async ho => await TakeObjectOwnershipAsync(ho);
 
             DockPanel header = new DockPanel() 
@@ -716,6 +723,17 @@ namespace RemoteNetSpy
             instanceView.Margin = new Thickness(2); // Add consistent margin
             instanceView.Init(this, _remoteAppModel, heapObject);
             CreateNewInstanceTabWithControl(heapObject, instanceView);
+        }
+
+        public void CloseInstanceTab(HeapObjectViewModel heapObject)
+        {
+            var tabsToRemove = MyTabControl.Items.OfType<TabItem>()
+                .Where(tab => tab.Content is ObjectViewerControl viewer && viewer.GetHeapObject() == heapObject)
+                .ToList();
+            foreach (var tab in tabsToRemove)
+            {
+                MyTabControl.Items.Remove(tab);
+            }
         }
 
         public void CreateNewInstanceTabWithControl(HeapObjectViewModel heapObject, ObjectViewerControl existingControl)
