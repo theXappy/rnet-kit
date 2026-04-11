@@ -14,6 +14,8 @@ namespace RemoteNetSpy.Controls
     {
         private string _searchBuffer = string.Empty;
         private int _lastFoundIndex = -1;
+        private DateTime _lastKeyPressTime = DateTime.MinValue;
+        private const int SearchTimeoutMs = 500;
 
         static SearchableContextMenu()
         {
@@ -28,18 +30,39 @@ namespace RemoteNetSpy.Controls
                 // Convert the key to a character
                 char keyChar = e.Key.ToString().ToLower()[0];
                 
-                // If the same key is pressed, continue searching from the last found position
-                if (_searchBuffer.Length == 1 && _searchBuffer[0] == keyChar)
+                // Check if enough time has elapsed since last keypress
+                var now = DateTime.Now;
+                var elapsed = (now - _lastKeyPressTime).TotalMilliseconds;
+                _lastKeyPressTime = now;
+                
+                if (elapsed > SearchTimeoutMs || string.IsNullOrEmpty(_searchBuffer))
                 {
-                    // Same key pressed again, search for next match
-                    FindAndSelectNext(keyChar);
+                    // Timeout elapsed or first key press
+                    // Check if it's the same key - if so, continue cycling instead of resetting
+                    if (_searchBuffer.Length == 1 && _searchBuffer[0] == keyChar)
+                    {
+                        // Same key after timeout - continue cycling through matches
+                        FindAndSelectNext(_searchBuffer);
+                    }
+                    else
+                    {
+                        // Different key or first key press - start new search
+                        _searchBuffer = keyChar.ToString();
+                        _lastFoundIndex = -1;
+                        FindAndSelectNext(_searchBuffer);
+                    }
+                }
+                else if (_searchBuffer.Length == 1 && _searchBuffer[0] == keyChar)
+                {
+                    // Same single key pressed again quickly - search for next match
+                    FindAndSelectNext(_searchBuffer);
                 }
                 else
                 {
-                    // Different key or first key press
-                    _searchBuffer = keyChar.ToString();
+                    // Different key pressed within timeout - append to search buffer
+                    _searchBuffer += keyChar;
                     _lastFoundIndex = -1;
-                    FindAndSelectNext(keyChar);
+                    FindAndSelectNext(_searchBuffer);
                 }
 
                 e.Handled = true;
@@ -49,9 +72,9 @@ namespace RemoteNetSpy.Controls
             base.OnKeyDown(e);
         }
 
-        private void FindAndSelectNext(char searchChar)
+        private void FindAndSelectNext(string searchString)
         {
-            if (Items.Count == 0)
+            if (Items.Count == 0 || string.IsNullOrEmpty(searchString))
                 return;
 
             int startIndex = _lastFoundIndex + 1;
@@ -60,7 +83,7 @@ namespace RemoteNetSpy.Controls
             // This works even with virtualization since Items contains all data objects
             for (int i = startIndex; i < Items.Count; i++)
             {
-                if (DataItemStartsWith(Items[i], searchChar))
+                if (DataItemStartsWith(Items[i], searchString))
                 {
                     SelectDataItem(Items[i], i);
                     _lastFoundIndex = i;
@@ -71,7 +94,7 @@ namespace RemoteNetSpy.Controls
             // Wraparound: search from the beginning to the start position
             for (int i = 0; i < startIndex; i++)
             {
-                if (DataItemStartsWith(Items[i], searchChar))
+                if (DataItemStartsWith(Items[i], searchString))
                 {
                     SelectDataItem(Items[i], i);
                     _lastFoundIndex = i;
@@ -80,26 +103,7 @@ namespace RemoteNetSpy.Controls
             }
         }
 
-        private IEnumerable<MenuItem> GetMenuItems()
-        {
-            int foundCount = 0;
-            // When ItemsSource is bound, Items contains data objects, not MenuItems
-            // We need to get the generated MenuItem containers
-            for (int i = 0; i < Items.Count; i++)
-            {
-                var item = Items[i];
-                
-                // Try to get the container (MenuItem) for this data item
-                var container = ItemContainerGenerator.ContainerFromItem(item) as MenuItem;
-                if (container != null)
-                {
-                    foundCount++;
-                    yield return container;
-                }
-            }
-        }
-
-        private bool DataItemStartsWith(object dataItem, char searchChar)
+        private bool DataItemStartsWith(object dataItem, string searchString)
         {
             string name = null;
             
@@ -113,10 +117,10 @@ namespace RemoteNetSpy.Controls
                 name = dataItem?.ToString();
             }
             
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(searchString))
                 return false;
 
-            return char.ToLower(name[0]) == char.ToLower(searchChar);
+            return name.StartsWith(searchString, StringComparison.OrdinalIgnoreCase);
         }
 
         private void SelectDataItem(object dataItem, int index)
